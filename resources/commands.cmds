@@ -1,0 +1,12 @@
+
+on:Turns on an insteon light for a given address:on <adr: xx yy zz>
+	02 62 $0 $1 $2 0F 11 FF
+off:Turns off an insteon light for a given address:off <adr: xx yy zz>
+	02 62 $0 $1 $2 0F 13 FF
+
+get_first::
+	02 69
+get_next::
+	02 6A
+find_first_lr::
+	02 6F 00 00 $0 $1 $2 $3 00 00 00
