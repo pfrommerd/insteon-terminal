@@ -6,4 +6,5 @@ import java.io.PrintStream;
 public interface Console {
 	public InputStream in();
 	public PrintStream out();
+	public PrintStream err();
 }

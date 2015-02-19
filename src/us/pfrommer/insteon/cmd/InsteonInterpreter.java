@@ -1,49 +1,75 @@
 package us.pfrommer.insteon.cmd;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.math.BigInteger;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map.Entry;
-import java.util.regex.Pattern;
+import java.util.HashSet;
 
-import us.pfrommer.insteon.cmd.Command.HelpCommand;
-import us.pfrommer.insteon.cmd.Command.ListCommands;
-import us.pfrommer.insteon.cmd.Command.LoadCommand;
-import us.pfrommer.insteon.cmd.hub.HubConnectCommand;
-import us.pfrommer.insteon.cmd.serial.SerialConnectCommand;
+import org.python.util.PythonInterpreter;
 
-public class InsteonInterpreter implements Runnable, PortListener {
+import us.pfrommer.insteon.cmd.msg.InsteonAddress;
+import us.pfrommer.insteon.cmd.msg.Msg;
+import us.pfrommer.insteon.cmd.msg.MsgListener;
+import us.pfrommer.insteon.cmd.utils.Utils;
+
+public class InsteonInterpreter implements PortListener {
+	private HashMap<String, InsteonAddress>  m_deviceMap = new HashMap<String, InsteonAddress>();
+	private HashMap<InsteonAddress, String> m_addressMap = new HashMap<InsteonAddress, String>();
+	
+	
+	private PythonInterpreter m_interpreter;
+	
 	private IOPort m_port;
+	private Msg m_lastMsg;
+	
 	private Console m_console;
 	
-	private HashMap<String, String> m_variables = new HashMap<String, String>();
-	private HashMap<String, Command> m_commands = new LinkedHashMap<String, Command>();
+	private HashSet<MsgListener> m_listeners = new HashSet<MsgListener>();
 	
 	public InsteonInterpreter(Console c) {
 		m_console = c;
+
+		out().println("Insteon Terminal");
 		
-		//Add default commands
-		addCommand(new ListCommands());
-		addCommand(new HelpCommand());
-		addCommand(new LoadCommand());
-		addCommand(new HubConnectCommand());
-		addCommand(new SerialConnectCommand());
+		m_interpreter = new PythonInterpreter();
+		
+		m_interpreter.setOut(out());
+		m_interpreter.setIn(in());
+		m_interpreter.setErr(err());
+		
+		m_interpreter.set("insteon", this);
+		
 		try {
-			InputStream in = InsteonInterpreter.class.getResourceAsStream("/commands.cmds");
-			addCommands(CommandsLoader.s_loadCommands(in));
-		} catch (Exception e) { e.printStackTrace(); }
-		
-		out().println("Insteon Command Shell initialized...waiting for commands");
+			//Load the built in commands
+			loadCommands(InsteonInterpreter.class.getResourceAsStream("/defaultCommands.py"));
+			//Load the startup commands
+			File startup = new File("init.py");
+			if (startup.exists()) {
+				loadCommands(startup);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
-	public Collection<Command> getCommands() { return m_commands.values(); }
-	public Command getCommand(String cmd) { return m_commands.get(cmd); }
+	public InputStream in() { return m_console.in(); }
+	public PrintStream out() { return m_console.out(); }
+	public PrintStream err() { return m_console.err(); }
+	
+	public void addListener(MsgListener l) {
+		synchronized(m_listeners) {
+			m_listeners.add(l);
+		}
+	}
+	public void removeListener(MsgListener l) {
+		synchronized(m_listeners) {
+			m_listeners.remove(l);
+		}	
+	}
 	
 	public void setPort(IOPort p) {
 		if (m_port != null) {
@@ -62,74 +88,38 @@ public class InsteonInterpreter implements Runnable, PortListener {
 		}
 		m_port.addListener(this);
 	}
-		
-	public InputStream in() { return m_console.in(); }
-	public PrintStream out() { return m_console.out(); }
-	public PrintStream err() { return m_console.out(); }
 	
-	public void addCommand(Command cmd) {
-		m_commands.put(cmd.getCmd(), cmd);
-	}
-	public void addCommands(Collection<? extends Command> cmds) {
-		for (Command c : cmds) {
-			addCommand(c);
-		}
-	}
+	//Device functions
 	
-	public void setVariable(String var, String val) {
-		m_variables.put(var, val);
+	public void setDevice(String name, InsteonAddress adr) {
+		m_deviceMap.put(name, adr);
+		m_addressMap.put(adr, name);
+	}
+	public void removeDevice(String name) {
+		InsteonAddress adr = m_deviceMap.get(name);
+		m_deviceMap.remove(name);
+		if (adr != null) m_addressMap.remove(name);
 	}
 	
-	@Override
-	public void bytesReceived(byte[] bytes) {
-		out().println("IN: " + s_bytesToHex(bytes, 0, bytes.length));
+	public String getDeviceName(InsteonAddress adr) {
+		return m_addressMap.get(adr);
+	}
+	public InsteonAddress getDeviceAddress(String name) {
+		return m_deviceMap.get(name);
 	}
 	
-	public void write(byte[] msg) {
-		if (msg.length > 0) {
-			if (m_port != null) {
-				out().println("OUT: " + s_bytesToHex(msg, 0, msg.length));
-				m_port.write(msg);
-			} else out().println("Cannot send bytes because no port set");
-		}
-	}
+	//Interpreter functions
 	
-	public void exec(String line) {
-		//If there are no equals signs, substitute variables
-		if (line.indexOf('=') < 0) {
-			//Substitute variables
-			for (Entry<String, String> var : m_variables.entrySet()) {
-				line = line.replaceAll(Pattern.quote(var.getKey()), var.getValue());
-			}
-		}
-		
-		String[] parts = line.split("\\s+");
-		String[] args = new String[parts.length - 1]; 
-		System.arraycopy(parts, 1, args, 0, args.length);
-		
-		String cmd = parts[0];
-		if (m_commands.containsKey(cmd)) {
-			m_commands.get(cmd).exec(this, args);
-		} else if (line.contains("=")) {
-			String varName = line.substring(0, line.indexOf('=')).trim();
-			if (varName.indexOf(' ') >= 0) {
-				err().println("Cannot have space in variable name " + varName);;
-				return;
-			}
-			String val = "";
-			if (line.length() > line.indexOf('='))
-				val = line.substring(line.indexOf('=') + 1).trim();
-			setVariable(varName, val);
-			out().println("Setting " + varName + " to " + val);
-		} else if (!line.equals("")) {
-			write(hexStringToByteArray(line.replaceAll("\\s+", "")));
-		}
+	public void exec(String s) {
+		m_interpreter.exec(s);
 	}
 	
 	public void run() {
 		try{
 			BufferedReader br = new BufferedReader(new InputStreamReader(in()));
-	 
+			
+			out().print(">> ");
+			
 			String line;
 			while((line = br.readLine()) != null) {
 				try {
@@ -137,42 +127,87 @@ public class InsteonInterpreter implements Runnable, PortListener {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
+				out().print(">> ");
 			}
 		} catch(IOException io){
 			io.printStackTrace();
 		}
 	}
+	public void loadCommands(InputStream in) throws IOException {		
+		String s = Utils.read(in);
+		exec(s);
+	}
+	public void loadCommands(String s) throws IOException {
+		loadCommands(new File(s));
+	}
+	public void loadCommands(File file) throws IOException {
+		String s = Utils.readFile(file);
+		exec(s);
+	}
 	
-	public byte[] hexStringToByteArray(String s) {
-		try {
-			if (s.equals("")) return new byte[0];
-			return new BigInteger(s, 16).toByteArray();
-		} catch (NumberFormatException e) {
-			err().println("Must be hex input!");
-			return new byte[0];
+	//All the shorthand read-write methods
+	
+	/**
+	 * Will block, waiting for the next Msg
+	 */
+	public Msg readMsg() {
+		if (m_port == null) {
+			err().println("Not connected");
+			return null;
+		}
+		synchronized(this) {
+			try {
+				wait();
+			} catch (InterruptedException e) {}
+			return m_lastMsg;
 		}
 	}
 	
-	public static String s_bytesToHex(byte[] bytes, int off, int len) {
-		StringBuilder b = new StringBuilder();
-		for (int i = off; i < len; i++) {
-			if (i != 0) b.append(' ');
-			b.append(String.format("%02x", bytes[i]));
-		}
-		return b.toString();
+	public void writeHex(String hex) {
+		hex = hex.replaceAll("\\s+", "");
+		//Convert the string to a byte array
+	    int len = hex.length();
+	    byte[] data = new byte[len / 2];
+	    for (int i = 0; i < len; i += 2) {
+	        data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+	                             + Character.digit(hex.charAt(i+1), 16));
+	    }
+	    
+	    //write data
+	    write(data);
 	}
-	public static byte[] s_parseInsteonAdr(String adr) {
-		byte[] b = new byte[3];
-		if (adr.contains(".")) {
-			String[] prts = adr.split("\\.");
-			b[0] = (byte) Integer.parseInt(prts[0], 16);
-			b[1] = (byte) Integer.parseInt(prts[1], 16);
-			b[2] = (byte) Integer.parseInt(prts[2], 16);
-		} else {
-			b[0] = (byte) Integer.parseInt(adr.substring(0, 2), 16);
-			b[1] = (byte) Integer.parseInt(adr.substring(2, 4), 16);
-			b[2] = (byte) Integer.parseInt(adr.substring(4, 6), 16);
+	
+	public void write(byte[] bytes) {
+		if (m_port == null) {
+			err().println("Not connected");
+			return;
 		}
-		return b;
+		m_port.write(bytes);
+	}
+	
+	public void writeMsg(Msg m) {
+		if (m_port == null) {
+			err().println("Not connected");
+			return;
+		}
+		m_port.write(m);
+	}
+	
+	//Port listener functions
+	
+	
+	@Override
+	public void bytesReceived(byte[] bytes) {}
+	
+	@Override
+	public void msgReceived(Msg msg) {
+		synchronized(m_listeners) {
+			for (MsgListener l : m_listeners) l.msgReceived(msg); 
+		}
+		//Notify current blocking readMsg();
+		synchronized(this) {
+			notifyAll();
+			m_lastMsg = msg;
+		}
 	}
 }

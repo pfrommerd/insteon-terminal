@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import us.pfrommer.insteon.cmd.msg.Msg;
+import us.pfrommer.insteon.cmd.msg.MsgReader;
+
 public class IOPort {
 	private IOStream m_stream;
 	
@@ -16,7 +19,10 @@ public class IOPort {
 	private Thread m_writeThread;
 	
 	private BlockingQueue<byte[]> m_writeQueue = new LinkedBlockingQueue<byte[]>();
+	
 	private HashSet<PortListener> m_listeners = new HashSet<PortListener>();
+	
+	private MsgReader m_msgReader = new MsgReader();
 	
 	public IOPort(IOStream s) {
 		m_stream = s;
@@ -68,8 +74,16 @@ public class IOPort {
 		if (m_stream.isOpen()) m_stream.close();
 	}
 	
+	public void write(Msg msg) {
+		synchronized(m_writeQueue) {
+			m_writeQueue.add(msg.getData());
+		}
+	}
+	
 	public void write(byte[] buf) {
-		m_writeQueue.add(buf);
+		synchronized(m_writeQueue) {
+			m_writeQueue.add(buf);
+		}
 	}
 	
 	public class ByteWriter implements Runnable {
@@ -107,6 +121,15 @@ public class IOPort {
 						synchronized(m_listeners) {
 							for (PortListener l : m_listeners)
 								l.bytesReceived(bytes);
+						}
+						m_msgReader.addData(bytes, bytes.length);
+						
+						Msg msg = null;
+						while ((msg = m_msgReader.processData()) != null) {
+							synchronized(m_listeners) {
+								for (PortListener l : m_listeners)
+									l.msgReceived(msg);
+							}
 						}
 					}
 				}

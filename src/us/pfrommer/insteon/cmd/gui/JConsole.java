@@ -46,4 +46,8 @@ public class JConsole extends JFrame implements Console {
 	public PrintStream out() {
 		return m_out;
 	}
+	@Override
+	public PrintStream err() {
+		return m_out;
+	}
 }
