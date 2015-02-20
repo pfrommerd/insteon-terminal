@@ -39,9 +39,14 @@ public class Msg {
 		private String m_directionString;
 		
 		static {
-			s_map.put(TO_MODEM.getDirectionString(), TO_MODEM);
-			s_map.put(FROM_MODEM.getDirectionString(), FROM_MODEM);
+			try {
+				s_map.put(TO_MODEM.getDirectionString(), TO_MODEM);
+				s_map.put(FROM_MODEM.getDirectionString(), FROM_MODEM);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
+		
 		Direction(String dirString) {
 			m_directionString = dirString;
 		}
@@ -101,15 +106,19 @@ public class Msg {
 			} else {
 				logger.error("could not get message definition resource!");
 			}
+
+			s_buildHeaderMap();
+			s_buildLengthMap();
+
 		} catch (IOException e) {
 			logger.error("i/o error parsing xml insteon message definitions", e);
 		} catch (ParsingException e) {
 			logger.error("parse error parsing xml insteon message definitions", e);
 		} catch (FieldException e) {
 			logger.error("got field exception while parsing xml insteon message definitions", e);
+		} catch (Exception e) {
+			logger.error("got exeception", e);
 		}
-		s_buildHeaderMap();
-		s_buildLengthMap();
 	}
 	
 

@@ -43,17 +43,17 @@ import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.PipedReader;
+import java.io.PipedWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.util.ArrayList;
-import java.util.Formatter;
 import java.util.HashSet;
+import java.util.Scanner;
 
-import javax.swing.JComponent;
+import javax.swing.JPanel;
 
 import us.pfrommer.insteon.cmd.Console;
 
@@ -68,7 +68,7 @@ import us.pfrommer.insteon.cmd.Console;
   	Improvements by: Daniel Leuck
 		including Color and Image support, key press bug workaround
 */
-public class JConsole extends JComponent
+public class JConsole extends JPanel
 	implements Console, KeyListener {
 	private static final long serialVersionUID = 1L;
 	
@@ -84,21 +84,26 @@ public class JConsole extends JComponent
 
 	private HashSet<JConsoleListener> m_listeners = new HashSet<JConsoleListener>();
 	
+	private Scanner m_scanner;
+	
 	private Font m_font;
 	
-	private Color m_foreground = Color.BLACK;
-	private Color m_background = Color.WHITE;
+	private Color m_foreground = Color.WHITE;
+	private Color m_background = Color.BLACK;
 	
 	private Dimension m_preferredSize = new Dimension(10, 10);
 	private boolean m_cursorVisible = true;
 	
 	public JConsole(Font f) {
 		m_font = f;
+		m_scanner = new Scanner(in());
 		
 		addKeyListener(this);
 		
 		setFocusable(true);
 		requestFocus();
+		
+		setBackground(m_background);
 	}
 	
 	public void addListener(JConsoleListener l) {
@@ -121,15 +126,13 @@ public class JConsole extends JComponent
 
 	@Override
 	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		
 		Graphics2D g2d = (Graphics2D) g;
-		
-		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-							 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		
-		
-		//Fill the background
-		g2d.setColor(m_background);
-		g2d.fillRect(0, 0, getWidth(), getHeight());
+
+		g2d.setRenderingHint(
+		        RenderingHints.KEY_TEXT_ANTIALIASING,
+		        RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
 		
 		//Draw the text
 		g2d.setColor(m_foreground);
@@ -263,7 +266,7 @@ public class JConsole extends JComponent
 	}
 
 	@Override
-	public InputStream in() {
+	public Reader in() {
 		return m_in;
 	}
 
@@ -278,6 +281,17 @@ public class JConsole extends JComponent
 	}
 	
 	@Override
+	public String readLine() {
+		return m_scanner.nextLine();
+	}
+	
+	@Override
+	public String readLine(String prompt) {
+		out().print(prompt);
+		return m_scanner.nextLine();
+	}
+	
+	@Override
 	public void clear() {
 		m_text = new StringBuilder();
 		repaint();
@@ -285,7 +299,7 @@ public class JConsole extends JComponent
 
 	@Override
 	public void reset() {
-		repaint();
+		clear();
 		//Will clear the screen
 		//and wipe the history
 		m_history.clear();
@@ -297,16 +311,16 @@ public class JConsole extends JComponent
 	}
 	
 
-	public class ConsoleStream extends InputStream {
-		PipedOutputStream m_output = new PipedOutputStream();
-		InputStream m_in;
+	public class ConsoleStream extends Reader {
+		PipedWriter m_writer = new PipedWriter();
+		PipedReader m_reader;
 		
 		StringBuilder m_currentLine = new StringBuilder();
 		String m_preview;
 
 		public ConsoleStream() {
 			try {
-				m_in = new PipedInputStream(m_output);
+				m_reader = new PipedReader(m_writer);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -374,12 +388,12 @@ public class JConsole extends JComponent
 		}
 
 		public void flushToQueue() {
-			PrintWriter writer = new PrintWriter(m_output);
+			PrintWriter writer = new PrintWriter(m_writer);
 			writer.write(getLine());
-			writer.write('\n');
+			writer.write("\n");
 			writer.flush();
 			try {
-				m_output.flush();
+				m_writer.flush();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -421,21 +435,19 @@ public class JConsole extends JComponent
 				return getLine();
 		}
 
-		public int read() throws IOException {
-			int read = m_in.read();
-			return read;
-		}
-
-
 		// Do nothing
 		@Override
 		public void close() throws IOException {
 		}
+
+		@Override
+		public int read(char[] cbuf, int off, int len) throws IOException {
+			return m_reader.read(cbuf, off, len);
+		}
+
 	}
 	
 	public class ConsolePrintStream extends PrintStream {
-		private Formatter m_formatter;
-
 		public ConsolePrintStream() {
 			//Forget about this, we overwrite all the necessary methods
 			super(new OutputStream() {

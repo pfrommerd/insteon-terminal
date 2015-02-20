@@ -1,10 +1,14 @@
 package us.pfrommer.insteon.cmd;
 
-import java.io.InputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Reader;
 
 public interface Console {
-	public InputStream in();
+	public String readLine() throws IOException;
+	public String readLine(String prompt) throws IOException;
+	
+	public Reader in();
 	public PrintStream out();
 	public PrintStream err();
 	

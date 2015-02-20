@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -66,7 +67,7 @@ public class InsteonInterpreter implements PortListener {
 	public PythonInterpreter getInterpreter() { return m_interpreter; }
 	public Console getConsole() { return m_console; }
 	
-	public InputStream in() { return m_console.in(); }
+	public Reader in() { return m_console.in(); }
 	public PrintStream out() { return m_console.out(); }
 	public PrintStream err() { return m_console.err(); }
 	
@@ -145,47 +146,41 @@ public class InsteonInterpreter implements PortListener {
 		});
 		
 		for (PyFunction f : funcs) {
-			out().println(f.__name__ + " - " + f.__doc__.toString().trim());
+			String doc =  f.__doc__.toString().trim();
+			if (doc.equals("None")) doc = "No doc";
+			
+			out().println(f.__name__ + " - " + doc);
 		}
 	}
 	
 	public void run() {
 		try{
-			//BufferedReader br = new BufferedReader(new InputStreamReader(in()));
-			
-			out().print(">>> ");
-			
-			StringBuilder lineBuilder = new StringBuilder();
 			while(true) {
-				int c = in().read();
-				if (c == '\n') {
-					String line = lineBuilder.toString();
-					lineBuilder = new StringBuilder();
-					try {
-						if (line.trim().equals("help")) {
-							out().println("Use help()");
-						} else if (line.trim().equals("quit")) {
-							out().println("Use quit()");
-						} else if (line.trim().equals("clear")) {
-							out().println("Use clear()");
-						} else if (line.trim().equals("reset")) {
-							out().println("Use reset()");
-						} else if (line.equals("?")) {
-							dumpFuncs();
-						} else exec(line);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					out().print(">>> ");
-				} else {
-					lineBuilder.append((char) c);
+				String line = m_console.readLine(">>> ");
+				try {
+					if (line.trim().equals("help")) {
+						out().println("Use help()");
+					} else if (line.trim().equals("exit")) {
+						out().println("Use exit()");
+					} else if (line.trim().equals("quit")) {
+						out().println("Use quit()");
+					} else if (line.trim().equals("clear")) {
+						out().println("Use clear()");
+					} else if (line.trim().equals("reset")) {
+						out().println("Use reset()");
+					} else if (line.equals("?")) {
+						dumpFuncs();
+					} else exec(line);
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
+
 			}
 		} catch(IOException io){
 			io.printStackTrace();
 		}
 	}
-	public void loadCommands(InputStream in) throws IOException {		
+	public void loadCommands(InputStream in) throws IOException {
 		String s = Utils.read(in);
 		exec(s);
 	}
