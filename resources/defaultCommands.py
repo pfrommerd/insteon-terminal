@@ -53,6 +53,9 @@ def reset():
 def quit():
 	System.exit(0)
 
+def exit():
+	quit()
+
 # device-related functions
 
 def setDev(name, adr):

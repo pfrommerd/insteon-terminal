@@ -112,6 +112,12 @@ public class JConsole extends JComponent
 			m_listeners.remove(l);
 		}
 	}
+	
+	public String getHistory(int ago) {
+		if (ago > -1 && ago < m_history.size()) return m_history.get(ago);
+		else if (ago >= m_history.size()) return "";
+		else return m_in.getLine();
+	}
 
 	@Override
 	public void paintComponent(Graphics g) {
@@ -228,8 +234,12 @@ public class JConsole extends JComponent
 	
 	@Override
 	public void keyTyped(KeyEvent e) {
-		if (e.getKeyChar() == '\b') return;
+		//Check to make sure the character is valid before typing it
+		if ((e.getKeyChar() < 32 || e.getKeyChar() > 126) && e.getKeyChar() != '\n') return;
+		//Type it!
 		m_in.characterTyped(e.getKeyChar());
+		
+		//Don't forget to repaint
 		repaint();
 	}
 
@@ -239,6 +249,8 @@ public class JConsole extends JComponent
 		case KeyEvent.VK_BACK_SPACE: m_in.backspace(); break;
 		case KeyEvent.VK_LEFT : m_in.left(); break;
 		case KeyEvent.VK_RIGHT : m_in.right(); break;
+		case KeyEvent.VK_UP : m_in.up(); break;
+		case KeyEvent.VK_DOWN : m_in.down(); break;
 		default: break;
 		}
 		
@@ -307,7 +319,17 @@ public class JConsole extends JComponent
 		public void right() {
 			if (m_cursorIndex < getTextBuff().length()) m_cursorIndex++;
 		}
+		
+		public void up() {
+			if (m_historyIndex < m_history.size() && m_history.size() > 0)
+					previewLine(getHistory(++m_historyIndex));
+		}
 
+		public void down() {
+			if (m_historyIndex > -1)
+					previewLine(getHistory(--m_historyIndex));
+		}
+		
 		public void backspace() {
 			//If we are previewing a line in our history
 			//set that line to the current line
@@ -316,6 +338,14 @@ public class JConsole extends JComponent
 			if (m_currentLine.length() != 0) {
 				m_currentLine.deleteCharAt(m_cursorIndex - 1);
 				m_cursorIndex--;
+			}
+		}
+		
+		public void delete() {
+			setToPreview();
+			
+			if (m_currentLine.length() != 0 && m_cursorIndex < m_currentLine.length()) {
+				m_currentLine.deleteCharAt(m_cursorIndex);
 			}
 		}
 
