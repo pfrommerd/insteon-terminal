@@ -55,6 +55,7 @@ public class GUI extends JFrame {
 		pane.setBorder(null);
 		pane.getVerticalScrollBar().setUnitIncrement(16);
 		
+		//m_console = new JConsole(new Font("Courier New", Font.PLAIN, 15));
 		m_console = new JConsole(new Font(Font.MONOSPACED, Font.PLAIN, 14));
 		
 		m_console.addListener(new JConsoleListener() {

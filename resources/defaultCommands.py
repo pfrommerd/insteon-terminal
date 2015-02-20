@@ -75,6 +75,9 @@ def connectToHub(adr, port, pollMillis, user, password):
 def connectToSerial(dev):
 	insteon.setPort(IOPort(SerialIOStream(dev)))
 
+def disconnect():
+	insteon.setPort(None)
+
 def writeMsg(msg):
 	insteon.writeMsg(msg)
 
@@ -161,6 +164,9 @@ class ModemDBDumper(MsgListener):
                         writeMsg(Msg.s_makeMessage("GetNextALLLinkRecord"))
 
 def dumpLinkDB():
+	if insteon.isConnected() is not True:
+                err("Not connected!");
+                return;
         out("Starting Modem Link DB");
         dumper = ModemDBDumper()
         dumper.start()

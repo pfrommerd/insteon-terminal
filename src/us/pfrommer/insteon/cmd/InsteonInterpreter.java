@@ -71,6 +71,8 @@ public class InsteonInterpreter implements PortListener {
 	public PrintStream out() { return m_console.out(); }
 	public PrintStream err() { return m_console.err(); }
 	
+	public boolean isConnected() { return m_port != null; }
+	
 	public void addListener(MsgListener l) {
 		synchronized(m_listeners) {
 			m_listeners.add(l);
@@ -92,12 +94,14 @@ public class InsteonInterpreter implements PortListener {
 			}
 		}
 		m_port = p;
-		try {
-			m_port.open();
-		} catch (IOException e) {
-			e.printStackTrace();
+		if (m_port != null) {
+			try {
+				m_port.open();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			m_port.addListener(this);
 		}
-		m_port.addListener(this);
 	}
 	
 	//Device functions
