@@ -9,6 +9,15 @@ public class Terminal implements Console {
 	public PrintStream out() { return System.out; }
 	public PrintStream err() { return System.err; }
 	
+	@Override
+	public void clear() {
+		
+	}
+	@Override
+	public void reset() {
+		
+	}
+	
 	public static void main(String[] args) throws IOException {
 		InsteonInterpreter i = new InsteonInterpreter(new Terminal());
 		i.run();

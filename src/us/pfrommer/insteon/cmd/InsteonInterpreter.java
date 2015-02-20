@@ -1,14 +1,18 @@
 package us.pfrommer.insteon.cmd;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
+import org.python.core.PyFunction;
+import org.python.core.PyStringMap;
 import org.python.util.PythonInterpreter;
 
 import us.pfrommer.insteon.cmd.msg.InsteonAddress;
@@ -32,14 +36,17 @@ public class InsteonInterpreter implements PortListener {
 	
 	public InsteonInterpreter(Console c) {
 		m_console = c;
-
-		out().println("Insteon Terminal");
-		
+		init();
+	}
+	
+	public void init() {
 		m_interpreter = new PythonInterpreter();
-		
+
 		m_interpreter.setOut(out());
 		m_interpreter.setIn(in());
 		m_interpreter.setErr(err());
+		
+		out().println("Insteon Terminal");
 		
 		m_interpreter.set("insteon", this);
 		
@@ -55,6 +62,9 @@ public class InsteonInterpreter implements PortListener {
 			e.printStackTrace();
 		}
 	}
+	
+	public PythonInterpreter getInterpreter() { return m_interpreter; }
+	public Console getConsole() { return m_console; }
 	
 	public InputStream in() { return m_console.in(); }
 	public PrintStream out() { return m_console.out(); }
@@ -107,27 +117,69 @@ public class InsteonInterpreter implements PortListener {
 	public InsteonAddress getDeviceAddress(String name) {
 		return m_deviceMap.get(name);
 	}
-	
 	//Interpreter functions
 	
 	public void exec(String s) {
 		m_interpreter.exec(s);
 	}
 	
+	private void dumpFuncs() {
+		//Dump all the available functions
+		out().println("----All available functions---");
+		
+		List<PyFunction> funcs = new ArrayList<PyFunction>();
+		
+		PyStringMap dict = (PyStringMap) m_interpreter.getLocals();
+		for (Object o : dict.values()) {
+			if (o instanceof PyFunction) {
+				PyFunction f = (PyFunction) o;
+				funcs.add(f);
+			}
+		}
+		//Order them alphabetically
+		Collections.sort(funcs, new Comparator<PyFunction>() {
+			@Override
+			public int compare(PyFunction f1, PyFunction f2) {
+				return f1.__name__.compareTo(f2.__name__);
+			}
+		});
+		
+		for (PyFunction f : funcs) {
+			out().println(f.__name__ + " - " + f.__doc__.toString().trim());
+		}
+	}
+	
 	public void run() {
 		try{
-			BufferedReader br = new BufferedReader(new InputStreamReader(in()));
+			//BufferedReader br = new BufferedReader(new InputStreamReader(in()));
 			
-			out().print(">> ");
+			out().print(">>> ");
 			
-			String line;
-			while((line = br.readLine()) != null) {
-				try {
-					exec(line);
-				} catch (Exception e) {
-					e.printStackTrace();
+			StringBuilder lineBuilder = new StringBuilder();
+			while(true) {
+				int c = in().read();
+				if (c == '\n') {
+					String line = lineBuilder.toString();
+					lineBuilder = new StringBuilder();
+					try {
+						if (line.trim().equals("help")) {
+							out().println("Use help()");
+						} else if (line.trim().equals("quit")) {
+							out().println("Use quit()");
+						} else if (line.trim().equals("clear")) {
+							out().println("Use clear()");
+						} else if (line.trim().equals("reset")) {
+							out().println("Use reset()");
+						} else if (line.equals("?")) {
+							dumpFuncs();
+						} else exec(line);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					out().print(">>> ");
+				} else {
+					lineBuilder.append((char) c);
 				}
-				out().print(">> ");
 			}
 		} catch(IOException io){
 			io.printStackTrace();
@@ -194,8 +246,6 @@ public class InsteonInterpreter implements PortListener {
 	}
 	
 	//Port listener functions
-	
-	
 	@Override
 	public void bytesReceived(byte[] bytes) {}
 	
@@ -204,6 +254,7 @@ public class InsteonInterpreter implements PortListener {
 		synchronized(m_listeners) {
 			for (MsgListener l : m_listeners) l.msgReceived(msg); 
 		}
+		
 		//Notify current blocking readMsg();
 		synchronized(this) {
 			notifyAll();

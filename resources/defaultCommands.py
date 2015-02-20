@@ -1,4 +1,5 @@
 from java.io import File
+from java.lang import System
 
 from us.pfrommer.insteon.cmd.hub import HubStream
 from us.pfrommer.insteon.cmd.serial import SerialIOStream
@@ -16,10 +17,13 @@ from threading import Condition
 
 # a buch of helper functions
 
-def err(msg):
+def err(msg = ""):
+	"""
+	prints to std err the value of msg and a newline character
+	"""
 	insteon.err().println(msg)
 	
-def out(msg):
+def out(msg = ""):
 	insteon.out().println(msg)
 
 def load(filename):
@@ -28,9 +32,30 @@ def load(filename):
 	else:
 		err("File " + filename + "does not exist");
 
+def help(obj = None):
+	if obj is not None :
+		if obj.__doc__ is not None :
+			out(obj.__doc__.strip())
+		else :
+			out("No documentation for \"" + obj.__name__ + "\"")
+	else :
+		out("-------Welcome to Insteon Shell-------")
+		out("to get a list of available functions, type '?'")
+		out("to get the doc of a function, type help(funcName)")
+		out("to quit, type 'quit()'")
+
+def clear():
+	insteon.getConsole().clear()
+	
+def reset():
+	insteon.getConsole().reset()
+
+def quit():
+	System.exit(0)
+
 # device-related functions
 
-def setDevice(name, adr):
+def setDev(name, adr):
         insteon.setDevice(name, adr)
 
 def getDevAddress(name):
@@ -72,8 +97,8 @@ def createStdMsg(adr, flags, cmd1, cmd2, group):
 	
 # basic insteon commands
 
-def on(devName):
-        on(getDevAddress(devName))
+def on(devName, level = 0xFF):
+        on(getDevAddress(devName), level)
 
 def on(adr, level = 0xFF):
         writeMsg(createStdMsg(adr, 0x0F, 0x11, level, -1))

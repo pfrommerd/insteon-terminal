@@ -7,4 +7,7 @@ public interface Console {
 	public InputStream in();
 	public PrintStream out();
 	public PrintStream err();
+	
+	public void clear();
+	public void reset();
 }
