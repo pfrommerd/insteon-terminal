@@ -3,6 +3,8 @@ package us.pfrommer.insteon.cmd.gui;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.IOException;
 
 import javax.swing.AbstractAction;
@@ -46,6 +48,7 @@ public class GUI extends JFrame {
 			}
 		};
 	
+
 		ActionMap am = pane.getActionMap();
 		am.put("unitScrollUp", nothing);
 		am.put("unitScrollDown", nothing);
@@ -76,7 +79,27 @@ public class GUI extends JFrame {
 		
 		getContentPane().add(pane); 
 		
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		addWindowListener(new WindowListener() {
+			@Override
+			public void windowOpened(WindowEvent e) {}
+			@Override
+			public void windowClosing(WindowEvent e) {}
+			@Override
+			public void windowClosed(WindowEvent e) {
+				System.exit(0);
+			}
+			@Override
+			public void windowIconified(WindowEvent e) {}
+			@Override
+			public void windowDeiconified(WindowEvent e) {}
+
+			@Override
+			public void windowActivated(WindowEvent e) {}
+
+			@Override
+			public void windowDeactivated(WindowEvent e) {}
+		});
+
 		
 		setTitle("Insteon Terminal");
 		setSize(500, 500);

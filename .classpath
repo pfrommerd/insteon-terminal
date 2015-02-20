@@ -21,5 +21,6 @@
 	<classpathentry kind="lib" path="lib/jython-standalone-2.7-b1.jar"/>
 	<classpathentry kind="lib" path="lib/logger/logback-access-1.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/logger/logback-classic-1.1.2.jar"/>
+	<classpathentry kind="lib" path="lib/RXTXcomm.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

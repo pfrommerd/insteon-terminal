@@ -153,7 +153,7 @@ public class InsteonInterpreter implements PortListener {
 			String doc =  f.__doc__.toString().trim();
 			if (doc.equals("None")) doc = "No doc";
 			
-			out().println(f.__name__ + " - " + doc);
+			out().println(f.__name__ + "() - " + doc);
 		}
 	}
 	

@@ -1,0 +1,65 @@
+<project>
+    <property name="src.dir"             value="src"/>
+    <property name="bin.dir"             value="bin"/>
+    <property name="resources.dir"       value="resources"/>
+
+    <property name="jars.dir"            value="build/jars"/>
+
+    <property name="libs.dir"            value="lib"/>
+
+    <property name="terminal-main.class" value="us.pfrommer.insteon.cmd.terminal.Terminal"/>
+    <property name="gui-main.class"      value="us.pfrommer.insteon.cmd.gui.GUI"/>
+    <property name="jline-main.class"    value="us.pfrommer.insteon.cmd.terminal.JLineTerminal"/>
+
+    <path id="master-classpath">
+      <fileset dir="${libs.dir}">
+	<include name="*.jar"/>
+      </fileset>
+
+      <fileset dir="${libs.dir}/hub">
+	<include name="*.jar"/>
+      </fileset>
+
+      <fileset dir="${libs.dir}/logger">
+	<include name="*.jar"/>
+      </fileset>
+    </path>
+
+    <!-- Targets -->
+
+
+    <target name="clean">
+      <delete dir="${bin.dir}"/>
+    </target>
+
+    <target name="compile">
+      <mkdir dir="${bin.dir}"/>
+
+      <copy todir="${bin.dir}">
+        <fileset dir="${resources.dir}" includes="**"/>  
+      </copy>
+
+      <javac srcdir="${src.dir}" destdir="${bin.dir}">
+	<classpath refid="master-classpath"/>
+      </javac>
+    </target>
+
+    <target name="jar">
+      <mkdir dir="${jars.dir}"/>
+      <jar destfile="${jars.dir}/insteon-terminal.jar">
+	<manifest>
+          <attribute name="Main-Class" value="${jline-main.class}"/>
+        </manifest>
+      </jar>
+    </target>
+
+    <target name="run">
+      <java classname="${gui-main.class}" fork="true">
+	<classpath>
+	  <path location="${bin.dir}"/>
+	  <path refid="master-classpath"/>
+	</classpath>
+      </java>
+    </target>
+
+</project>
