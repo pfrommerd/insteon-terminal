@@ -88,8 +88,8 @@ public class JConsole extends JPanel
 	
 	private Font m_font;
 	
-	private Color m_foreground = Color.WHITE;
-	private Color m_background = Color.BLACK;
+	private Color m_foreground = Color.BLACK;
+	private Color m_background = Color.WHITE;
 	
 	private Dimension m_preferredSize = new Dimension(10, 10);
 	private boolean m_cursorVisible = true;

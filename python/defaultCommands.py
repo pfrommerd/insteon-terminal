@@ -1,4 +1,3 @@
-from java.io import File
 from java.lang import System
 
 from us.pfrommer.insteon.cmd.hub import HubStream
@@ -7,6 +6,7 @@ from us.pfrommer.insteon.cmd.serial import SerialIOStream
 from us.pfrommer.insteon.cmd import IOPort
 
 from us.pfrommer.insteon.cmd.utils import Utils
+from us.pfrommer.insteon.cmd.utils.Resource import FileResource
 
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
@@ -27,10 +27,14 @@ def out(msg = ""):
 	insteon.out().println(msg)
 
 def load(filename):
-	if File(filename).exists():
-		insteon.loadCommands(filename)
+	r = FileResource(filename)
+	if r.exists():
+		insteon.load(r)
 	else:
 		err("File " + filename + "does not exist");
+
+def reload():
+	insteon.reload()
 
 def help(obj = None):
 	if obj is not None :

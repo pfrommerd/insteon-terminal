@@ -1,8 +1,6 @@
 package us.pfrommer.insteon.cmd;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -10,6 +8,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.python.core.PyFunction;
@@ -19,7 +18,8 @@ import org.python.util.PythonInterpreter;
 import us.pfrommer.insteon.cmd.msg.InsteonAddress;
 import us.pfrommer.insteon.cmd.msg.Msg;
 import us.pfrommer.insteon.cmd.msg.MsgListener;
-import us.pfrommer.insteon.cmd.utils.Utils;
+import us.pfrommer.insteon.cmd.utils.Resource;
+import us.pfrommer.insteon.cmd.utils.Resource.FileResource;
 
 public class InsteonInterpreter implements PortListener {
 	private HashMap<String, InsteonAddress>  m_deviceMap = new HashMap<String, InsteonAddress>();
@@ -35,30 +35,25 @@ public class InsteonInterpreter implements PortListener {
 	
 	private HashSet<MsgListener> m_listeners = new HashSet<MsgListener>();
 	
+	//It has to be linked as we have to reload them in the same order
+	private LinkedHashSet<Resource> m_loadedResources = new LinkedHashSet<Resource>();
+	
 	public InsteonInterpreter(Console c) {
 		m_console = c;
+
+		out().println("Insteon Terminal");
+
+		setupInterpreter();
+		out().println("Python interpreter initialized...");
 		init();
 	}
 	
 	public void init() {
-		m_interpreter = new PythonInterpreter();
-
-		m_interpreter.setOut(out());
-		m_interpreter.setIn(in());
-		m_interpreter.setErr(err());
-		
-		out().println("Insteon Terminal");
-		
-		m_interpreter.set("insteon", this);
-		
 		try {
-			//Load the built in commands
-			loadCommands(InsteonInterpreter.class.getResourceAsStream("/defaultCommands.py"));
-			//Load the startup commands
-			File startup = new File("init.py");
-			if (startup.exists()) {
-				loadCommands(startup);
-			}
+			Resource d = new FileResource("python/defaultCommands.py");
+			Resource init = new FileResource("init.py");
+			if (d.exists()) load(d);
+			if (init.exists()) load(init);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -122,8 +117,39 @@ public class InsteonInterpreter implements PortListener {
 	public InsteonAddress getDeviceAddress(String name) {
 		return m_deviceMap.get(name);
 	}
+	
 	//Interpreter functions
 	
+	public void setupInterpreter() {
+		m_interpreter = new PythonInterpreter();
+
+		m_interpreter.setOut(out());
+		m_interpreter.setIn(in());
+		m_interpreter.setErr(err());
+		
+		
+		m_interpreter.set("insteon", this);
+	}
+	
+	public void load(Resource r) throws IOException {
+		out().println("Loading " + r.getName() + "...");
+		m_interpreter.execfile(r.open(), r.getName());
+		out().println(r.getName() + " loaded");
+		m_loadedResources.add(r);
+	}
+	
+	public void reload() throws IOException {
+		//Cleanup the old interpreter
+		if (m_interpreter != null) m_interpreter.cleanup();
+		//Setup a new interpreter for us to use
+		setupInterpreter();
+		
+		//Reload all the resources
+		for (Resource r : m_loadedResources) {
+			load(r);
+		}
+	}
+
 	public void exec(String s) {
 		m_interpreter.exec(s);
 	}
@@ -184,18 +210,7 @@ public class InsteonInterpreter implements PortListener {
 			io.printStackTrace();
 		}
 	}
-	public void loadCommands(InputStream in) throws IOException {
-		String s = Utils.read(in);
-		exec(s);
-	}
-	public void loadCommands(String s) throws IOException {
-		loadCommands(new File(s));
-	}
-	public void loadCommands(File file) throws IOException {
-		String s = Utils.readFile(file);
-		exec(s);
-	}
-	
+
 	//All the shorthand read-write methods
 	
 	/**

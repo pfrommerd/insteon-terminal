@@ -14,7 +14,6 @@ import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
 
 import us.pfrommer.insteon.cmd.InsteonInterpreter;
 
@@ -24,14 +23,14 @@ public class GUI extends JFrame {
 	private JConsole m_console;
 	public GUI() {
 		//Load the system look and feel
-		try {
+		/*try {
 			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
 				if (info.getName().equals("Nimbus")) {
 					UIManager.setLookAndFeel(info.getClassName());
 					break;
 				}
 			}
-		} catch (Exception e) { e.printStackTrace(); } 
+		} catch (Exception e) { e.printStackTrace(); }*/ 
 		
 		//Stop the pane from scrolling on arrow keys
 		UIManager.getDefaults().put("ScrollPane.ancestorInputMap",  
@@ -47,7 +46,6 @@ public class GUI extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 			}
 		};
-	
 
 		ActionMap am = pane.getActionMap();
 		am.put("unitScrollUp", nothing);
@@ -83,7 +81,10 @@ public class GUI extends JFrame {
 			@Override
 			public void windowOpened(WindowEvent e) {}
 			@Override
-			public void windowClosing(WindowEvent e) {}
+			public void windowClosing(WindowEvent e) {
+				//For some reason window closed does not do the trick
+				System.exit(0);				
+			}
 			@Override
 			public void windowClosed(WindowEvent e) {
 				System.exit(0);
@@ -107,6 +108,9 @@ public class GUI extends JFrame {
 	}
 	
 	public void run() {
+		System.setErr(m_console.err());
+		System.setOut(m_console.out());
+		
 		InsteonInterpreter i = new InsteonInterpreter(m_console);
 		i.run();
 	}
