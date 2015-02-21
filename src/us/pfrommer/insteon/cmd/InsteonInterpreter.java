@@ -32,7 +32,7 @@ public class InsteonInterpreter implements PortListener {
 
 		out().println("Insteon Terminal");
 
-		setupInterpreter();
+		initInterpreter();
 		out().println("Python interpreter initialized...");
 	}
 	
@@ -78,8 +78,8 @@ public class InsteonInterpreter implements PortListener {
 	
 	//Interpreter functions
 	
-	public void setupInterpreter() {
-		m_interpreter = new PythonInterpreter();
+	public void initInterpreter() {
+		if (m_interpreter == null) m_interpreter = new PythonInterpreter();
 
 		m_interpreter.setOut(out());
 		m_interpreter.setIn(in());
@@ -87,10 +87,13 @@ public class InsteonInterpreter implements PortListener {
 		
 		File f = new File(".");
 		
+		
         m_interpreter.exec("import sys");
         
+        //Remove all existing modules so we can reload them
+        m_interpreter.exec("sys.modules.clear()");
+        
         m_interpreter.exec("sys.path.append('" + f.getAbsolutePath() + "')");
-		
 		
 		//Import the commands
 		m_interpreter.exec("from python.commands import *");
@@ -107,11 +110,9 @@ public class InsteonInterpreter implements PortListener {
 	
 	public void reload() throws IOException {
 		out().println("Resetting interpreter...");
-		//Cleanup the old interpreter
-		if (m_interpreter != null) m_interpreter.cleanup();
-		//Setup a new interpreter for us to use
 
-		setupInterpreter();
+		//Setup a new interpreter for us to use
+		initInterpreter();
 
 		out().println("Interpreter reset!");
 	}
