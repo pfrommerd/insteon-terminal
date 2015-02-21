@@ -7,6 +7,8 @@ import java.io.InputStream;
 
 public interface Resource {
 	public String getName();
+	public String getPath();
+	
 	public boolean exists();
 	
 	public InputStream open() throws IOException;
@@ -24,6 +26,10 @@ public interface Resource {
 		
 		public String getName() {
 			return m_file.getName();
+		}
+		
+		public String getPath() {
+			return m_file.getAbsolutePath();
 		}
 		
 		public boolean exists() {

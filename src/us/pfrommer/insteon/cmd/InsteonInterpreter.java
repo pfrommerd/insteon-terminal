@@ -1,5 +1,6 @@
 package us.pfrommer.insteon.cmd;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Reader;
@@ -34,10 +35,7 @@ public class InsteonInterpreter implements PortListener {
 	private Console m_console;
 	
 	private HashSet<MsgListener> m_listeners = new HashSet<MsgListener>();
-	
-	//It has to be linked as we have to reload them in the same order
-	private LinkedHashSet<Resource> m_loadedResources = new LinkedHashSet<Resource>();
-	
+
 	public InsteonInterpreter(Console c) {
 		m_console = c;
 
@@ -45,18 +43,6 @@ public class InsteonInterpreter implements PortListener {
 
 		setupInterpreter();
 		out().println("Python interpreter initialized...");
-		init();
-	}
-	
-	public void init() {
-		try {
-			Resource d = new FileResource("python/defaultCommands.py");
-			Resource init = new FileResource("init.py");
-			if (d.exists()) load(d);
-			if (init.exists()) load(init);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 	
 	public PythonInterpreter getInterpreter() { return m_interpreter; }
@@ -127,15 +113,24 @@ public class InsteonInterpreter implements PortListener {
 		m_interpreter.setIn(in());
 		m_interpreter.setErr(err());
 		
+		File f = new File(".");
 		
+        m_interpreter.exec("import sys");
+        
+        m_interpreter.exec("sys.path.append('" + f.getAbsolutePath() + "')");
+		
+		
+		//Import the commands
+		m_interpreter.exec("from python.commands import *");
+
+		//Set the interpreter variable
 		m_interpreter.set("insteon", this);
-	}
-	
-	public void load(Resource r) throws IOException {
-		out().println("Loading " + r.getName() + "...");
-		m_interpreter.execfile(r.open(), r.getName());
-		out().println("Loaded " + r.getName() + "!");
-		m_loadedResources.add(r);
+		
+		//Call the init function to set "insteon" in commands
+		m_interpreter.get("init").__call__(m_interpreter.get("insteon"));
+		
+		//Import init
+		m_interpreter.exec("from init import *");
 	}
 	
 	public void reload() throws IOException {
@@ -143,13 +138,10 @@ public class InsteonInterpreter implements PortListener {
 		//Cleanup the old interpreter
 		if (m_interpreter != null) m_interpreter.cleanup();
 		//Setup a new interpreter for us to use
+
 		setupInterpreter();
+
 		out().println("Interpreter reset!");
-		
-		//Reload all the resources
-		for (Resource r : m_loadedResources) {
-			load(r);
-		}
 	}
 
 	public void exec(String s) {

@@ -340,14 +340,13 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		public void left() {
 			if (m_cursorIndex > 0) m_cursorIndex--;
 			
-			setCaretPosition(getCmdStart() + m_cursorIndex);
+			updateCaret();
 		}
 		
 		public void right() {
 			if (m_cursorIndex < getTextBuff().length()) m_cursorIndex++;
 
-			if (getCaretPosition() < getCmdStart()) setCaretPosition(getCmdStart() + m_cursorIndex);
-			if (getCaretPosition() < getStyledDocument().getLength()) setCaretPosition(getCaretPosition() + 1);
+			updateCaret();
 		}
 		
 		public void up() {

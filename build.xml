@@ -2,6 +2,7 @@
     <property name="src.dir"             value="src"/>
     <property name="bin.dir"             value="bin"/>
     <property name="resources.dir"       value="resources"/>
+    <property name="python.dir"          value="python"/>
 
     <property name="jars.dir"            value="build/jars"/>
 
@@ -30,6 +31,9 @@
 
     <target name="clean">
       <delete dir="${bin.dir}"/>
+      <delete>
+	<fileset dir="${python.dir}" includes="**/*.class"/>
+      </delete>
     </target>
 
     <target name="compile">

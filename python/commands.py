@@ -15,6 +15,18 @@ from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 from threading import Condition
 
+from device import Device
+
+insteon = None
+
+#sets up the environment with the correct interpreter
+#called from the java application
+# i.e, sets up insteon variable
+
+def init(interpreter):
+	global insteon
+	insteon = interpreter
+	
 # a buch of helper functions
 
 def err(msg = ""):
@@ -25,13 +37,6 @@ def err(msg = ""):
 	
 def out(msg = ""):
 	insteon.out().println(msg)
-
-def load(filename):
-	r = FileResource(filename)
-	if r.exists():
-		insteon.load(r)
-	else:
-		err("File " + filename + "does not exist");
 
 def reload():
 	insteon.reload()
@@ -96,7 +101,7 @@ def readMsg():
 #if group is -1, the address will be used, other wise the group will be used
 def createStdMsg(adr, flags, cmd1, cmd2, group):
         msg = Msg.s_makeMessage("SendStandardMessage")
-        if group == -1:
+        if group != -1:
                 flags |= 0xc0
                 adr = InsteonAddress(0x00, 0x00, group & 0xFF)
         msg.setAddress("toAddress", adr)
