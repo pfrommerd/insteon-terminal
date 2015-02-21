@@ -34,14 +34,13 @@
 package	us.pfrommer.insteon.cmd.gui;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PipedReader;
@@ -53,30 +52,23 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Scanner;
 
-import javax.swing.JPanel;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JTextPane;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyledDocument;
 
 import us.pfrommer.insteon.cmd.Console;
 
-
-/**
-	A JFC/Swing based console for the BeanShell desktop.
-	This is a descendant of the old AWTConsole.
-
-	Improvements by: Mark Donszelmann <Mark.Donszelmann@cern.ch>
-		including Cut & Paste
-
-  	Improvements by: Daniel Leuck
-		including Color and Image support, key press bug workaround
-*/
-public class JConsole extends JPanel
-	implements Console, KeyListener {
+public class JConsole extends JTextPane implements Console, KeyListener {
+	
+	
 	private static final long serialVersionUID = 1L;
 	
 	//A list sorted from most recent to least recent command
 	private ArrayList<String> m_history = new ArrayList<String>();
 	
-	private StringBuilder m_text = new StringBuilder();
-	private int m_cursorIndex = 0;
 	private int m_historyIndex = -1;
 	
 	private ConsoleStream m_in = new ConsoleStream();
@@ -91,8 +83,7 @@ public class JConsole extends JPanel
 	private Color m_foreground = Color.BLACK;
 	private Color m_background = Color.WHITE;
 	
-	private Dimension m_preferredSize = new Dimension(10, 10);
-	private boolean m_cursorVisible = true;
+	private JPopupMenu m_menu = new JPopupMenu();
 	
 	public JConsole(Font f) {
 		m_font = f;
@@ -104,6 +95,43 @@ public class JConsole extends JPanel
 		requestFocus();
 		
 		setBackground(m_background);
+		setForeground(m_foreground);
+		
+		m_menu.add(new JMenuItem("Cut")).addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JConsole.this.cut();
+			}
+		});
+		m_menu.add(new JMenuItem("Copy")).addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JConsole.this.copy();
+			}
+		});
+		m_menu.add(new JMenuItem("Paste")).addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JConsole.this.paste();
+			}
+		});
+		
+		addMouseListener(new MouseListener(){
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getButton() == MouseEvent.BUTTON3) m_menu.show(JConsole.this, e.getX(), e.getY());
+			}
+			@Override
+			public void mousePressed(MouseEvent e) {}
+			@Override
+			public void mouseReleased(MouseEvent e) {}
+			@Override
+			public void mouseEntered(MouseEvent e) {}
+			@Override
+			public void mouseExited(MouseEvent e) {}
+		});
+		
+		setFont(m_font);
 	}
 	
 	public void addListener(JConsoleListener l) {
@@ -118,125 +146,14 @@ public class JConsole extends JPanel
 		}
 	}
 	
+	
 	public String getHistory(int ago) {
 		if (ago > -1 && ago < m_history.size()) return m_history.get(ago);
 		else if (ago >= m_history.size()) return "";
 		else return m_in.getLine();
 	}
-
-	@Override
-	public void paintComponent(Graphics g) {
-		super.paintComponent(g);
-		
-		Graphics2D g2d = (Graphics2D) g;
-		
-		g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-		//g2d.setRenderingHint(
-		//        RenderingHints.KEY_TEXT_ANTIALIASING,
-		//        RenderingHints.VALUE_ANTIALIAS_ON);
-		
-		//Draw the text
-		g2d.setColor(m_foreground);
-		
-		g2d.setFont(m_font);
-		FontMetrics metrics = g2d.getFontMetrics();
-		
-		String text = m_text.toString();
-		String[] lines = text.split("\\r?\\n", -1);
-		
-		int lineHeight = metrics.getHeight();
-		int lineAscent = metrics.getAscent();
-		
-		int prefWidth = 0;
-		int prefHeight = 0;
-		
-		int x = 3;
-		//We need to start at lineHeight
-		//as the y is the baseline, not the top of the text
-		int y = 0;
-		for (int i = 0; i < lines.length; i++) {
-			String line = lines[i];
-			//Add the lineHeight as the x,y are the baseline
-			g2d.drawString(line, x, y + lineAscent);
-			
-			//Add this line to the preferred height
-			prefHeight += lineHeight;
-			
-			//Update the prefWidth
-			prefWidth = Math.max(prefWidth, x + metrics.stringWidth(line));
-			
-			//newline only if the line had a \n(if it is not the last line
-			if (i != lines.length - 1) y += lineHeight;
-			else {
-				//If it is the last line,
-				//we want to draw the currentline after it
-				//so set the x to the pos after the last char
-				x += metrics.stringWidth(line);
-			}
-		}
-		//Include the last line of text in the preferred width
-		prefWidth = Math.max(prefWidth, x + metrics.stringWidth(m_in.getTextBuff()));
-
-		//Draw the current line of text
-		//after the end of the last line
-		String inputBuf = m_in.getTextBuff();
-		
-		String before = inputBuf.substring(0, m_cursorIndex);
-		char cursorChar = m_cursorIndex < inputBuf.length() ? inputBuf.charAt(m_cursorIndex) : '\0';
-		String after =  m_cursorIndex < inputBuf.length() ? inputBuf.substring(m_cursorIndex + 1) : "";
-		
-		//Draw the part before the cursor
-		g2d.drawString(before, x, y + lineAscent);
-		x += metrics.stringWidth(before);
-		
-		//Draw the cursor
-		
-		//Use an space as the default width if the cursor is not over a character
-		int cursorWidth = cursorChar == '\0' ? metrics.stringWidth(" ") : metrics.stringWidth(Character.toString(cursorChar));
-		
-		if (cursorChar == '\0') x += 1;
-		
-		if (m_cursorVisible) {
-			//Draw a rect covering the char with the foreground color
-			g2d.setColor(m_foreground);
-			g2d.fillRect(x, y, cursorWidth, lineHeight);
-		}
-
-		if (cursorChar != '\0') {
-			//Draw the char with the background color
-			//only if the cursor is visible
-			if (m_cursorVisible) g2d.setColor(m_background);
-
-			g2d.drawString(Character.toString(cursorChar), x, y + lineAscent);
-
-			//Set the drawing color back to normal
-			g2d.setColor(m_foreground);
-		}
-		
-		x += cursorWidth;
-		
-		//Draw the second part
-		g2d.drawString(after, x, y + lineAscent);
-		x += g2d.getFontMetrics().stringWidth(after);
-		
-		
-		//Update preferred size
-		Dimension newSize = new Dimension(prefWidth + 10, prefHeight + 10);
-		
-		if (!m_preferredSize.equals(newSize)) {
-			m_preferredSize = newSize;
-			
-			//Revalidate to make sure the scrollpane knows the size has changed
-			revalidate();
-
-			synchronized(m_listeners) {
-				for (JConsoleListener l : m_listeners) l.sizeChanged(m_preferredSize);
-			}			
-		}
-		
-	}
+	
+	
 	
 	@Override
 	public void keyTyped(KeyEvent e) {
@@ -245,14 +162,14 @@ public class JConsole extends JPanel
 		//Type it!
 		m_in.characterTyped(e.getKeyChar());
 		
-		//Don't forget to repaint
-		repaint();
+		e.consume();
 	}
 
 	@Override
 	public void keyPressed(KeyEvent e) {
 		switch(e.getKeyCode()) {
 		case KeyEvent.VK_BACK_SPACE: m_in.backspace(); break;
+		case KeyEvent.VK_DELETE: m_in.delete(); break;
 		case KeyEvent.VK_LEFT : m_in.left(); break;
 		case KeyEvent.VK_RIGHT : m_in.right(); break;
 		case KeyEvent.VK_UP : m_in.up(); break;
@@ -260,12 +177,12 @@ public class JConsole extends JPanel
 		default: break;
 		}
 		
-		repaint();
+		e.consume();
 	}
 
 	@Override
 	public void keyReleased(KeyEvent e) {
-		
+		e.consume();
 	}
 
 	@Override
@@ -296,7 +213,7 @@ public class JConsole extends JPanel
 	
 	@Override
 	public void clear() {
-		m_text = new StringBuilder();
+		setText("");
 		repaint();
 	}
 
@@ -309,10 +226,22 @@ public class JConsole extends JPanel
 	}
 	
 	@Override
-	public Dimension getPreferredSize() {
-		return m_preferredSize;
+	public void cut() {
+		super.cut();
 	}
 	
+	@Override
+	public void paste() {
+		setCaretPosition(getStyledDocument().getLength());
+		System.out.println("Pasting");
+		super.paste();
+	}
+	
+	@Override
+    public boolean getScrollableTracksViewportWidth() {
+        return getUI().getPreferredSize(this).getWidth() 
+            <= getParent().getSize().getWidth();
+    }
 
 	public class ConsoleStream extends Reader {
 		PipedWriter m_writer = new PipedWriter();
@@ -320,7 +249,10 @@ public class JConsole extends JPanel
 		
 		StringBuilder m_currentLine = new StringBuilder();
 		String m_preview;
-
+		
+		//Cursor index in the last line
+		private int m_cursorIndex = 0;
+		
 		public ConsoleStream() {
 			try {
 				m_reader = new PipedReader(m_writer);
@@ -329,12 +261,32 @@ public class JConsole extends JPanel
 			}
 		}
 		
+		public int getCmdStart() {
+			int len = m_preview == null ? m_currentLine.length() : m_preview.length();
+			return getStyledDocument().getLength() - len;
+		}
+		
+		//Removes the current command(for, say, viewing history)
+		public void removeCmd() {
+			int len = m_preview == null ? m_currentLine.length() : m_preview.length();
+			try {
+				getStyledDocument().remove(getCmdStart(), len);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		public void left() {
 			if (m_cursorIndex > 0) m_cursorIndex--;
+			
+			setCaretPosition(getCmdStart() + m_cursorIndex);
 		}
 		
 		public void right() {
 			if (m_cursorIndex < getTextBuff().length()) m_cursorIndex++;
+
+			if (getCaretPosition() < getCmdStart()) setCaretPosition(getCmdStart() + m_cursorIndex);
+			if (getCaretPosition() < getStyledDocument().getLength()) setCaretPosition(getCaretPosition() + 1);
 		}
 		
 		public void up() {
@@ -352,9 +304,17 @@ public class JConsole extends JPanel
 			//set that line to the current line
 			setToPreview();
 
-			if (m_currentLine.length() != 0) {
+			if (m_currentLine.length() != 0 && m_cursorIndex > 0) {
 				m_currentLine.deleteCharAt(m_cursorIndex - 1);
+				
+				try {
+					getStyledDocument().remove(getCmdStart() + m_cursorIndex - 2, 1);
+				} catch (BadLocationException e) {
+					e.printStackTrace();
+				}
+								
 				m_cursorIndex--;
+				updateCaret();
 			}
 		}
 		
@@ -363,6 +323,15 @@ public class JConsole extends JPanel
 			
 			if (m_currentLine.length() != 0 && m_cursorIndex < m_currentLine.length()) {
 				m_currentLine.deleteCharAt(m_cursorIndex);
+				
+				
+				try {
+					getStyledDocument().remove(getCmdStart() + m_cursorIndex - 1, 1);
+				} catch (BadLocationException e) {
+					e.printStackTrace();
+				}
+				
+				updateCaret();
 			}
 		}
 
@@ -371,9 +340,7 @@ public class JConsole extends JPanel
 			if (c == '\n') {
 				//Will send the line to the output
 				flushToQueue();
-				
-				m_out.println(m_currentLine.toString());
-				
+
 				m_cursorIndex = 0;
 				// Add the line to the last history
 				m_history.add(0, getLine());
@@ -382,8 +349,20 @@ public class JConsole extends JPanel
 				m_currentLine.insert(m_cursorIndex, c);
 				m_cursorIndex++;
 			}
+			//Insert the character at the caret position
+			try {
+				getStyledDocument().insertString(getCmdStart() + m_cursorIndex, Character.toString(c), null);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+			
+			updateCaret();
 		}
 
+		public void updateCaret() {
+			setCaretPosition(getCmdStart() + m_cursorIndex);
+		}
+		
 		public void setCurrentLine(String line) {
 			m_currentLine = new StringBuilder();
 			m_currentLine.append(line);
@@ -422,7 +401,16 @@ public class JConsole extends JPanel
 		}
 
 		public void previewLine(String line) {
+			removeCmd();
+			
+			try {
+				getStyledDocument().insertString(getStyledDocument().getLength(), line, null);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+
 			m_preview = line;
+			
 			// Put cursor at the end of the line
 			m_cursorIndex = line.length();
 		}
@@ -450,27 +438,38 @@ public class JConsole extends JPanel
 
 	}
 	
+	private static final SimpleAttributeSet s_plainText = new SimpleAttributeSet();
 	public class ConsolePrintStream extends PrintStream {
 		public ConsolePrintStream() {
-			//Forget about this, we overwrite all the necessary methods
 			super(new OutputStream() {
 				@Override
 				public void write(int b) throws IOException {
-					m_text.append((char) b);
-					flush();
+					StyledDocument doc = getStyledDocument();
+					try {
+						doc.insertString(doc.getLength(), Character.toString((char) b), s_plainText);
+					} catch (BadLocationException e) {
+						e.printStackTrace();
+					}
+					
+					m_in.updateCaret();
 				}
 				@Override
 				public void write(byte[] b, int off, int len) throws IOException {
-					m_text.append(new String(b, off, len));
-					flush();
+					StyledDocument doc = getStyledDocument();
+					try {
+						doc.insertString(doc.getLength(), new String(b, off, len), s_plainText);
+					} catch (BadLocationException e) {
+						e.printStackTrace();
+					}
+					
+					m_in.updateCaret();
 				}		
 				@Override
 				public void flush() {
-					repaint();
+
 				}
 			});
 		}
-	}
-}
+	}}
 
 
