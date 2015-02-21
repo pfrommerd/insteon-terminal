@@ -35,6 +35,10 @@ package	us.pfrommer.insteon.cmd.gui;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.HeadlessException;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -55,6 +59,7 @@ import java.util.Scanner;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTextPane;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -75,7 +80,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	private ConsoleStream m_in;
 	
 	private ConsolePrintStream m_out;
-	private ErrPrintStream m_err;
+	private ConsolePrintStream m_err;
 
 	private HashSet<JConsoleListener> m_listeners = new HashSet<JConsoleListener>();
 	
@@ -95,8 +100,14 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		m_errColor = err;
 		
 		m_in = new ConsoleStream();
-		m_out = new ConsolePrintStream();
-		m_err = new ErrPrintStream();
+		
+		//Default attribute set
+		m_out = new ConsolePrintStream(null);
+		
+		SimpleAttributeSet errAttr = new SimpleAttributeSet();
+		StyleConstants.setForeground(errAttr, m_errColor);
+		
+		m_err = new ConsolePrintStream(errAttr);
 		
 		m_font = f;
 		m_scanner = new Scanner(in());
@@ -166,6 +177,29 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	}
 	
 	
+	public void append(String s, AttributeSet attr) {
+		if (m_in.getLine().length() > 0) {
+			m_in.removeLine();
+		}
+		
+		StyledDocument doc = getStyledDocument();
+		try {
+			doc.insertString(doc.getLength(), s, attr);
+		} catch (BadLocationException e) {
+			e.printStackTrace();
+		}
+		
+		if (m_in.getLine().length() > 0) {
+			try {
+				doc.insertString(doc.getLength(), m_in.getLine(), attr);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		m_in.updateCaret();
+	}
+	
 	
 	@Override
 	public void keyTyped(KeyEvent e) {
@@ -214,19 +248,22 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	
 	@Override
 	public String readLine() {
-		return m_scanner.nextLine();
+		String res = m_scanner.nextLine();
+		if (res.trim().length() != 0) m_history.add(0, res);
+		return res;
 	}
 	
 	@Override
 	public String readLine(String prompt) {
 		out().print(prompt);
-		return m_scanner.nextLine();
+		String res = m_scanner.nextLine();
+		if (res.trim().length() != 0) m_history.add(0, res);
+		return res; 
 	}
 	
 	@Override
 	public void clear() {
 		setText("");
-		repaint();
 	}
 
 	@Override
@@ -245,8 +282,19 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	@Override
 	public void paste() {
 		setCaretPosition(getStyledDocument().getLength());
-		System.out.println("Pasting");
 		super.paste();
+		//Add the pasted text to the end of the current line of input
+		try {
+			String text = (String) Toolkit.getDefaultToolkit()
+			        		.getSystemClipboard().getData(DataFlavor.stringFlavor);
+			m_in.getCurrent().append(text);
+		} catch (HeadlessException e) {
+			e.printStackTrace();
+		} catch (UnsupportedFlavorException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -272,6 +320,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 				e.printStackTrace();
 			}
 		}
+		public StringBuilder getCurrent() { return m_currentLine; }
 		
 		public int getCmdStart() {
 			int len = m_preview == null ? m_currentLine.length() : m_preview.length();
@@ -279,7 +328,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		}
 		
 		//Removes the current command(for, say, viewing history)
-		public void removeCmd() {
+		public void removeLine() {
 			int len = m_preview == null ? m_currentLine.length() : m_preview.length();
 			try {
 				getStyledDocument().remove(getCmdStart(), len);
@@ -303,7 +352,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		
 		public void up() {
 			if (m_historyIndex < m_history.size() && m_history.size() > 0)
-					previewLine(getHistory(++m_historyIndex));
+					previewLine(getHistory(++m_historyIndex));			
 		}
 
 		public void down() {
@@ -354,8 +403,8 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 				flushToQueue();
 
 				m_cursorIndex = 0;
-				// Add the line to the last history
-				m_history.add(0, getLine());
+				//We add the line to history in readLine(), as we only want
+				//prompted stuff to be saved in the history
 				m_currentLine = new StringBuilder();
 			} else {
 				m_currentLine.insert(m_cursorIndex, c);
@@ -371,9 +420,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 			updateCaret();
 		}
 
-		public void updateCaret() {
-			setCaretPosition(getCmdStart() + m_cursorIndex);
-		}
+
 		
 		public void setCurrentLine(String line) {
 			m_currentLine = new StringBuilder();
@@ -411,9 +458,9 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		public String getPreview() {
 			return m_preview;
 		}
-
+		
 		public void previewLine(String line) {
-			removeCmd();
+			removeLine();
 			
 			try {
 				getStyledDocument().insertString(getStyledDocument().getLength(), line, null);
@@ -425,6 +472,8 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 			
 			// Put cursor at the end of the line
 			m_cursorIndex = line.length();
+			
+			updateCaret();
 		}
 
 		public String getLine() {
@@ -436,6 +485,10 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 				return getPreview();
 			else
 				return getLine();
+		}
+		
+		public void updateCaret() {
+			setCaretPosition(getCmdStart() + m_cursorIndex);
 		}
 
 		// Do nothing
@@ -451,73 +504,19 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	}
 	
 	public class ConsolePrintStream extends PrintStream {
-		public ConsolePrintStream() {
+		public ConsolePrintStream(final AttributeSet attr) {
 			super(new OutputStream() {
 				@Override
 				public void write(int b) throws IOException {
-					StyledDocument doc = getStyledDocument();
-					try {
-						doc.insertString(doc.getLength(), Character.toString((char) b), null);
-					} catch (BadLocationException e) {
-						e.printStackTrace();
-					}
-					
-					m_in.updateCaret();
+					JConsole.this.append(Character.toString((char) b), attr);
 				}
 				@Override
 				public void write(byte[] b, int off, int len) throws IOException {
-					StyledDocument doc = getStyledDocument();
-					try {
-						doc.insertString(doc.getLength(), new String(b, off, len), null);
-					} catch (BadLocationException e) {
-						e.printStackTrace();
-					}
-					
-					m_in.updateCaret();
-				}		
-				@Override
-				public void flush() {
-
-				}
-			});
-		}
-	}
-	public class ErrPrintStream extends PrintStream {
-
-		public ErrPrintStream() {	
-			super(new OutputStream() {
-				SimpleAttributeSet m_attr = new SimpleAttributeSet();
-
-				{
-					StyleConstants.setForeground(m_attr, m_errColor);
+					JConsole.this.append(new String(b, off, len), attr);
 				}
 				
 				@Override
-				public void write(int b) throws IOException {
-					StyledDocument doc = getStyledDocument();
-					try {
-						doc.insertString(doc.getLength(), Character.toString((char) b), m_attr);
-					} catch (BadLocationException e) {
-						e.printStackTrace();
-					}
-
-					m_in.updateCaret();
-				}
-				@Override
-				public void write(byte[] b, int off, int len) throws IOException {
-					StyledDocument doc = getStyledDocument();
-					try {
-						doc.insertString(doc.getLength(), new String(b, off, len), m_attr);
-					} catch (BadLocationException e) {
-						e.printStackTrace();
-					}
-
-					m_in.updateCaret();
-				}		
-				@Override
-				public void flush() {
-
-				}
+				public void flush() {}
 			});
 		}
 	}

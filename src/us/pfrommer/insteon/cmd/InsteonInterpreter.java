@@ -134,15 +134,17 @@ public class InsteonInterpreter implements PortListener {
 	public void load(Resource r) throws IOException {
 		out().println("Loading " + r.getName() + "...");
 		m_interpreter.execfile(r.open(), r.getName());
-		out().println(r.getName() + " loaded");
+		out().println("Loaded " + r.getName() + "!");
 		m_loadedResources.add(r);
 	}
 	
 	public void reload() throws IOException {
+		out().println("Resetting interpreter...");
 		//Cleanup the old interpreter
 		if (m_interpreter != null) m_interpreter.cleanup();
 		//Setup a new interpreter for us to use
 		setupInterpreter();
+		out().println("Interpreter reset!");
 		
 		//Reload all the resources
 		for (Resource r : m_loadedResources) {
