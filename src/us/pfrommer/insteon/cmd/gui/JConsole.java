@@ -57,6 +57,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import us.pfrommer.insteon.cmd.Console;
@@ -71,8 +72,10 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	
 	private int m_historyIndex = -1;
 	
-	private ConsoleStream m_in = new ConsoleStream();
-	private ConsolePrintStream m_out = new ConsolePrintStream();
+	private ConsoleStream m_in;
+	
+	private ConsolePrintStream m_out;
+	private ErrPrintStream m_err;
 
 	private HashSet<JConsoleListener> m_listeners = new HashSet<JConsoleListener>();
 	
@@ -82,10 +85,19 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	
 	private Color m_foreground = Color.BLACK;
 	private Color m_background = Color.WHITE;
+	private Color m_errColor = Color.RED;
 	
 	private JPopupMenu m_menu = new JPopupMenu();
 	
-	public JConsole(Font f) {
+	public JConsole(Font f, Color foreground, Color background, Color err) {
+		m_foreground = foreground;
+		m_background = background;
+		m_errColor = err;
+		
+		m_in = new ConsoleStream();
+		m_out = new ConsolePrintStream();
+		m_err = new ErrPrintStream();
+		
 		m_font = f;
 		m_scanner = new Scanner(in());
 		
@@ -197,7 +209,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 
 	@Override
 	public PrintStream err() {
-		return m_out;
+		return m_err;
 	}
 	
 	@Override
@@ -438,7 +450,6 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 
 	}
 	
-	private static final SimpleAttributeSet s_plainText = new SimpleAttributeSet();
 	public class ConsolePrintStream extends PrintStream {
 		public ConsolePrintStream() {
 			super(new OutputStream() {
@@ -446,7 +457,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 				public void write(int b) throws IOException {
 					StyledDocument doc = getStyledDocument();
 					try {
-						doc.insertString(doc.getLength(), Character.toString((char) b), s_plainText);
+						doc.insertString(doc.getLength(), Character.toString((char) b), null);
 					} catch (BadLocationException e) {
 						e.printStackTrace();
 					}
@@ -457,7 +468,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 				public void write(byte[] b, int off, int len) throws IOException {
 					StyledDocument doc = getStyledDocument();
 					try {
-						doc.insertString(doc.getLength(), new String(b, off, len), s_plainText);
+						doc.insertString(doc.getLength(), new String(b, off, len), null);
 					} catch (BadLocationException e) {
 						e.printStackTrace();
 					}
@@ -470,6 +481,46 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 				}
 			});
 		}
-	}}
+	}
+	public class ErrPrintStream extends PrintStream {
+
+		public ErrPrintStream() {	
+			super(new OutputStream() {
+				SimpleAttributeSet m_attr = new SimpleAttributeSet();
+
+				{
+					StyleConstants.setForeground(m_attr, m_errColor);
+				}
+				
+				@Override
+				public void write(int b) throws IOException {
+					StyledDocument doc = getStyledDocument();
+					try {
+						doc.insertString(doc.getLength(), Character.toString((char) b), m_attr);
+					} catch (BadLocationException e) {
+						e.printStackTrace();
+					}
+
+					m_in.updateCaret();
+				}
+				@Override
+				public void write(byte[] b, int off, int len) throws IOException {
+					StyledDocument doc = getStyledDocument();
+					try {
+						doc.insertString(doc.getLength(), new String(b, off, len), m_attr);
+					} catch (BadLocationException e) {
+						e.printStackTrace();
+					}
+
+					m_in.updateCaret();
+				}		
+				@Override
+				public void flush() {
+
+				}
+			});
+		}
+	}
+}
 
 

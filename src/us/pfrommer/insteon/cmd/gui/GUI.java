@@ -1,6 +1,6 @@
 package us.pfrommer.insteon.cmd.gui;
 
-import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
@@ -11,7 +11,6 @@ import java.io.IOException;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.JFrame;
-import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.UIDefaults;
@@ -59,7 +58,8 @@ public class GUI extends JFrame {
 		pane.getVerticalScrollBar().setUnitIncrement(16);
 		
 		//m_console = new JConsole(new Font("Courier New", Font.PLAIN, 15));
-		m_console = new JConsole(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+		m_console = new JConsole(new Font(Font.MONOSPACED, Font.PLAIN, 14),
+										   Color.BLACK, Color.WHITE, Color.RED);
 		
 		m_console.addListener(new JConsoleListener() {
 			@Override
