@@ -7,26 +7,17 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.python.core.PyFunction;
 import org.python.core.PyStringMap;
 import org.python.util.PythonInterpreter;
 
-import us.pfrommer.insteon.cmd.msg.InsteonAddress;
 import us.pfrommer.insteon.cmd.msg.Msg;
 import us.pfrommer.insteon.cmd.msg.MsgListener;
-import us.pfrommer.insteon.cmd.utils.Resource;
-import us.pfrommer.insteon.cmd.utils.Resource.FileResource;
 
 public class InsteonInterpreter implements PortListener {
-	private HashMap<String, InsteonAddress>  m_deviceMap = new HashMap<String, InsteonAddress>();
-	private HashMap<InsteonAddress, String> m_addressMap = new HashMap<InsteonAddress, String>();
-	
-	
 	private PythonInterpreter m_interpreter;
 	
 	private IOPort m_port;
@@ -83,25 +74,6 @@ public class InsteonInterpreter implements PortListener {
 			}
 			m_port.addListener(this);
 		}
-	}
-	
-	//Device functions
-	
-	public void setDevice(String name, InsteonAddress adr) {
-		m_deviceMap.put(name, adr);
-		m_addressMap.put(adr, name);
-	}
-	public void removeDevice(String name) {
-		InsteonAddress adr = m_deviceMap.get(name);
-		m_deviceMap.remove(name);
-		if (adr != null) m_addressMap.remove(name);
-	}
-	
-	public String getDeviceName(InsteonAddress adr) {
-		return m_addressMap.get(adr);
-	}
-	public InsteonAddress getDeviceAddress(String name) {
-		return m_deviceMap.get(name);
 	}
 	
 	//Interpreter functions
@@ -198,7 +170,6 @@ public class InsteonInterpreter implements PortListener {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-
 			}
 		} catch(IOException io){
 			io.printStackTrace();

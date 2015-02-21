@@ -6,7 +6,6 @@ from us.pfrommer.insteon.cmd.serial import SerialIOStream
 from us.pfrommer.insteon.cmd import IOPort
 
 from us.pfrommer.insteon.cmd.utils import Utils
-from us.pfrommer.insteon.cmd.utils.Resource import FileResource
 
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
@@ -67,15 +66,19 @@ def exit():
 
 # device-related functions
 
-def setDev(name, adr):
-        insteon.setDevice(name, adr)
+devNameMap = {}
+devAddressMap = {}
 
-def getDevAddress(name):
-        return insteon.getDeviceAddress(name)
+def addDev(dev):
+	devNameMap[dev.getName()] = dev
+	devAddressMap[dev.getAddress()] = dev;
+	
+def getDevByName(name):
+	return devNameMap[name]
 
-def getDevName(adr):
-        return insteon.getDeviceName(name)
-
+def getDevByAdr(adr):
+	return devAddressMap[adr]
+	
 # insteon-related functions
 
 def connectToHub(adr, port, pollMillis, user, password):
