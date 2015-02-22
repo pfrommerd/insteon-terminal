@@ -100,9 +100,9 @@ public class InsteonAddress {
 			s = X10.s_houseToString(house) + "." + X10.s_unitToInt(unit);
 			//s = Utils.getHexString(lowByte);
 		} else {
-			s = Utils.getHexString(highByte) + "." + 
-			Utils.getHexString(middleByte) + "." + 
-			Utils.getHexString(lowByte);
+			s = Utils.toHex(highByte) + "." + 
+			Utils.toHex(middleByte) + "." + 
+			Utils.toHex(lowByte);
 		}
 		return s;
 	}

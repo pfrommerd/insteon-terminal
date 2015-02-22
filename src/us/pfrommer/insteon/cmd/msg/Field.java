@@ -50,7 +50,7 @@ public final class Field {
 		String s = m_name + ":";
 		try {
 			switch (m_type) {
-			case BYTE: s += Utils.getHexByte(getByte(array)); break;
+			case BYTE: s += Utils.toHexByte(getByte(array)); break;
 			case INT:  s += Integer.toString(getInt(array)); break;
 			case ADDRESS:  s += getAddress(array).toString(); break;
 			default: break;

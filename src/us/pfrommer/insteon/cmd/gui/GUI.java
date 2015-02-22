@@ -61,20 +61,6 @@ public class GUI extends JFrame {
 		m_console = new JConsole(new Font(Font.MONOSPACED, Font.PLAIN, 14),
 										   Color.BLACK, Color.WHITE, Color.RED);
 		
-		m_console.addListener(new JConsoleListener() {
-			@Override
-			public void sizeChanged(Dimension newSize) {
-				//Call validate by hand
-				//to ensure that the pane
-				//gets the update
-				//before we scroll down
-				pane.validate();
-
-				JScrollBar vertical = pane.getVerticalScrollBar();
-				vertical.setValue(vertical.getMaximum());
-			}
-		});
-		
 		pane.getViewport().add(m_console);
 		
 		getContentPane().add(pane); 

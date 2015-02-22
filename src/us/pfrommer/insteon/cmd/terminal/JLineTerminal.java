@@ -8,6 +8,7 @@ import java.io.Reader;
 import jline.ConsoleReader;
 import jline.Terminal;
 import us.pfrommer.insteon.cmd.Console;
+import us.pfrommer.insteon.cmd.ConsoleListener;
 import us.pfrommer.insteon.cmd.InsteonInterpreter;
 
 public class JLineTerminal extends Reader implements Console {
@@ -73,7 +74,15 @@ public class JLineTerminal extends Reader implements Console {
 		
 	}
 	
-
+	@Override
+	public void addConsoleListener(ConsoleListener l) {
+		
+	}
+	
+	@Override
+	public void removeConsoleListener(ConsoleListener l) {
+		
+	}
 
 	@Override
 	public int read(char[] cbuf, int off, int len) throws IOException {

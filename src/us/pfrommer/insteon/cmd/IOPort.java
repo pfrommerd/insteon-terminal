@@ -94,6 +94,9 @@ public class IOPort {
 					byte[] buf = m_writeQueue.take();
 					m_stream.out().write(buf);
 					m_stream.out().flush();
+					synchronized(m_listeners) {
+						for (PortListener l : m_listeners) l.wroteBytes(buf);
+					}
 					synchronized(m_writeQueue) {
 						m_writeQueue.notifyAll();
 					}

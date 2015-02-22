@@ -7,6 +7,7 @@ import java.io.Reader;
 import java.util.Scanner;
 
 import us.pfrommer.insteon.cmd.Console;
+import us.pfrommer.insteon.cmd.ConsoleListener;
 import us.pfrommer.insteon.cmd.InsteonInterpreter;
 
 public class Terminal implements Console {
@@ -28,6 +29,15 @@ public class Terminal implements Console {
 	@Override
 	public String readLine() throws IOException {
 		return m_scanner.nextLine();
+	}
+	
+	@Override
+	public void addConsoleListener(ConsoleListener l) {
+		
+	}
+	@Override
+	public void removeConsoleListener(ConsoleListener l) {
+		
 	}
 	
 	@Override

@@ -46,7 +46,7 @@ public class MsgReader {
 		System.arraycopy(data, 0, m_buf, m_end, len);
 		m_end += len;
 		// copy the incoming data to the end of the buffer
-		logger.trace("read buffer: len {} data: {}", m_end, Utils.getHexString(m_buf, m_end));
+		logger.trace("read buffer: len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
 	}
 	/**
 	 * After data has been added, this method processes it.
@@ -84,7 +84,7 @@ public class MsgReader {
 			isExtended = Msg.s_isExtended(m_buf, m_end, headerLength);
 			logger.trace("header length expected: {} extended: {}", headerLength, isExtended);
 			if (headerLength < 0) {
-				String cmdCode = Utils.getHexByte(m_buf[1]);
+				String cmdCode = Utils.toHexByte(m_buf[1]);
 				logger.debug("got unknown command code {}, draining!", cmdCode);
 				// got unknown command code, drain the buffer and wait for more data
 				removeFromBuffer(1); // get rid of the leading 0x02
@@ -107,7 +107,7 @@ public class MsgReader {
 			msg = Msg.s_createMessage(m_buf, msgLen, isExtended);
 			removeFromBuffer(msgLen);
 		}
-		logger.trace("keeping buffer len {} data: {}", m_end, Utils.getHexString(m_buf, m_end));
+		logger.trace("keeping buffer len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
 		return msg;
 	}
 	

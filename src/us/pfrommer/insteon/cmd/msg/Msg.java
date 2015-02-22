@@ -307,7 +307,7 @@ public class Msg {
 	
 	public String toHexString() {
 		if (m_data != null) {
-			return Utils.getHexString(m_data);
+			return Utils.toHex(m_data);
 		}
 		return super.toString();
 	}

@@ -17,7 +17,7 @@ import org.python.util.PythonInterpreter;
 import us.pfrommer.insteon.cmd.msg.Msg;
 import us.pfrommer.insteon.cmd.msg.MsgListener;
 
-public class InsteonInterpreter implements PortListener {
+public class InsteonInterpreter implements PortListener, ConsoleListener {
 	private PythonInterpreter m_interpreter;
 	
 	private IOPort m_port;
@@ -25,10 +25,13 @@ public class InsteonInterpreter implements PortListener {
 	
 	private Console m_console;
 	
+	private Thread m_mainThread;
+	
 	private HashSet<MsgListener> m_listeners = new HashSet<MsgListener>();
 
 	public InsteonInterpreter(Console c) {
 		m_console = c;
+		m_console.addConsoleListener(this);
 
 		out().println("Insteon Terminal");
 
@@ -38,6 +41,7 @@ public class InsteonInterpreter implements PortListener {
 	
 	public PythonInterpreter getInterpreter() { return m_interpreter; }
 	public Console getConsole() { return m_console; }
+	public IOPort getPort() { return m_port; }
 	
 	public Reader in() { return m_console.in(); }
 	public PrintStream out() { return m_console.out(); }
@@ -152,6 +156,7 @@ public class InsteonInterpreter implements PortListener {
 	
 	public void run() {
 		try{
+			m_mainThread = Thread.currentThread();
 			while(true) {
 				String line = m_console.readLine(">>> ");
 				try {
@@ -175,6 +180,16 @@ public class InsteonInterpreter implements PortListener {
 		} catch(IOException io){
 			io.printStackTrace();
 		}
+	}
+	
+	//Terminate the current running program
+	@Override
+	public void terminate() {
+		//For now do nothing
+		/*if (m_mainThread != null) {
+			System.out.println("Interrupt");
+			m_mainThread.interrupt();
+		}*/
 	}
 
 	//All the shorthand read-write methods
@@ -226,6 +241,9 @@ public class InsteonInterpreter implements PortListener {
 	}
 	
 	//Port listener functions
+	@Override
+	public void wroteBytes(byte[] bytes) {}
+	
 	@Override
 	public void bytesReceived(byte[] bytes) {}
 	

@@ -66,10 +66,9 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import us.pfrommer.insteon.cmd.Console;
+import us.pfrommer.insteon.cmd.ConsoleListener;
 
 public class JConsole extends JTextPane implements Console, KeyListener {
-	
-	
 	private static final long serialVersionUID = 1L;
 	
 	//A list sorted from most recent to least recent command
@@ -82,7 +81,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	private ConsolePrintStream m_out;
 	private ConsolePrintStream m_err;
 
-	private HashSet<JConsoleListener> m_listeners = new HashSet<JConsoleListener>();
+	private HashSet<ConsoleListener> m_listeners = new HashSet<ConsoleListener>();
 	
 	private Scanner m_scanner;
 	
@@ -157,13 +156,13 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		setFont(m_font);
 	}
 	
-	public void addListener(JConsoleListener l) {
+	public void addConsoleListener(ConsoleListener l) {
 		synchronized(m_listeners) {
 			m_listeners.add(l);
 		}
 	}
 	
-	public void removeListener(JConsoleListener l) {
+	public void removeConsoleListener(ConsoleListener l) {
 		synchronized(m_listeners) {
 			m_listeners.remove(l);
 		}
@@ -221,6 +220,13 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		case KeyEvent.VK_UP : m_in.up(); break;
 		case KeyEvent.VK_DOWN : m_in.down(); break;
 		
+		case KeyEvent.VK_C : {
+			if ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0) {
+				synchronized(m_listeners) {
+					for (ConsoleListener l : m_listeners) l.terminate();
+				}
+			}
+		} break;
 		case KeyEvent.VK_E : {
 			if ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0) {
 				setCaretPosition(m_in.getCmdEnd());
@@ -231,7 +237,6 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 				setCaretPosition(m_in.getCmdStart());
 			}
 		} break;
-		
 		default: break;
 		}
 		
@@ -285,6 +290,8 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		//and wipe the history
 		m_history.clear();
 	}
+		
+	//Cut and paste stuff
 	
 	@Override
 	public void cut() {
@@ -309,11 +316,15 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		}
 	}
 	
+	//Stop wraparound
+	
 	@Override
     public boolean getScrollableTracksViewportWidth() {
         return getUI().getPreferredSize(this).getWidth() 
             <= getParent().getSize().getWidth();
     }
+	
+	//The readers and writers
 
 	public class ConsoleStream extends Reader {
 		PipedWriter m_writer = new PipedWriter();
