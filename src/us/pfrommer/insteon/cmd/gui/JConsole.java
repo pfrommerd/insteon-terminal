@@ -229,12 +229,12 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		} break;
 		case KeyEvent.VK_E : {
 			if ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0) {
-				setCaretPosition(m_in.getCmdEnd());
+				m_in.gotoEnd();
 			}
 		} break;
 		case KeyEvent.VK_A : {
 			if ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0) {
-				setCaretPosition(m_in.getCmdStart());
+				m_in.gotoBeginning();
 			}
 		} break;
 		default: break;
@@ -352,6 +352,16 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		
 		public int getCmdEnd() {
 			return getStyledDocument().getLength();
+		}
+		
+		public void gotoBeginning() {
+			setCaretPosition(getCmdStart());
+			m_cursorIndex = 0;
+		}
+		
+		public void gotoEnd() {
+			setCaretPosition(getCmdEnd());
+			m_cursorIndex = getLine().length();
 		}
 		
 		//Removes the current command(for, say, viewing history)
