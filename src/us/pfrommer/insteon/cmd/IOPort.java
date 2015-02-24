@@ -2,6 +2,8 @@ package us.pfrommer.insteon.cmd;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -20,7 +22,7 @@ public class IOPort {
 	private IOStreamReader	m_reader;
 	private Thread			m_readThread;
 	private Thread			m_writeThread;
-	private BlockingQueue<Msg> m_writeQueue = new LinkedBlockingQueue<Msg>();
+	private Queue<Msg>		m_writeQueue = new LinkedList<Msg>();
 	private HashSet<PortListener> m_listeners = new HashSet<PortListener>();
 	
 	private MsgReader 		m_msgReader = new MsgReader();
@@ -57,18 +59,27 @@ public class IOPort {
 	public void close() throws IOException {
 		if (!m_stream.isOpen()) return;
 		//Wait for the write queue to be empty
+		System.out.println("draining write queue");
 		synchronized(m_writeQueue) {
-			while (!m_writeQueue.isEmpty()) {
-				try {
-					m_writeQueue.wait();
-				} catch (InterruptedException e) {
-					break;
-				} 
-			}
-		}	
-		
-		if (m_readThread != null)	m_readThread.interrupt();
-		if (m_writeThread != null)	m_writeThread.interrupt();
+			m_writeQueue.clear();
+		}
+		System.out.println("stopping writer thread");
+		m_writer.stopThread();
+		System.out.println("waiting for writer thread");
+		try {
+			m_writeThread.join();
+		} catch (InterruptedException e) {
+			// not sure what to do here
+		}
+		System.out.println("stopping reader thread");
+		m_reader.stopThread();
+		m_readThread.interrupt();
+		System.out.println("waiting for reader thread");
+		try {
+			m_readThread.join();
+		} catch (InterruptedException e) {
+			// not sure what to do here
+		}
 		
 		m_reader = null;
 		m_writer = null;
@@ -83,10 +94,9 @@ public class IOPort {
 		if (m.getData() == null) {
 			throw new IOException("trying to write message without data!");
 		}
-		try {
+		synchronized (m_writeQueue) {
 			m_writeQueue.add(m);
-		} catch (IllegalStateException e) {
-			throw new IOException("write failed, queue full!");
+			m_writeQueue.notifyAll();
 		}
 	}
 	
@@ -96,24 +106,30 @@ public class IOPort {
 			// Or better, not support at all. What's the point
 			// of writing random bytes?
 			// m_writeQueue.add(buf);
+			// m_writeQueue.notifyAll();
 		}
 	}
 
 	public class IOStreamReader implements Runnable {
 		private ReplyType	m_reply = ReplyType.GOT_ACK;
 		private	Object		m_replyLock = new Object();
+		boolean				m_keepRunning = true;
 		/**
 		 * Helper function for implementing synchronization between reader and writer
 		 * @return reference to the RequesReplyLock
 		 */
 		public	Object getRequestReplyLock() { return m_replyLock; }
 
+		public synchronized void stopThread() {
+			m_keepRunning = false;
+		}
+	
 		@Override
 		public void run() {
 			byte[] buffer = new byte[2 * m_readSize];
 			int len = -1;
 			try	{
-				while ((len = m_stream.in().read(buffer, 0, m_readSize)) > -1) {
+				while (m_keepRunning && (len = m_stream.in().read(buffer, 0, m_readSize)) > -1) {
 					m_msgReader.addData(buffer, len);
 					processMessages();
 				}
@@ -196,12 +212,29 @@ public class IOPort {
 	 */
 	class IOStreamWriter implements Runnable {
 		private static final int WAIT_TIME = 200; // milliseconds
+		boolean m_keepRunning = true;
+	
+		public void stopThread() {
+			synchronized (m_writeQueue) {
+				m_keepRunning = false;
+				m_writeQueue.notifyAll();
+				synchronized (m_reader.getRequestReplyLock()) {
+					m_reader.getRequestReplyLock().notifyAll();
+				}
+			}
+		}
 		@Override
 		public void run() {
-			while(true) {
+			while (true) {
 				try {
-					// this call blocks until the lock on the queue is released
-					Msg msg = m_writeQueue.take();
+					Msg msg;
+					synchronized (m_writeQueue) {
+						while (m_writeQueue.isEmpty() && m_keepRunning) {
+							m_writeQueue.wait();
+						}
+						if (!m_keepRunning) return;
+						msg = m_writeQueue.poll();
+					}
 					if (msg.getData() != null) {
 						// To debug race conditions during startup (i.e. make the .items
 						// file definitions be available *before* the modem link records,
@@ -209,16 +242,15 @@ public class IOPort {
 						// Thread.sleep(500);
 						synchronized (m_reader.getRequestReplyLock()) {
 							m_stream.out().write(msg.getData());
-							while (m_reader.waitForReply()) {
-								Thread.sleep(WAIT_TIME);
+							while (m_reader.waitForReply() && m_keepRunning) {
+								Thread.sleep(WAIT_TIME); // wait before retransmit!
 								m_stream.out().write(msg.getData());
 							}
-							
 						}
-						// if rate limited, need to sleep now.
-						if (msg.getQuietTime() > 0) {
-							Thread.sleep(msg.getQuietTime());
-						}
+					}
+					// if rate limited, need to sleep now.
+					if (msg.getQuietTime() > 0) {
+						Thread.sleep(msg.getQuietTime());
 					}
 				} catch (InterruptedException e) {
 					return;

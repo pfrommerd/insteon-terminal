@@ -61,14 +61,7 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	}
 	
 	public void setPort(IOPort p) {
-		if (m_port != null) {
-			m_port.removeListener(this);
-			try {
-				m_port.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		closePort();
 		m_port = p;
 		if (m_port != null) {
 			try {
@@ -77,6 +70,18 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 				e.printStackTrace();
 			}
 			m_port.addListener(this);
+		}
+	}
+	
+	public void closePort() {
+		if (m_port != null) {
+			m_port.removeListener(this);
+			out().println("removed listener");
+			try {
+				m_port.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -104,17 +109,15 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 
 		//Set the interpreter variable
 		m_interpreter.set("insteon", this);
-		
 		//Call the init function to set "insteon" in commands
 		m_interpreter.get("init").__call__(m_interpreter.get("insteon"));
-		
 		//Import init
 		m_interpreter.exec("from init import *");
 	}
 	
 	public void reload() throws IOException {
 		out().println("Resetting interpreter...");
-
+		closePort();
 		//Setup a new interpreter for us to use
 		initInterpreter();
 
@@ -185,6 +188,7 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	//Terminate the current running program
 	@Override
 	public void terminate() {
+		System.out.println("terminate() called");
 		//For now do nothing
 		/*if (m_mainThread != null) {
 			System.out.println("Interrupt");
