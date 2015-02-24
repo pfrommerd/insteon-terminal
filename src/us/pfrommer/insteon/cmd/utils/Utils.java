@@ -34,21 +34,30 @@ public class Utils {
 	}
 	
 	
-	public static String getHexString(int b) {
+	public static String toHex(int b) {
 		String result =  String.format("%02X", b & 0xFF);
 		return result;
 	}
+	public static String toHex(byte b) {
+		String result =  String.format("%02X", b);
+		return result;
+	}
 
-	public static String getHexString(byte[] b) {
-		return getHexString(b, b.length);
+	public static String toHex(byte[] b) {
+		return toHex(b, b.length);
 	}
 	
-	public static String getHexString(byte[] b, int len) {
-		String result = "";
-		for (int i=0; i < b.length && i < len; i++) {
-			result += String.format("%02X ", b[i] & 0xFF);
+	public static String toHex(byte[] b, int len) {
+		return toHex(b, len, "");
+	}
+
+	public static String toHex(byte[] b, int len, String separator) {
+		StringBuilder result = new StringBuilder();
+		for (int i = 0; i < b.length && i < len; i++) {
+			result.append(toHex(b[i]));
+			if (i != b.length - 1) result.append(separator);
 		}
-		return result;
+		return result.toString();
 	}
 	
 	public static int fromHexString(String string) {
@@ -60,13 +69,14 @@ public class Utils {
 		return fromHexString(hex);
 	}
 	
-	public static String getHexByte(byte b) {
+	public static String toHexByte(byte b) {
 		return String.format("0x%02X", b & 0xFF);
 	}
 	
-	public static String getHexByte(int b) {
+	public static String toHexByte(int b) {
 		return String.format("0x%02X", b);
 	}
+	
 	public static class DataTypeParser {
 		public static Object s_parseDataType(DataType type, String val) {
 			switch(type) {

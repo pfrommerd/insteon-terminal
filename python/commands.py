@@ -12,6 +12,8 @@ from us.pfrommer.insteon.cmd.msg import MsgListener
 
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
+from us.pfrommer.insteon.cmd.gui import PortTracker
+
 from threading import Condition
 from threading import Timer
 
@@ -65,6 +67,13 @@ def quit():
 def exit():
 	quit()
 
+# gui-related stuff
+
+def trackPort():
+	if insteon.isConnected() :
+		tracker = PortTracker(insteon.getPort())
+	else :
+		err("Not connected!")
 # device-related functions
 
 devNameMap = {}
@@ -170,9 +179,9 @@ class ModemDBDumper(MsgListener):
 
                 group = Utils.getHexString(msg.getByte("ALLLinkGroup"))
                 linkAddr = msg.getAddress("LinkAddr")
-                data1 = Utils.getHexString(msg.getByte("LinkData1"))
-                data2 = Utils.getHexString(msg.getByte("LinkData2"))
-                data3 = Utils.getHexString(msg.getByte("LinkData3"))
+                data1 = Utils.toHex(msg.getByte("LinkData1"))
+                data2 = Utils.toHex(msg.getByte("LinkData2"))
+                data3 = Utils.toHex(msg.getByte("LinkData3"))
 
                 out(linkAddr.toString() + " " + linkType + " group: " + group + " data1: " + data1 + 
                     " data2: " + data2 + " data3: " + data3)

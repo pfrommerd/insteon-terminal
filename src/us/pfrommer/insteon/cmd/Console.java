@@ -8,6 +8,9 @@ public interface Console {
 	public String readLine() throws IOException;
 	public String readLine(String prompt) throws IOException;
 	
+	public void addConsoleListener(ConsoleListener l);
+	public void removeConsoleListener(ConsoleListener l);
+	
 	public Reader in();
 	public PrintStream out();
 	public PrintStream err();
