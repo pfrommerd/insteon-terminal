@@ -279,6 +279,24 @@ public class Msg {
 		return (m_definition.getField(key).getByte(m_data));
 	}
 	
+
+	/**
+	 * Will fetch a byte array starting at a certain field
+	 * @param key the name of the first field
+	 * @param number of bytes to get
+	 * @return the byte array
+	 */
+	public byte[] getBytes(String key, int numBytes) throws FieldException {
+		if (m_definition == null) throw new FieldException("no msg definition!");
+		int offset = m_definition.getField(key).getOffset();
+		if (offset < 0 || offset + numBytes > m_data.length) {
+			throw new FieldException("data index out of bounds!");
+		}
+		byte [] section = new byte[numBytes];
+		System.arraycopy(m_data, offset, section, 0, numBytes);
+		return section;
+	}
+	
 	/**
 	 * Will fetch address from field
 	 * @param field the filed name to fetch
