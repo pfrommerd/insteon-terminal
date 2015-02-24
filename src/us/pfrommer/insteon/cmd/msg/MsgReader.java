@@ -46,6 +46,7 @@ public class MsgReader {
 		System.arraycopy(data, 0, m_buf, m_end, len);
 		m_end += len;
 		// copy the incoming data to the end of the buffer
+		//System.out.println("read buffer of length: " + m_end + " " + Utils.toHex(m_buf, m_end));
 		logger.trace("read buffer: len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
 	}
 	/**

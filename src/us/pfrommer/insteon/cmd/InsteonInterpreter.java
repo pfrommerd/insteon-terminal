@@ -232,7 +232,7 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 		m_port.write(bytes);
 	}
 	
-	public void writeMsg(Msg m) {
+	public void writeMsg(Msg m) throws IOException {
 		if (m_port == null) {
 			err().println("Not connected");
 			return;
