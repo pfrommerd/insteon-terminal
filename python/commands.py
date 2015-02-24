@@ -13,6 +13,7 @@ from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 from threading import Condition
+from threading import Timer
 
 from device import Device
 
@@ -112,6 +113,17 @@ def createStdMsg(adr, flags, cmd1, cmd2, group):
         msg.setByte("command1", cmd1)
         msg.setByte("command2", cmd2)
         return msg
+
+def createExtendedMsg(adr, cmd1, cmd2, flags = 0x1f):
+       	msg = Msg.s_makeMessage("SendExtendedMessage")
+	msg.setAddress("toAddress", adr)
+	msg.setByte("messageFlags", flags | 0x10)
+	msg.setByte("command1", cmd1)
+	msg.setByte("command2", cmd2)
+	checksum = (~(cmd1 + cmd2) + 1)
+	msg.setByte("userData14", checksum)
+        return msg
+
 	
 # basic insteon commands
 
@@ -184,3 +196,74 @@ def dumpLinkDB():
         dumper.start()
         dumper.wait()
         out("Modem Link DB Done")
+
+class KeypadDBDumper(MsgListener):
+        dev   = None
+        timer = None
+        recordDict = {};
+        def __init__(self, d):
+                self.dev = d
+        def start(self):
+                insteon.addListener(self)
+                msg = createExtendedMsg(InsteonAddress(self.dev), 0x2f, 0)
+                msg.setByte("userData1", 0);
+                msg.setByte("userData2", 0);
+                msg.setByte("userData3", 0);
+                msg.setByte("userData4", 0);
+                msg.setByte("userData5", 0);
+                writeMsg(msg)
+                out("sent query msg ... ")
+                self.timer = Timer(20.0, self.giveUp)
+                self.timer.start()
+
+        def restartTimer(self):
+                if self.timer:
+                        self.timer.cancel()
+                self.timer = Timer(20.0, self.giveUp)
+                self.timer.start()
+
+        def giveUp(self):
+                out("did not get full database, giving up!")
+                insteon.removeListener(self)
+                self.timer.cancel()
+
+        def done(self):
+                insteon.removeListener(self)
+                if self.timer:
+                        self.timer.cancel()
+                out("database complete!")
+        
+                
+        def msgReceived(self, msg):
+                self.restartTimer()
+                if msg.isPureNack():
+                        out("got pure NACK")
+                        return
+                if msg.getByte("Cmd") == 0x62:
+                        out("query msg acked!")
+                elif msg.getByte("Cmd") == 0x51:
+                        dbaddr = (msg.getByte("userData3") & 0xFF) << 8 | (msg.getByte("userData4") & 0xFF)
+                        if (self.recordDict.has_key(dbaddr)):
+                                out("duplicate record ignored: 0x" + format(dbaddr,'04x'))
+                                return
+                        rb = msg.getBytes("userData6", 8); # ctrl + group + [data1,data2,data3] + whatever
+                        ctrl = rb[0] & 0xFF;
+                        if (ctrl & 0x02 == 0):
+                                self.done()
+                                return
+                        rec = ' '.join(format(x & 0xFF, '02x') for x in rb)
+                        self.recordDict[dbaddr] = rb
+#                        out("linkrecord: addr 0x" + format(dbaddr, '04x') + " record: " + rec)
+                        out("linkrecord: addr 0x" + format(dbaddr, '04x') + " ctrl: " + '{0:08b}'.format(rb[0] & 0xFF)
+                            + " group: " + format(rb[1] & 0xFF, '02x')
+                            + " data: " + ' '.join(format(x & 0xFF, '02x') for x in rb[2:4]))
+                else:
+                        out("got unexpected msg: " + msg.toString())
+
+def getDB(dev):
+	if insteon.isConnected() is not True:
+                err("Not connected!");
+                return;
+        out("getting link database of device " + dev)
+        dumper = KeypadDBDumper(dev);
+        dumper.start()
