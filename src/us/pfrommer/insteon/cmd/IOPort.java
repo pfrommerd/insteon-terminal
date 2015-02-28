@@ -4,9 +4,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
 import us.pfrommer.insteon.cmd.msg.Msg;
 import us.pfrommer.insteon.cmd.msg.MsgReader;
 
@@ -59,22 +56,18 @@ public class IOPort {
 	public void close() throws IOException {
 		if (!m_stream.isOpen()) return;
 		//Wait for the write queue to be empty
-		System.out.println("draining write queue");
 		synchronized(m_writeQueue) {
 			m_writeQueue.clear();
 		}
-		System.out.println("stopping writer thread");
 		m_writer.stopThread();
-		System.out.println("waiting for writer thread");
 		try {
 			m_writeThread.join();
 		} catch (InterruptedException e) {
 			// not sure what to do here
 		}
-		System.out.println("stopping reader thread");
+
 		m_reader.stopThread();
 		m_readThread.interrupt();
-		System.out.println("waiting for reader thread");
 		try {
 			m_readThread.join();
 		} catch (InterruptedException e) {
