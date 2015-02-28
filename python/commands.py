@@ -177,7 +177,7 @@ class ModemDBDumper(MsgListener):
                 recordFlags = msg.getByte("RecordFlags") & 0xff
                 linkType = "CTRL" if ((recordFlags & (0x1 << 6)) != 0) else "RESP"
 
-                group = Utils.getHexString(msg.getByte("ALLLinkGroup"))
+                group = Utils.toHex(msg.getByte("ALLLinkGroup"))
                 linkAddr = msg.getAddress("LinkAddr")
                 data1 = Utils.toHex(msg.getByte("LinkData1"))
                 data2 = Utils.toHex(msg.getByte("LinkData2"))
