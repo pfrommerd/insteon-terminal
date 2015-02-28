@@ -51,8 +51,8 @@ public class SerialIOStream implements IOStream {
 					SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 			m_port.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
 			m_port.disableReceiveFraming();
-			//m_port.disableReceiveThreshold();
-			m_port.enableReceiveThreshold(1000);
+			m_port.disableReceiveThreshold();
+			//m_port.enableReceiveThreshold(1000);
 			//Do receive timeout so we can check if the reader has to stop
 			m_port.enableReceiveTimeout(1000);
 			
