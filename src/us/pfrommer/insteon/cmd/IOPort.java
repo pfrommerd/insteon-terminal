@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
+
 import us.pfrommer.insteon.cmd.msg.Msg;
 import us.pfrommer.insteon.cmd.msg.MsgReader;
 
@@ -65,6 +66,7 @@ public class IOPort {
 		} catch (InterruptedException e) {
 			// not sure what to do here
 		}
+		
 
 		m_reader.stopThread();
 		m_readThread.interrupt();
@@ -73,6 +75,7 @@ public class IOPort {
 		} catch (InterruptedException e) {
 			// not sure what to do here
 		}
+
 		
 		m_reader = null;
 		m_writer = null;
@@ -90,16 +93,6 @@ public class IOPort {
 		synchronized (m_writeQueue) {
 			m_writeQueue.add(m);
 			m_writeQueue.notifyAll();
-		}
-	}
-	
-	public void write(byte[] buf) {
-		synchronized(m_writeQueue) {
-			// XXX must convert this to proper insteon message!
-			// Or better, not support at all. What's the point
-			// of writing random bytes?
-			// m_writeQueue.add(buf);
-			// m_writeQueue.notifyAll();
 		}
 	}
 
@@ -235,6 +228,10 @@ public class IOPort {
 						// Thread.sleep(500);
 						synchronized (m_reader.getRequestReplyLock()) {
 							m_stream.out().write(msg.getData());
+							m_stream.out().flush();
+							
+							notifyListenersWrite(msg);
+							
 							while (m_reader.waitForReply() && m_keepRunning) {
 								Thread.sleep(WAIT_TIME); // wait before retransmit!
 								m_stream.out().write(msg.getData());
@@ -251,6 +248,20 @@ public class IOPort {
 					try { Thread.sleep(30000);} catch (InterruptedException ie) {	}
 				} catch (Exception e) {
 				}
+			}
+		}
+		@SuppressWarnings("unchecked")
+		private void notifyListenersWrite(Msg msg) {
+			// When we deliver the message, the recipient
+			// may in turn call removeListener() or addListener(),
+			// thereby corrupting the very same collection that we are iterating
+			// over. That's why we make a copy of it, and iterate over that.
+			HashSet<PortListener> tempList = null;
+			synchronized(m_listeners) {
+				tempList= (HashSet<PortListener>) m_listeners.clone();
+			}
+			for (PortListener l : tempList) {
+				l.msgWritten(msg); // deliver msg to listener
 			}
 		}
 	}

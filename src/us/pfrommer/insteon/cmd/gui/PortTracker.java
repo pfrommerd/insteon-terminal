@@ -4,6 +4,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 import javax.swing.JFrame;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 import us.pfrommer.insteon.cmd.IOPort;
@@ -19,7 +20,9 @@ public class PortTracker extends JFrame  implements PortListener {
 	public PortTracker(final IOPort p) {
 		m_area = new JTextArea();
 		
-		getContentPane().add(m_area);
+		JScrollPane pane = new JScrollPane(m_area);
+		
+		getContentPane().add(pane);
 
 		p.addListener(this);
 		
@@ -45,21 +48,19 @@ public class PortTracker extends JFrame  implements PortListener {
 				}
 			}
 		});
-}
-	
-
-	@Override
-	public void wroteBytes(byte[] bytes) {
-		m_area.append("OUT: " + Utils.toHex(bytes, bytes.length, " ") + "\n");
 	}
 
 	@Override
-	public void bytesReceived(byte[] bytes) {
-		m_area.append("IN: " + Utils.toHex(bytes, bytes.length, " ") + "\n");
+	public void msgWritten(Msg msg) {
+		byte[]  bytes = msg.getData();
+		m_area.append("OUT: " + Utils.toHex(bytes, bytes.length, " ") + "\n");
+		m_area.setCaretPosition(m_area.getDocument().getLength());
 	}
 
 	@Override
 	public void msgReceived(Msg msg) {
-		
+		byte[] bytes = msg.getData();
+		m_area.append("IN: " + Utils.toHex(bytes, bytes.length, " ") + "\n");
+		m_area.setCaretPosition(m_area.getDocument().getLength());
 	}
 }
