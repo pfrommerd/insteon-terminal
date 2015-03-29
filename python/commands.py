@@ -18,6 +18,7 @@ from threading import Condition
 from threading import Timer
 
 from device import Device
+import struct
 
 insteon = None
 
@@ -123,16 +124,72 @@ def createStdMsg(adr, flags, cmd1, cmd2, group):
         msg.setByte("command2", cmd2)
         return msg
 
-def createExtendedMsg(adr, cmd1, cmd2, flags = 0x1f):
+def createExtendedMsg(adr, cmd1, cmd2, data1, data2, data3, flags = 0x1f):
        	msg = Msg.s_makeMessage("SendExtendedMessage")
 	msg.setAddress("toAddress", adr)
 	msg.setByte("messageFlags", flags | 0x10)
 	msg.setByte("command1", cmd1)
 	msg.setByte("command2", cmd2)
-	checksum = (~(cmd1 + cmd2) + 1)
+	msg.setByte("userData1", data1)
+	msg.setByte("userData2", data2)
+	msg.setByte("userData3", data3)
+	msg.setByte("userData4", 0)
+	msg.setByte("userData5", 0)
+	msg.setByte("userData6", 0)
+	msg.setByte("userData7", 0)
+	msg.setByte("userData8", 0)
+	msg.setByte("userData9", 0)
+	msg.setByte("userData10", 0)
+	msg.setByte("userData11", 0)
+	msg.setByte("userData12", 0)
+	msg.setByte("userData13", 0)
+	checksum = (~(cmd1 + cmd2 + data1 + data2) + 1)
 	msg.setByte("userData14", checksum)
         return msg
 
+def createExtendedMsg2(adr, cmd1, cmd2, data1, data2, data3, flags = 0x1f):
+       	msg = Msg.s_makeMessage("SendExtendedMessage")
+	msg.setAddress("toAddress", adr)
+	msg.setByte("messageFlags", flags | 0x10)
+	msg.setByte("command1",  cmd1)
+	msg.setByte("command2",  cmd2)
+	msg.setByte("userData1", data1)
+	msg.setByte("userData2", data2)
+	msg.setByte("userData3", data3)
+	msg.setByte("userData4", 0)
+	msg.setByte("userData5", 0)
+	msg.setByte("userData6", 0)
+	msg.setByte("userData7", 0)
+	msg.setByte("userData8", 0)
+	msg.setByte("userData9", 0)
+	msg.setByte("userData10", 0)
+	msg.setByte("userData11", 0)
+	msg.setByte("userData12", 0)
+        crc = calcCRC(msg)
+        crcLow   = crc & 0xFF
+        crcHigh  = (crc >> 8) & 0xFF
+        out("checksum = " + format(crc, 'x') + " = " + format(crcHigh, '02x') + ":" + format(crcLow, '02x'))
+	msg.setByte("userData13", int(crcLow & 0xFF))
+	msg.setByte("userData14", int(crcHigh & 0xFF))
+        return msg
+
+def calcCRC(msg):
+        bytes = msg.getBytes("command1", 14);
+        crc = int(0);
+        for loop in xrange(0, len(bytes)):
+                b = bytes[loop] & 0xFF
+                #out("orig byte: " + '{0:32b}'.format(b) + " int: " + format(b, 'd') + " = " + format(b, 'x'))
+                for bit in xrange(0, 8):
+                        fb = b & 0x01
+                        fb = fb ^ 0x01 if (crc & 0x8000) else fb
+                        fb = fb ^ 0x01 if (crc & 0x4000) else fb
+                        fb = fb ^ 0x01 if (crc & 0x1000) else fb
+                        fb = fb ^ 0x01 if (crc & 0x0008) else fb
+                        crc = ((crc << 1) | fb) & 0xFFFF;
+                        b = b >> 1
+
+        out("calc crc for: " + str([format(bytes[x] & 0xFF, ' 02x') for x in xrange(0, len(bytes))]))
+        return crc
 	
 # basic insteon commands
 
@@ -149,63 +206,6 @@ def off(adr):
         writeMsg(createStdMsg(adr, 0x0F, 0x13, 0, -1))
 
 	
-class ModemDBDumper(MsgListener):
-        condition = Condition()
-        keepRunning = True
-
-        def start(self):
-                insteon.addListener(self)
-                writeMsg(Msg.s_makeMessage("GetFirstALLLinkRecord"))
-                
-        def done(self):
-                insteon.removeListener(self)
-
-                self.condition.acquire()
-
-                self.keepRunning = False
-
-                self.condition.notify()
-                self.condition.release()
-        def wait(self):
-
-                self.condition.acquire()
-                while self.keepRunning:
-                        self.condition.wait()
-                self.condition.release()
-
-        def dumpEntry(self, msg):
-                recordFlags = msg.getByte("RecordFlags") & 0xff
-                linkType = "CTRL" if ((recordFlags & (0x1 << 6)) != 0) else "RESP"
-
-                group = Utils.toHex(msg.getByte("ALLLinkGroup"))
-                linkAddr = msg.getAddress("LinkAddr")
-                data1 = Utils.toHex(msg.getByte("LinkData1"))
-                data2 = Utils.toHex(msg.getByte("LinkData2"))
-                data3 = Utils.toHex(msg.getByte("LinkData3"))
-
-                out(linkAddr.toString() + " " + linkType + " group: " + group + " data1: " + data1 + 
-                    " data2: " + data2 + " data3: " + data3)
-
-        def msgReceived(self, msg):
-                if msg.isPureNack():
-                        return;
-                if msg.getByte("Cmd") == 0x69 or msg.getByte("Cmd") == 0x6a :
-                        if msg.getByte("ACK/NACK") == 0x15:
-                                self.done()
-                elif msg.getByte("Cmd") == 0x57:
-                        self.dumpEntry(msg)
-                        writeMsg(Msg.s_makeMessage("GetNextALLLinkRecord"))
-
-def dumpLinkDB():
-	if insteon.isConnected() is not True:
-                err("Not connected!");
-                return;
-        out("Starting Modem Link DB");
-        dumper = ModemDBDumper()
-        dumper.start()
-        dumper.wait()
-        out("Modem Link DB Done")
-
 class KeypadDBDumper(MsgListener):
         dev   = None
         timer = None
@@ -214,7 +214,7 @@ class KeypadDBDumper(MsgListener):
                 self.dev = d
         def start(self):
                 insteon.addListener(self)
-                msg = createExtendedMsg(InsteonAddress(self.dev), 0x2f, 0)
+                msg = createExtendedMsg(InsteonAddress(self.dev), 0x2f, 0, 0)
                 msg.setByte("userData1", 0);
                 msg.setByte("userData2", 0);
                 msg.setByte("userData3", 0);
