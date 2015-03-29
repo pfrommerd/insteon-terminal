@@ -75,21 +75,6 @@ def trackPort():
 		tracker = PortTracker(insteon.getPort())
 	else :
 		err("Not connected!")
-# device-related functions
-
-devNameMap = {}
-devAddressMap = {}
-
-def addDev(dev):
-	devNameMap[dev.getName()] = dev
-	devAddressMap[dev.getAddress()] = dev;
-	
-def getDevByName(name):
-	return devNameMap[name]
-
-def getDevByAdr(adr):
-	return devAddressMap[adr]
-	
 # insteon-related functions
 
 def connectToHub(adr, port, pollMillis, user, password):

@@ -3,6 +3,7 @@ import commands
 from device import Device
 from commands import insteon
 from threading import Timer
+from linkdb import *
 
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
@@ -14,12 +15,12 @@ def out(msg = ""):
 class DBBuilder(MsgListener):
         addr   = None
         timer  = None
-        recordDict = {};
+        db = {};
         def __init__(self, addr):
                 self.addr = addr
         def start(self):
                 insteon.addListener(self)
-                msg = commands.createExtendedMsg(InsteonAddress(self.addr), 0x2f, 0)
+                msg = commands.createExtendedMsg(InsteonAddress(self.addr), 0x2f, 0, 0, 0, 0)
                 msg.setByte("userData1", 0);
                 msg.setByte("userData2", 0);
                 msg.setByte("userData3", 0);
@@ -45,6 +46,7 @@ class DBBuilder(MsgListener):
                 insteon.removeListener(self)
                 if self.timer:
                         self.timer.cancel()
+                dumpDB(self.db)
                 out("database complete!")
                 
         def msgReceived(self, msg):
@@ -55,20 +57,18 @@ class DBBuilder(MsgListener):
                 if msg.getByte("Cmd") == 0x62:
                         out("query msg acked!")
                 elif msg.getByte("Cmd") == 0x51:
-                        dbaddr = (msg.getByte("userData3") & 0xFF) << 8 | (msg.getByte("userData4") & 0xFF)
-                        if (self.recordDict.has_key(dbaddr)):
-                                out("duplicate record ignored: 0x" + format(dbaddr,'04x'))
-                                return
-                        rb = msg.getBytes("userData6", 8); # ctrl + group + [data1,data2,data3] + whatever
-                        ctrl = rb[0] & 0xFF;
-                        if (ctrl & 0x02 == 0):
+                        off   = (msg.getByte("userData3") & 0xFF) << 8 | (msg.getByte("userData4") & 0xFF)
+                        rb    = msg.getBytes("userData6", 8); # ctrl + group + [data1,data2,data3] + whatever
+                        ltype = rb[0] & 0xFF
+                        group = rb[1] & 0xFF
+                        data  = rb[2:4]
+                        addr  = InsteonAddress("00.00.00")
+                        if (ltype & 0x02 == 0):
                                 self.done()
                                 return
-                        rec = ' '.join(format(x & 0xFF, '02x') for x in rb)
-                        self.recordDict[dbaddr] = rb
-                        out("linkrecord: addr 0x" + format(dbaddr, '04x') + " ctrl: " + '{0:08b}'.format(rb[0] & 0xFF)
-                            + " group: " + format(rb[1] & 0xFF, '02x')
-                            + " data: " + ' '.join(format(x & 0xFF, '02x') for x in rb[2:4]))
+                        rec   = {"offset" : off, "addr": addr, "type" : ltype, "group" : group, "data" : data}
+                        addRecord(self.db, rec)
+                        dumpRecord(rec)
                 else:
                         out("got unexpected msg: " + msg.toString())
 
