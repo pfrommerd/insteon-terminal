@@ -189,6 +189,11 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 		}
 	}
 	
+	public void reset() throws IOException {
+		m_console.reset();
+		reload();
+	}
+	
 	//Terminate the current running program
 	@Override
 	public void terminate() {

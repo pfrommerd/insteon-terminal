@@ -56,7 +56,7 @@ def clear():
 	insteon.getConsole().clear()
 	
 def reset():
-	insteon.getConsole().reset()
+	insteon.reset()
 
 def quit():
 	System.exit(0)
