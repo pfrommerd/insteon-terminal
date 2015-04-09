@@ -2,6 +2,7 @@ import commands
 
 from device import Device
 from commands import insteon
+from commands import Querier
 from threading import Timer
 from linkdb import *
 
@@ -11,6 +12,14 @@ from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 def out(msg = ""):
 	insteon.out().println(msg)
+
+class DefaultMsgHandler:
+        label = None
+        def __init__(self, l):
+                self.label = l
+        def processMsg(self, msg):
+                out(self.label + " got msg: " + msg.toString())
+                return 1
 
 class DBBuilder(MsgListener):
         addr   = None
@@ -61,14 +70,16 @@ class DBBuilder(MsgListener):
                         rb    = msg.getBytes("userData6", 8); # ctrl + group + [data1,data2,data3] + whatever
                         ltype = rb[0] & 0xFF
                         group = rb[1] & 0xFF
-                        data  = rb[2:4]
-                        addr  = InsteonAddress("00.00.00")
+                        data  = rb[5:8]
+                        addr  = InsteonAddress(rb[2] & 0xff, rb[3] & 0xff, rb[4] & 0xff)
+                        rec   = {"offset" : off, "addr": addr, "type" : ltype,
+                                 "group" : group, "data" : data}
+                        addRecord(self.db, rec)
                         if (ltype & 0x02 == 0):
+                                out("last record: " + msg.toString())
                                 self.done()
                                 return
-                        rec   = {"offset" : off, "addr": addr, "type" : ltype, "group" : group, "data" : data}
-                        addRecord(self.db, rec)
-                        dumpRecord(rec)
+#                        dumpRecord(rec)
                 else:
                         out("got unexpected msg: " + msg.toString())
 
@@ -78,5 +89,21 @@ class keypad2487S(Device):
     def __init__(self, name, addr):
         Device.__init__(self, name, addr)
         self.dbbuilder = DBBuilder(addr)
+        self.querier = Querier(addr)
+
     def getdb(self):
+        out("getting db, be patient!")
         self.dbbuilder.start()
+
+    def startLinking(self):
+        self.querier.setMsgHandler(DefaultMsgHandler("start linking"))
+        self.querier.querysd(0x09, 0x01);
+
+    def ping(self):
+        self.querier.setMsgHandler(DefaultMsgHandler("ping"))
+        self.querier.querysd(0x0F, 0x01);
+ 
+    def idrequest(self):
+        self.querier.setMsgHandler(DefaultMsgHandler("id request"))
+        self.querier.querysd(0x10, 0x00);
+ 

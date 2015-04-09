@@ -190,6 +190,57 @@ def off(devName):
 def off(adr):
         writeMsg(createStdMsg(adr, 0x0F, 0x13, 0, -1))
 
+
+class Querier(MsgListener):
+        addr   = None
+        timer  = None
+        msgHandler = None
+        def __init__(self, addr):
+                self.addr = addr
+        def setMsgHandler(self, handler):
+                self.msgHandler = handler
+        def sendMsg(self, msg):
+                insteon.addListener(self)
+                writeMsg(msg)
+                out("sent msg: " + msg.toString())
+                self.timer = Timer(5.0, self.giveUp)
+                self.timer.start()
+                
+        def queryext(self, cmd1, cmd2, data1, data2):
+                msg = createExtendedMsg(InsteonAddress(self.addr), cmd1, cmd2, data1, data2, 0)
+                self.sendMsg(msg);
+        def queryext2(self, cmd1, cmd2, data1, data2, data3):
+                msg = createExtendedMsg2(InsteonAddress(self.addr), cmd1, cmd2, data1, data2, data3)
+                self.sendMsg(msg);
+        def queryext3(self, cmd1, cmd2, data1, data2, data3):
+                msg = createExtendedMsg(InsteonAddress(self.addr), cmd1, cmd2, data1, data2, data3)
+                self.sendMsg(msg);
+        def querysd(self, cmd1, cmd2, group = -1):
+                msg = createStdMsg(InsteonAddress(self.addr), 0x0f, cmd1, cmd2, group)
+                self.sendMsg(msg);
+        def giveUp(self):
+                out("did not get response, giving up!")
+                insteon.removeListener(self)
+                self.timer.cancel()
+        def done(self):
+                insteon.removeListener(self)
+                if self.timer:
+                        self.timer.cancel()
+        def msgReceived(self, msg):
+                if msg.isPureNack():
+                        out("got pure NACK")
+                        return
+                if msg.getByte("Cmd") == 0x62:
+                        out("query msg acked!")
+                        return
+                if (self.msgHandler):
+                        if self.msgHandler.processMsg(msg):
+                                self.done()
+                else:
+                        out("got reply msg: " + msg.toString())
+                        self.done()
+
+
 	
 class KeypadDBDumper(MsgListener):
         dev   = None

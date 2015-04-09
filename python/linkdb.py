@@ -11,7 +11,11 @@ def dumpRecord(rec):
         off  = rec["offset"]
         addr = rec["addr"].toString()
         dev = getDevByAddr(addr).getName() if getDevByAddr(addr) else addr
-        out(format(off, '04x') + " " + format(dev, '20s') + '{0:08b}'.format(rec["type"]) + 
+        ctrl = rec["type"]
+        cr   = "CTRL" if (ctrl & (0x01 << 6)) else "RESP"
+        out(format(off, '04x') + " " + format(dev, '20s') +
+            " " + format(addr, '8s') + " " + cr + " " +
+            '{0:08b}'.format(rec["type"]) + 
             " group: " + format(rec["group"], '02x') + " data: " +
             ' '.join([format(x & 0xFF, '02x') for x in rec["data"]]))
 
@@ -32,7 +36,7 @@ def addRecord(d, rec):
         d[off][addr][ltype][group].append(rec)
 
 def dumpDB(d):
-        for off in sorted(d):
+        for off in sorted(d, reverse = True):
                 for addr in sorted(d[off]):
                         for type in sorted(d[off][addr]):
                                 for group in sorted(d[off][addr][type]):

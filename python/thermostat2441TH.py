@@ -1,7 +1,9 @@
 import commands
 
 from device import Device
+from linkdb import *
 from commands import insteon
+from commands import Querier
 from threading import Timer
 
 from us.pfrommer.insteon.cmd.msg import Msg
@@ -166,65 +168,6 @@ class IDRequestMsgHandler(MsgHandler):
                         return 1
                 return 1
 
-class Querier(MsgListener):
-        addr   = None
-        timer  = None
-        msgHandler = None
-        recordDict = {};
-        def __init__(self, addr):
-                self.addr = addr
-        def setMsgHandler(self, handler):
-                self.msgHandler = handler
-        def queryext(self, cmd1, cmd2, data1, data2):
-                insteon.addListener(self)
-                msg = commands.createExtendedMsg(InsteonAddress(self.addr), cmd1, cmd2, data1, data2, 0)
-                commands.writeMsg(msg)
-                out("sent ext msg: " + msg.toString())
-                self.timer = Timer(5.0, self.giveUp)
-                self.timer.start()
-        def queryext2(self, cmd1, cmd2, data1, data2, data3):
-                insteon.addListener(self)
-                msg = commands.createExtendedMsg2(InsteonAddress(self.addr), cmd1, cmd2, data1, data2, data3)
-                commands.writeMsg(msg)
-                out("sent ext msg: " + msg.toString())
-                self.timer = Timer(5.0, self.giveUp)
-                self.timer.start()
-        def queryext3(self, cmd1, cmd2, data1, data2, data3):
-                insteon.addListener(self)
-                msg = commands.createExtendedMsg(InsteonAddress(self.addr), cmd1, cmd2, data1, data2, data3)
-                commands.writeMsg(msg)
-                out("sent ext msg: " + msg.toString())
-                self.timer = Timer(5.0, self.giveUp)
-                self.timer.start()
-        def querysd(self, cmd1, cmd2):
-                insteon.addListener(self)
-                msg = commands.createStdMsg(InsteonAddress(self.addr), 0x0f, cmd1, cmd2, -1)
-                commands.writeMsg(msg)
-                out("sent sd msg: " + msg.toString())
-                self.timer = Timer(5.0, self.giveUp)
-                self.timer.start()
-        def giveUp(self):
-                out("did not get response, giving up!")
-                insteon.removeListener(self)
-                self.timer.cancel()
-        def done(self):
-                insteon.removeListener(self)
-                if self.timer:
-                        self.timer.cancel()
-        def msgReceived(self, msg):
-                if msg.isPureNack():
-                        out("got pure NACK")
-                        return
-                if msg.getByte("Cmd") == 0x62:
-                        out("query msg acked!")
-                        return
-                if (self.msgHandler):
-                        if self.msgHandler.processMsg(msg):
-                                self.done()
-                else:
-                        out("got reply msg: " + msg.toString())
-                        self.done()
-
 class DBBuilder(MsgListener):
         addr   = None
         timer  = None
@@ -259,6 +202,7 @@ class DBBuilder(MsgListener):
                 insteon.removeListener(self)
                 if self.timer:
                         self.timer.cancel()
+                dumpDB(self.recordDict) # linkdb class
                 out("database complete!")
         @staticmethod
         def ctrlToStr(ctrl):
@@ -273,24 +217,41 @@ class DBBuilder(MsgListener):
                         return
                 if msg.getByte("Cmd") == 0x62:
                         out("query msg acked!")
+                        return
+                if msg.getByte("Cmd") == 0x50 and msg.getByte("command1") == 0x2F:
+                        out("std reply received!")
+                        return
                 elif msg.getByte("Cmd") == 0x51:
-                        dbaddr = (msg.getByte("userData3") & 0xFF) << 8 | (msg.getByte("userData4") & 0xFF)
-                        if (self.recordDict.has_key(dbaddr)):
-                                out("duplicate record ignored: 0x" + format(dbaddr,'04x'))
+                        off = ((msg.getByte("userData3") & 0xFF) << 8) | ((msg.getByte("userData4") & 0xFF))
+#                        out("got: " + msg.toString())
+#                        rb = msg.getBytes("userData6", 8); # ctrl + group + [data1,data2,data3] + whatever
+#                        rec = ' '.join(format(x & 0xFF, '02x') for x in rb)
+
+                        linkType = msg.getByte("userData6") & 0xFF
+                        group    = msg.getByte("userData7") & 0xFF
+                        linkAddr = InsteonAddress(msg.getByte("userData8") & 0xFF,
+                                                  msg.getByte("userData9") & 0xFF,
+                                                  msg.getByte("userData10") & 0xFF)
+                        data     = [msg.getByte("userData11") & 0xFF,
+                                    msg.getByte("userData12") & 0xFF,
+                                    msg.getByte("userData13") & 0xFF]
+
+                        if (self.recordDict.has_key(off)):
+#                                out("duplicate record ignored: 0x" + format(off,'04x'))
                                 return
-                        rb = msg.getBytes("userData6", 8); # ctrl + group + [data1,data2,data3] + whatever
-                        ctrl = rb[0] & 0xFF;
-                        if (ctrl & 0x02 == 0):
+                        rec = {"offset" : off, "addr": linkAddr, "type" : linkType,
+                                   "group" : group, "data" : data}
+                        addRecord(self.recordDict, rec)
+                        dumpRecord(rec)
+                        if (linkType & 0x02 == 0): # has end-of-list marker
                                 self.done()
                                 return
-                        rec = ' '.join(format(x & 0xFF, '02x') for x in rb)
-                        self.recordDict[dbaddr] = rb
-                        out("linkrecord: addr 0x" + format(dbaddr, '04x') + " "
-                            + DBBuilder.ctrlToStr(rb[0] & 0xFF)
-                            + " ctrl: " + '{0:08b}'.format(rb[0] & 0xFF)
-                            + " group: " + format(rb[1] & 0xFF, '02x')
-                            + " dev: " + '.'.join(format(x & 0xFF, '02x') for x in rb[2:5])
-                            + " data: " + ' '.join(format(x & 0xFF, '02x') for x in rb[5:]))
+#                        out("linkrecord: addr 0x" + format(dbaddr, '04x') + " "
+#                            + DBBuilder.ctrlToStr(rb[0] & 0xFF)
+#                            + " ctrl: " + '{0:08b}'.format(rb[0] & 0xFF)
+#                            + " group: " + format(rb[1] & 0xFF, '02x')
+#                            + " dev: " + '.'.join(format(x & 0xFF, '02x') for x in rb[2:5])
+#                            + " data: " + ' '.join(format(x & 0xFF, '02x') for x in rb[5:]))
                 else:
                         out("got unexpected msg: " + msg.toString())
 
@@ -323,6 +284,35 @@ class thermostat2441TH(Device):
 #
 #   tested and working
 #
+    def setdb(self, offset, linkAddress, group, isCtrl):
+        msg   = Msg.s_makeMessage("SendExtendedMessage")
+        laddr = InsteonAddress(linkAddress)
+        ctrl  = (1 << 6) if isCtrl else 0  # ctrl = 1, resp = 0
+        ctrl |= (1 << 7) # 1 == record is in use
+        ctrl |= (1 << 5) # supposedly not used
+        ctrl |= (1 << 1) # 1 == not last record
+ 	msg.setAddress("toAddress", InsteonAddress(self.getAddress()))
+        msg.setByte("messageFlags", 0x1f)
+	msg.setByte("command1", 0x2f)
+	msg.setByte("command2", 0x00)
+	msg.setByte("userData1", 0x00) # don't care info
+        msg.setByte("userData2", 0x02) # set database
+        msg.setByte("userData3", offset >> 8)  # high byte
+        msg.setByte("userData4", offset & 0xff) # low byte
+        msg.setByte("userData5", 8)  # number of bytes set:  1...8
+        msg.setByte("userData6", ctrl)
+        msg.setByte("userData7", group)
+        msg.setByte("userData8", laddr.getHighByte())
+        msg.setByte("userData9", laddr.getMiddleByte())
+        msg.setByte("userData10", laddr.getLowByte())
+        msg.setByte("userData11", 0x00) # dependent on mode: could be e.g. trigger point
+        msg.setByte("userData12", 0x00) # no idea
+        msg.setByte("userData13", 0x00) # no idea
+        rb = msg.getBytes("command1", 15);
+        checksum = (~sum(rb) + 1) & 0xFF
+        msg.setByte("userData14", checksum)
+        self.querier.setMsgHandler(MsgHandler())
+        self.querier.sendMsg(msg);
     def ping(self):
         self.sd(0x0f, 0)
     def getid(self):
