@@ -85,7 +85,6 @@ class DBBuilder(MsgListener):
 
 
 class keypad2487S(Device):
-    dbbuilder = None
     def __init__(self, name, addr):
         Device.__init__(self, name, addr)
         self.dbbuilder = DBBuilder(addr)
@@ -106,4 +105,4 @@ class keypad2487S(Device):
     def idrequest(self):
         self.querier.setMsgHandler(DefaultMsgHandler("id request"))
         self.querier.querysd(0x10, 0x00);
- 
+

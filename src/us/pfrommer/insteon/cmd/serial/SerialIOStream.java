@@ -57,7 +57,7 @@ public class SerialIOStream implements IOStream {
 			m_port.enableReceiveTimeout(1000);
 			
 			m_in	= m_port.getInputStream();
-			m_out	= m_port.getOutputStream();
+			m_out	= new NoFlushOutputStream(m_port.getOutputStream());
 		} catch (IOException e) {
 			throw e;
 		} catch (PortInUseException e) {
@@ -81,5 +81,26 @@ public class SerialIOStream implements IOStream {
 		m_port = null;
 		m_in = null;
 		m_out = null;
+	}
+	
+	private class NoFlushOutputStream extends OutputStream {
+		private OutputStream m_output;
+		
+		public NoFlushOutputStream(OutputStream out) {
+			m_output = out;
+		}
+		
+		@Override
+		public void write(int b) throws IOException {
+			m_output.write(b);
+		}
+		
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+			m_output.write(b, off, len);
+		}
+		
+		@Override
+		public void flush() {}
 	}
 }

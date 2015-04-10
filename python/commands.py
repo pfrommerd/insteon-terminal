@@ -14,9 +14,6 @@ from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 from us.pfrommer.insteon.cmd.gui import PortTracker
 
-from threading import Condition
-from threading import Timer
-
 from device import Device
 import struct
 
@@ -29,7 +26,7 @@ insteon = None
 def init(interpreter):
 	global insteon
 	insteon = interpreter
-	
+
 # a buch of helper functions
 
 def err(msg = ""):
@@ -60,7 +57,7 @@ def clear():
 	insteon.getConsole().clear()
 	
 def reset():
-	insteon.getConsole().reset()
+	insteon.reset()
 
 def quit():
 	System.exit(0)
@@ -88,9 +85,6 @@ def disconnect():
 
 def writeMsg(msg):
 	insteon.writeMsg(msg)
-
-def writeHex(hex):
-	insteon.writeHex(hex)
 	
 def readMsg():
 	return insteon.readMsg()

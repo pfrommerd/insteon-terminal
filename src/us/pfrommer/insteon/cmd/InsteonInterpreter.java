@@ -25,8 +25,6 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	
 	private Console m_console;
 	
-	private Thread m_mainThread;
-	
 	private HashSet<MsgListener> m_listeners = new HashSet<MsgListener>();
 
 	public InsteonInterpreter(Console c) {
@@ -76,7 +74,6 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	public void closePort() {
 		if (m_port != null) {
 			m_port.removeListener(this);
-			out().println("removed listener");
 			try {
 				m_port.close();
 			} catch (IOException e) {
@@ -96,23 +93,27 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 		
 		File f = new File(".");
 		
-		
-        m_interpreter.exec("import sys");
-        
-        //Remove all existing modules so we can reload them
-        m_interpreter.exec("sys.modules.clear()");
-        
-        m_interpreter.exec("sys.path.append('" + f.getAbsolutePath() + "')");
-		
-		//Import the commands
-		m_interpreter.exec("from python.commands import *");
+		try {
+			m_interpreter.exec("import sys");
 
-		//Set the interpreter variable
-		m_interpreter.set("insteon", this);
-		//Call the init function to set "insteon" in commands
-		m_interpreter.get("init").__call__(m_interpreter.get("insteon"));
-		//Import init
-		m_interpreter.exec("from init import *");
+			//Remove all existing modules so we can reload them
+			m_interpreter.exec("sys.modules.clear()");
+
+			m_interpreter.exec("sys.path.append('" + f.getAbsolutePath() + "')");
+
+			//Import the commands
+			m_interpreter.exec("from python.commands import *");
+
+			//Set the interpreter variable
+			m_interpreter.set("insteon", this);
+			//Call the init function to set "insteon" in commands
+			m_interpreter.get("init").__call__(m_interpreter.get("insteon"));
+			//Import init
+			m_interpreter.exec("from init import *");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void reload() throws IOException {
@@ -125,7 +126,11 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	}
 
 	public void exec(String s) {
-		m_interpreter.exec(s);
+		try {
+			m_interpreter.exec(s);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void dumpFuncs() {
@@ -159,7 +164,6 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	
 	public void run() {
 		try{
-			m_mainThread = Thread.currentThread();
 			while(true) {
 				String line = m_console.readLine(">>> ");
 				try {
@@ -183,6 +187,11 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 		} catch(IOException io){
 			io.printStackTrace();
 		}
+	}
+	
+	public void reset() throws IOException {
+		m_console.reset();
+		reload();
 	}
 	
 	//Terminate the current running program
@@ -214,28 +223,6 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 		}
 	}
 	
-	public void writeHex(String hex) {
-		hex = hex.replaceAll("\\s+", "");
-		//Convert the string to a byte array
-	    int len = hex.length();
-	    byte[] data = new byte[len / 2];
-	    for (int i = 0; i < len; i += 2) {
-	        data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
-	                             + Character.digit(hex.charAt(i+1), 16));
-	    }
-	    
-	    //write data
-	    write(data);
-	}
-	
-	public void write(byte[] bytes) {
-		if (m_port == null) {
-			err().println("Not connected");
-			return;
-		}
-		m_port.write(bytes);
-	}
-	
 	public void writeMsg(Msg m) throws IOException {
 		if (m_port == null) {
 			err().println("Not connected");
@@ -245,12 +232,6 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	}
 	
 	//Port listener functions
-	@Override
-	public void wroteBytes(byte[] bytes) {}
-	
-	@Override
-	public void bytesReceived(byte[] bytes) {}
-	
 	@Override
 	public void msgReceived(Msg msg) {
 		synchronized(m_listeners) {
@@ -263,4 +244,7 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 			m_lastMsg = msg;
 		}
 	}
+
+	@Override
+	public void msgWritten(Msg msg) {}
 }
