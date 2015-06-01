@@ -11,6 +11,26 @@ from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 from us.pfrommer.insteon.cmd.utils import Utils
+# >>> modem.getdb()
+# 0000 25.65.D6             25.65.D6 CTRL 11100010 group: 01 data: 02 2a 43
+# 0000 1E.F1.E3             1E.F1.E3 CTRL 11100010 group: 01 data: 02 2a 42
+# 0000 1E.EF.32             1E.EF.32 CTRL 11100010 group: 01 data: 02 2a 42
+# 0000 24.D7.90             24.D7.90 CTRL 11100010 group: 01 data: 02 2a 43
+# 0000 23.EE.16             23.EE.16 CTRL 11100010 group: 01 data: 02 2a 43
+# 0000 20.AB.26             20.AB.26 RESP 10100010 group: 01 data: 01 20 41
+# 0000 20.AB.26             20.AB.26 CTRL 11100010 group: 01 data: 01 20 41
+# 0000 27.8C.A3             27.8C.A3 CTRL 11100010 group: 01 data: 10 01 41
+# 0000 20.A4.43             20.A4.43 RESP 10100010 group: 01 data: 01 20 41
+# 0000 20.A4.43             20.A4.43 CTRL 11100010 group: 01 data: 01 20 41
+# 0000 20.AC.99             20.AC.99 RESP 10100010 group: 01 data: 01 20 41
+# 0000 20.AC.99             20.AC.99 CTRL 11100010 group: 01 data: 01 20 41
+# 0000 kitchen_thermostat   32.F7.2C RESP 10100010 group: 01 data: 00 00 00
+# 0000 kitchen_thermostat   32.F7.2C RESP 10100010 group: 02 data: 00 00 00
+# 0000 kitchen_thermostat   32.F7.2C RESP 10100010 group: 03 data: 00 00 00
+# 0000 kitchen_thermostat   32.F7.2C RESP 10100010 group: 04 data: 00 00 00
+# 0000 kitchen_thermostat   32.F7.2C RESP 10100010 group: ef data: 00 00 ef
+# 0000 kitchen_thermostat   32.F7.2C CTRL 11100010 group: 00 data: 01 00 00
+# 0000 office_keypad        30.0D.9F CTRL 11100010 group: 00 data: 02 2c 41
 
 def out(msg = ""):
 	insteon.out().println(msg)
@@ -93,10 +113,37 @@ class modem2413U(Device):
         self.dbbuilder.wait()
         self.dbbuilder.dumpDB()
         out("Modem Link DB complete")
-    def startUnlinking(self, otherDevice, group):
+    def linkAsController(self, otherDevice, group):
         addr = InsteonAddress(otherDevice)
         self.querier = Querier(addr)
-        self.querier.setMsgHandler(DefaultMsgHandler("start unlinking"))
+        self.querier.setMsgHandler(DefaultMsgHandler("link as controller"))
+        msg = Msg.s_makeMessage("StartALLLinking")
+        msg.setByte("LinkCode", 0x01)
+        msg.setByte("ALLLinkGroup", group)
+        self.querier.sendMsg(msg)
+    def linkAsResponder(self, otherDevice, group):
+        addr = InsteonAddress(otherDevice)
+        self.querier = Querier(addr)
+        self.querier.setMsgHandler(DefaultMsgHandler("start linking"))
+        msg = Msg.s_makeMessage("StartALLLinking")
+        msg.setByte("LinkCode", 0x00)
+        msg.setByte("ALLLinkGroup", group)
+        self.querier.sendMsg(msg)
+    def linkAsEither(self, otherDevice, group):
+        addr = InsteonAddress(otherDevice)
+        self.querier = Querier(addr)
+        self.querier.setMsgHandler(DefaultMsgHandler("link/unlink as controller or responder"))
+        msg = Msg.s_makeMessage("StartALLLinking")
+        msg.setByte("LinkCode", 0x03)
+        msg.setByte("ALLLinkGroup", group)
+        self.querier.sendMsg(msg)
+    def respondToUnlink(self, otherDevice, group):
+        # could not get 0xFF to unlink
+        self.linkAsEither(otherDevice, group)
+    def unlinkAsController(self, otherDevice, group):
+        addr = InsteonAddress(otherDevice)
+        self.querier = Querier(addr)
+        self.querier.setMsgHandler(DefaultMsgHandler("unlink as controller"))
         msg = Msg.s_makeMessage("StartALLLinking")
         msg.setByte("LinkCode", 0xFF)
         msg.setByte("ALLLinkGroup", group)
@@ -105,4 +152,16 @@ class modem2413U(Device):
         self.querier = Querier(self.m_address)
         self.querier.setMsgHandler(DefaultMsgHandler("cancel linking"))
         msg = Msg.s_makeMessage("CancelALLLinking")
+        self.querier.sendMsg(msg)
+    def deleteFirstRecord(self, addr, group):
+        msg = Msg.s_makeMessage("ManageALLLinkRecord");
+        msg.setByte("controlCode", 0x80); # code for erase
+        msg.setByte("recordFlags", 0x00);
+        msg.setByte("ALLLinkGroup", group);
+        msg.setAddress("linkAddress", InsteonAddress(addr));
+        msg.setByte("linkData1", 0x00);
+        msg.setByte("linkData2", 0x00);
+        msg.setByte("linkData3", 0x00);
+        self.querier = Querier(self.m_address)
+        self.querier.setMsgHandler(DefaultMsgHandler("delete record"))
         self.querier.sendMsg(msg)

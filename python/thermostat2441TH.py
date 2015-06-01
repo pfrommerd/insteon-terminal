@@ -9,6 +9,26 @@ from threading import Timer
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
+#
+# group 1: cooling mode change
+# group 2: heating mode change
+# group 3: dehumidification, high humidity setpoint
+# group 4: humidification, low humidity setpoint
+# group EF: broadcast on any change (notification for linked software controllers)
+#
+# th.printdb()
+#
+# 1fff test_modem           23.9B.65 RESP 10100010 group: 00 data: 03 4c 44
+# 1ff7 test_modem           23.9B.65 CTRL 11100010 group: 01 data: 00 00 00
+# 1fef test_modem           23.9B.65 CTRL 11101010 group: 02 data: 03 15 9b
+# 1fe7 test_modem           23.9B.65 CTRL 11100010 group: 03 data: 03 1f 03
+# 1fdf test_modem           23.9B.65 CTRL 11101010 group: 04 data: 03 1f 04
+# 1fd7 test_modem           23.9B.65 CTRL 11100010 group: ef data: 03 1f ef
+# 1fcf 31.26.3F             31.26.3F RESP 10100010 group: 00 data: 44 50 42
+# 1fc7 31.26.3F             31.26.3F RESP 10100010 group: 01 data: 44 50 44
+# 1fbf 31.26.3F             31.26.3F CTRL 11100010 group: 01 data: 03 33 9d
+# 1fb7 00.00.00             00.00.00 RESP 00000000 group: 00 data: 00 00 00
+
 
 def out(msg = ""):
 	insteon.out().println(msg)
@@ -168,12 +188,184 @@ class IDRequestMsgHandler(MsgHandler):
                         return 1
                 return 1
 
+
+class DBBuilderListener:
+        def databaseComplete(self, db):
+                out("databaseComplete() not implemented!")
+        def databaseIncomplete(self, db):
+                out("databaseIncomplete() not implemented!")
+
+class LinkRecordManipulator(DBBuilderListener):
+        def recordPresent(self, db, rec, matchAddress = True, matchGroup = True, matchData = True):
+                rec["type"] |= (1 << 7) # set record in use bit
+                mask = 0xc2 # mask unused bits, but match all other bits
+                return self.findRecord(db, rec, mask, matchAddress, matchGroup, matchData) != None
+        def findActiveRecord(self, db, rec, matchAddress = True, matchGroup = True, matchData = False):
+                rec["type"] |= (1 << 7) # set record in use bit
+                mask = 0xc2 # mask unused bits, but match all other bits
+                return self.findRecord(db, rec, mask, matchAddress, matchGroup, matchData)
+        def findInactiveRecord(self, db, rec, matchAddress = True, matchGroup = True, matchData = False):
+                rec["type"] &= 0x7F # clear record in use bit
+                mask = 0x82 # mask unused bits and the controller/responder bit
+                return self.findRecord(db, rec, mask, matchAddress, matchGroup, matchData)
+        def findFreeRecord(self, db, rec, matchAddress = False, matchGroup = False, matchData = False):
+                rec["offset"] &= (0x7f) # record free
+                mask = 0xc2 # mask unused bits, but match all other bits
+                return self.findRecord(db, rec, mask, matchAddress, matchGroup, matchData)
+        def findRecord(self, db, rec, mask, matchAddress = True, matchGroup = True, matchData = True):
+                out("testing for record: ")
+                dumpRecord(rec)
+                out("MASK: " + '{0:08b}'.format(mask))
+                for off in sorted(db, reverse = True):  # loop through all offsets
+                        out("offset: " + format(off, '04x'))
+                        recsByAddr =  {rec["addr"] : db[off].get(rec["addr"], {})} if matchAddress else db[off]
+                        for addr, allRecsByType in recsByAddr.iteritems(): # loop through all matching addresses at offset
+                                out(" address: " + addr.toString())
+                                for rt, allRecsByGroup in allRecsByType.iteritems(): # loop through all types at address
+                                        out("  link type: " + '{0:08b}'.format(rt))
+                                        if (rt & mask) != (rec["type"] & mask): # mask doesn't match: skip
+                                                out("    link type no match!")
+                                                continue
+                                        recsByGroup =  {rec["group"] : allRecsByGroup.get(rec["group"], [])} if matchGroup else allRecsByGroup;
+                                        for group, recList in recsByGroup.iteritems(): # loop through all groups
+                                                out("   group: " + format(group, '02x') + " size: " + format(len(recList), 'd'))
+                                                for tmprec in recList:
+                                                        if not matchData:
+                                                                return tmprec
+                                                        if (tmprec["data"] == rec["data"]):
+                                                                out("data matches: ")
+                                                                dumpRecord(tmprec)
+                                                                return tmprec
+                                                        else:
+                                                                out("data does not match: ")
+                                                                dumpRecord(tmprec)
+                return None
+
+
+class LinkRecordSetter(LinkRecordManipulator):
+        group = 0xef
+        data  = [0x03, 0x1f, 0xef]
+        isController = True
+        linkAddr = InsteonAddress("23.9b.65")
+        def databaseComplete(self, db):
+                out("database complete, analyzing...")
+                linkType = (1 << 6) if self.isController else 0
+                linkType |= (1 << 1) # high water mark
+                linkType |= (1 << 5) # unused bit, but seems to be always 1
+#                linkType |= (1 << 7) # valid record
+                rec = {"offset" : 0, "addr": self.linkAddr, "type" : linkType,
+                       "group" : self.group, "data" : self.data}
+                if (self.recordPresent(db, rec) != 0):
+                        out("identical record already present, no action taken!")
+                else:
+                        freeRecord = self.findFreeRecord(db, rec)
+                        if (freeRecord):
+                                out("found free record:")
+                                dumpRecord(freeRecord)
+
+        def databaseIncomplete(self, db):
+                out("database incomplete, reload() and retry!")
+
+class LinkRecordRemover(LinkRecordManipulator):
+        group = None
+        data  = [0x03, 0x1f, 0xef]
+        isController = True
+        linkAddr = None
+        thermostat = None
+        def __init__(self, th, linkAddr, g):
+            self.thermostat = th
+            self.linkAddr = InsteonAddress(linkAddr)
+            self.group = g;
+        def databaseComplete(self, db):
+                out("database complete, analyzing...")
+                if not self.group:
+                        out("group to remove not set, aborting!")
+                        return
+                if not self.linkAddr:
+                        out("address to remove not set, aborting!")
+                        return
+                linkType = (1 << 6) if self.isController else 0
+                linkType |= (1 << 1) # high water mark
+                linkType |= (1 << 5) # unused bit, but seems to be always 1
+#                linkType |= (1 << 7) # valid record
+                searchRec = {"offset" : 0, "addr": self.linkAddr, "type" : linkType,
+                             "group" : self.group, "data" : self.data}
+                rec = self.findActiveRecord(db, searchRec);
+                if not rec:
+                        out("no matching found record, no action taken!")
+                        return
+                out("erasing active record at offset: " + format(rec["offset"], '04x'))
+                self.thermostat.setrecord(rec["offset"], rec["addr"], rec["group"], rec["type"] & 0x3f, rec["data"]);
+
+
+        def databaseIncomplete(self, db):
+                out("database incomplete, reload() and retry!")
+
+class LinkRecordAdder(LinkRecordManipulator):
+        group = None
+        data  = [0x03, 0x1f, 0xef]
+        isController = True
+        linkAddr = None
+        thermostat = None
+        isController = True
+        def __init__(self, th, linkAddr, g, d, isContr):
+                self.thermostat = th
+                self.linkAddr = InsteonAddress(linkAddr)
+                self.group = g
+                self.data = d
+                self.isController = isContr
+        def addEmptyRecordAtEnd(self, db):
+                oldBottom = 0x1fff
+                offsets = sorted(db, reverse = True)
+                if len(offsets) > 0:
+                        oldBottom = offsets[-1]; # last element
+                newBottom = oldBottom - 8 # subtract one record size
+                self.thermostat.setrecord(newBottom, InsteonAddress("00.00.00"), 0x00, 0x00, [0, 0, 0])
+                return oldBottom
+
+        def databaseComplete(self, db):
+                out("database complete, analyzing...")
+                linkType = (1 << 6) if self.isController else 0
+                linkType |= (1 << 1) # set high water mark
+                linkType |= (1 << 5) # unused bit, but seems to be always 1
+                linkType |= (1 << 7) # valid record
+                searchRec = {"offset" : 0, "addr": self.linkAddr, "type" : linkType,
+                             "group" : self.group, "data" : self.data}
+                rec = self.findActiveRecord(db, searchRec)
+                if rec:
+                        out("found active record:")
+                        dumpRecord(rec)
+                        out("already linked, no action taken!")
+                        return
+                searchRec["type"] = linkType;
+                rec = self.findInactiveRecord(db, searchRec, True, True, False)   # try to match all but data
+                if not rec:
+                        rec = self.findInactiveRecord(db, searchRec, True, False, False)  # just match address
+                if not rec:
+                        rec = self.findInactiveRecord(db, searchRec, False, False, False) # just find any unused record
+                if rec:
+                        out("found inactive record, reusing:")
+                        dumpRecord(rec)
+                        self.thermostat.setrecord(rec["offset"], self.linkAddr, self.group, linkType, self.data)
+                        out("link record added!")
+                else:
+                        out("no unused records, adding one at the end!")
+                        newOffset = self.addEmptyRecordAtEnd(db)
+                        out("now setting the new record!")
+                        self.thermostat.setrecord(newOffset, self.linkAddr, self.group, linkType, self.data)
+
+        def databaseIncomplete(self, db):
+                out("database incomplete, reload() and retry!")
+
 class DBBuilder(MsgListener):
         addr   = None
         timer  = None
         recordDict = {};
+        listener = None
         def __init__(self, addr):
                 self.addr = addr
+        def setListener(self, l):
+                self.listener = l;
         def start(self):
                 insteon.addListener(self)
                 msg = commands.createExtendedMsg(InsteonAddress(self.addr), 0x2f, 0, 0, 0, 0)
@@ -184,7 +376,7 @@ class DBBuilder(MsgListener):
                 msg.setByte("userData5", 0);
                 commands.writeMsg(msg)
                 out("sent query msg ... ")
-                self.timer = Timer(20.0, self.giveUp)
+                self.timer = Timer(10.0, self.giveUp)
                 self.timer.start()
 
         def restartTimer(self):
@@ -197,13 +389,21 @@ class DBBuilder(MsgListener):
                 out("did not get full database, giving up!")
                 insteon.removeListener(self)
                 self.timer.cancel()
+                if self.listener:
+                        self.listener.databaseIncomplete(self.recordDict)
 
         def done(self):
                 insteon.removeListener(self)
                 if self.timer:
                         self.timer.cancel()
+                out("----- database -------")
+                self.printdb()
+                out("----- end ------------")
+                if self.listener:
+                        self.listener.databaseComplete(self.recordDict)
+        def printdb(self):
                 dumpDB(self.recordDict) # linkdb class
-                out("database complete!")
+
         @staticmethod
         def ctrlToStr(ctrl):
                 s = "CTRL" if (ctrl & (0x01 << 6)) else "RESP"
@@ -223,10 +423,6 @@ class DBBuilder(MsgListener):
                         return
                 elif msg.getByte("Cmd") == 0x51:
                         off = ((msg.getByte("userData3") & 0xFF) << 8) | ((msg.getByte("userData4") & 0xFF))
-#                        out("got: " + msg.toString())
-#                        rb = msg.getBytes("userData6", 8); # ctrl + group + [data1,data2,data3] + whatever
-#                        rec = ' '.join(format(x & 0xFF, '02x') for x in rb)
-
                         linkType = msg.getByte("userData6") & 0xFF
                         group    = msg.getByte("userData7") & 0xFF
                         linkAddr = InsteonAddress(msg.getByte("userData8") & 0xFF,
@@ -241,19 +437,15 @@ class DBBuilder(MsgListener):
                                 return
                         rec = {"offset" : off, "addr": linkAddr, "type" : linkType,
                                    "group" : group, "data" : data}
-                        addRecord(self.recordDict, rec)
-                        dumpRecord(rec)
+                        addRecord(self.recordDict, rec, False)
+                        dumpRecord(rec, "got record: ")
                         if (linkType & 0x02 == 0): # has end-of-list marker
                                 self.done()
                                 return
-#                        out("linkrecord: addr 0x" + format(dbaddr, '04x') + " "
-#                            + DBBuilder.ctrlToStr(rb[0] & 0xFF)
-#                            + " ctrl: " + '{0:08b}'.format(rb[0] & 0xFF)
-#                            + " group: " + format(rb[1] & 0xFF, '02x')
-#                            + " dev: " + '.'.join(format(x & 0xFF, '02x') for x in rb[2:5])
-#                            + " data: " + ' '.join(format(x & 0xFF, '02x') for x in rb[5:]))
                 else:
                         out("got unexpected msg: " + msg.toString())
+
+
 
 
 class thermostat2441TH(Device):
@@ -284,13 +476,8 @@ class thermostat2441TH(Device):
 #
 #   tested and working
 #
-    def setdb(self, offset, linkAddress, group, isCtrl):
+    def setrecord(self, offset, laddr, group, linkType, data):
         msg   = Msg.s_makeMessage("SendExtendedMessage")
-        laddr = InsteonAddress(linkAddress)
-        ctrl  = (1 << 6) if isCtrl else 0  # ctrl = 1, resp = 0
-        ctrl |= (1 << 7) # 1 == record is in use
-        ctrl |= (1 << 5) # supposedly not used
-        ctrl |= (1 << 1) # 1 == not last record
  	msg.setAddress("toAddress", InsteonAddress(self.getAddress()))
         msg.setByte("messageFlags", 0x1f)
 	msg.setByte("command1", 0x2f)
@@ -300,19 +487,36 @@ class thermostat2441TH(Device):
         msg.setByte("userData3", offset >> 8)  # high byte
         msg.setByte("userData4", offset & 0xff) # low byte
         msg.setByte("userData5", 8)  # number of bytes set:  1...8
-        msg.setByte("userData6", ctrl)
+        msg.setByte("userData6", linkType)
         msg.setByte("userData7", group)
         msg.setByte("userData8", laddr.getHighByte())
         msg.setByte("userData9", laddr.getMiddleByte())
         msg.setByte("userData10", laddr.getLowByte())
-        msg.setByte("userData11", 0x00) # dependent on mode: could be e.g. trigger point
-        msg.setByte("userData12", 0x00) # no idea
-        msg.setByte("userData13", 0x00) # no idea
+        msg.setByte("userData11", data[0]) # dependent on mode: could be e.g. trigger point
+        msg.setByte("userData12", data[1]) # no idea
+        msg.setByte("userData13", data[2]) # no idea
         rb = msg.getBytes("command1", 15);
         checksum = (~sum(rb) + 1) & 0xFF
         msg.setByte("userData14", checksum)
         self.querier.setMsgHandler(MsgHandler())
-        self.querier.sendMsg(msg);
+        self.querier.sendMsg(msg)
+    def addSoftwareController(self, addr):
+        self.dbbuilder.setListener(LinkRecordAdder(self, addr, 0xef, [0x03, 0x1f, 0xef], True))
+        out("getting database...")
+        self.getdb()
+    def addController(self, addr, group, data):
+        self.dbbuilder.setListener(LinkRecordAdder(self, addr, group, data, True))
+        out("getting database...")
+        self.getdb()
+    def addResponder(self, addr, group, data):
+        self.dbbuilder.setListener(LinkRecordAdder(self, addr, group, data, False))
+        out("getting database...")
+        self.getdb()
+    def removeController(self, addr, group):
+        remover = LinkRecordRemover(self, addr, group)
+        self.dbbuilder.setListener(remover)
+        out("getting database...")
+        self.getdb()
     def ping(self):
         self.sd(0x0f, 0)
     def getid(self):
@@ -345,5 +549,7 @@ class thermostat2441TH(Device):
     def getdatawhatever(self):
         self.querier.setMsgHandler(ReadSetData1bMsgHandler())
         self.ext3(0x2e, 0, 0x00, 0x00, 0x02) # gets something, but not sure what!
+    def printdb(self):
+        self.dbbuilder.printdb()
     def getdb(self):
         self.dbbuilder.start()

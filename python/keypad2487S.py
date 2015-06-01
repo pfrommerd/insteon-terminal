@@ -21,12 +21,23 @@ class DefaultMsgHandler:
                 out(self.label + " got msg: " + msg.toString())
                 return 1
 
+class ClearDatabase:
+        dbbuilder = None
+        def do(self, dbb):
+                self.dbbuilder = dbb
+                
+
 class DBBuilder(MsgListener):
         addr   = None
         timer  = None
+        completeAction = None
         db = {};
         def __init__(self, addr):
                 self.addr = addr
+        def clear(self):
+                db = {};
+        def setCompleteAction(self, action):
+                self.completeAction = action
         def start(self):
                 insteon.addListener(self)
                 msg = commands.createExtendedMsg(InsteonAddress(self.addr), 0x2f, 0, 0, 0, 0)
@@ -57,6 +68,9 @@ class DBBuilder(MsgListener):
                         self.timer.cancel()
                 dumpDB(self.db)
                 out("database complete!")
+                if not self.completeAction == None:
+                        self.completeAction.do(self)
+
                 
         def msgReceived(self, msg):
                 self.restartTimer()
@@ -74,9 +88,9 @@ class DBBuilder(MsgListener):
                         addr  = InsteonAddress(rb[2] & 0xff, rb[3] & 0xff, rb[4] & 0xff)
                         rec   = {"offset" : off, "addr": addr, "type" : ltype,
                                  "group" : group, "data" : data}
-                        addRecord(self.db, rec)
+                        addRecord(self.db, rec, False)
                         if (ltype & 0x02 == 0):
-                                out("last record: " + msg.toString())
+#                                out("last record: " + msg.toString())
                                 self.done()
                                 return
 #                        dumpRecord(rec)
@@ -92,11 +106,12 @@ class keypad2487S(Device):
 
     def getdb(self):
         out("getting db, be patient!")
+        self.dbbuilder.clear()
         self.dbbuilder.start()
 
     def startLinking(self):
         self.querier.setMsgHandler(DefaultMsgHandler("start linking"))
-        self.querier.querysd(0x09, 0x01);
+        self.querier.querysd(0x09, 0x03);
 
     def ping(self):
         self.querier.setMsgHandler(DefaultMsgHandler("ping"))

@@ -7,20 +7,23 @@ from commands import insteon
 def out(msg = ""):
 	insteon.out().println(msg)
 
-def dumpRecord(rec):
+def dumpRecord(rec, prefix = ""):
         off  = rec["offset"]
         addr = rec["addr"].toString()
         dev = getDevByAddr(addr).getName() if getDevByAddr(addr) else addr
         ctrl = rec["type"]
-        cr   = "CTRL" if (ctrl & (0x01 << 6)) else "RESP"
-        out(format(off, '04x') + " " + format(dev, '20s') +
+        valid  = (ctrl & (0x01 << 7))
+        bracketOpen   = " " if valid else "("
+        bracketClose  = " " if valid else ")"
+        cr = bracketOpen + ("CTRL" if (ctrl & (0x01 << 6)) else "RESP") + bracketClose
+        out(prefix + format(off, '04x') + " " + format(dev, '20s') +
             " " + format(addr, '8s') + " " + cr + " " +
             '{0:08b}'.format(rec["type"]) + 
             " group: " + format(rec["group"], '02x') + " data: " +
             ' '.join([format(x & 0xFF, '02x') for x in rec["data"]]))
 
 
-def addRecord(d, rec):
+def addRecord(d, rec, allowDuplicates = True):
         off  = rec["offset"]
         addr = rec["addr"]
         ltype = rec["type"]
@@ -31,7 +34,9 @@ def addRecord(d, rec):
                 d[off][addr] = {}
         if not d[off][addr].has_key(ltype):
                 d[off][addr][ltype] = {}
-        if  not d[off][addr][ltype].has_key(group):
+        if not d[off][addr][ltype].has_key(group):
+                d[off][addr][ltype][group] = []
+        if not allowDuplicates:
                 d[off][addr][ltype][group] = []
         d[off][addr][ltype][group].append(rec)
 
