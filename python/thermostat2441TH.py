@@ -215,29 +215,29 @@ class LinkRecordManipulator(DBBuilderListener):
         def findRecord(self, db, rec, mask, matchAddress = True, matchGroup = True, matchData = True):
                 out("testing for record: ")
                 dumpRecord(rec)
-                out("MASK: " + '{0:08b}'.format(mask))
+#                out("MASK: " + '{0:08b}'.format(mask))
                 for off in sorted(db, reverse = True):  # loop through all offsets
-                        out("offset: " + format(off, '04x'))
+#                        out("offset: " + format(off, '04x'))
                         recsByAddr =  {rec["addr"] : db[off].get(rec["addr"], {})} if matchAddress else db[off]
                         for addr, allRecsByType in recsByAddr.iteritems(): # loop through all matching addresses at offset
-                                out(" address: " + addr.toString())
+#                                out(" address: " + addr.toString())
                                 for rt, allRecsByGroup in allRecsByType.iteritems(): # loop through all types at address
-                                        out("  link type: " + '{0:08b}'.format(rt))
+#                                        out("  link type: " + '{0:08b}'.format(rt))
                                         if (rt & mask) != (rec["type"] & mask): # mask doesn't match: skip
-                                                out("    link type no match!")
+#                                                out("    link type no match!")
                                                 continue
                                         recsByGroup =  {rec["group"] : allRecsByGroup.get(rec["group"], [])} if matchGroup else allRecsByGroup;
                                         for group, recList in recsByGroup.iteritems(): # loop through all groups
-                                                out("   group: " + format(group, '02x') + " size: " + format(len(recList), 'd'))
+#                                                out("   group: " + format(group, '02x') + " size: " + format(len(recList), 'd'))
                                                 for tmprec in recList:
                                                         if not matchData:
                                                                 return tmprec
                                                         if (tmprec["data"] == rec["data"]):
-                                                                out("data matches: ")
+#                                                                out("data matches: ")
                                                                 dumpRecord(tmprec)
                                                                 return tmprec
                                                         else:
-                                                                out("data does not match: ")
+#                                                                out("data does not match: ")
                                                                 dumpRecord(tmprec)
                 return None
 

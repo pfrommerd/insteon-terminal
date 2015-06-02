@@ -46,6 +46,12 @@ class DefaultMsgHandler:
                 out(self.label + " got msg: " + msg.toString())
                 return 1
 
+class IMInfoMsgHandler:
+        label = None
+        def processMsg(self, msg):
+                out(" got msg: " + msg.toString())
+                return 1
+
 class DBBuilder(MsgListener):
         condition = Condition()
         keepRunning = True
@@ -134,6 +140,11 @@ class modem2413U(Device):
         self.dbbuilder.wait()
         self.dbbuilder.dumpDB()
         out("Modem Link DB complete")
+    def getid(self):
+        self.querier = Querier(InsteonAddress("00.00.00"))
+        self.querier.setMsgHandler(IMInfoMsgHandler())
+        msg = Msg.s_makeMessage("GetIMInfo")
+        self.querier.sendMsg(msg)
     def linkAsController(self, otherDevice, group):
         addr = InsteonAddress(otherDevice)
         self.querier = Querier(addr)
