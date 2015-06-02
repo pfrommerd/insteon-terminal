@@ -234,9 +234,12 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	//Port listener functions
 	@Override
 	public void msgReceived(Msg msg) {
+		HashSet<MsgListener> copyOfList;
 		synchronized(m_listeners) {
-			for (MsgListener l : m_listeners) l.msgReceived(msg); 
+			copyOfList = new HashSet<MsgListener>(m_listeners);
+			// iterate through copy of list, since msgReceived() may actually modify the list!
 		}
+		for (MsgListener l : copyOfList) l.msgReceived(msg); 
 		
 		//Notify current blocking readMsg();
 		synchronized(this) {

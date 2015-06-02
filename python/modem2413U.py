@@ -1,4 +1,5 @@
 import commands
+import time
 
 from device import *
 from linkdb import *
@@ -32,6 +33,7 @@ from us.pfrommer.insteon.cmd.utils import Utils
 # 0000 kitchen_thermostat   32.F7.2C CTRL 11100010 group: 00 data: 01 00 00
 # 0000 office_keypad        30.0D.9F CTRL 11100010 group: 00 data: 02 2c 41
 
+#modem.modifyFirstOrAdd("25.65.D6", 0x01, 0xe2, [0x02, 0x2a, 0x43])
 def out(msg = ""):
 	insteon.out().println(msg)
 
@@ -50,7 +52,8 @@ class DBBuilder(MsgListener):
         timer  = None
         recordDict = {}
         def start(self):
-                recordDict = {}
+                self.keepRunning = True
+                self.recordDict = {}
                 insteon.addListener(self)
                 insteon.writeMsg(Msg.s_makeMessage("GetFirstALLLinkRecord"))
 
@@ -101,6 +104,24 @@ class DBBuilder(MsgListener):
         def dumpDB(self):
                 dumpDB(self.recordDict) # linkdb class
                                 
+        def saveDB(self, filename):
+                saveDB(self.recordDict, filename)
+        def loadDB(self, filename):
+                self.recordDict = {}
+                loadDB(self.recordDict, filename)
+        def nukeDB(self, modem):
+                records = getRecordsAsArray(self.recordDict)
+                out("nuking " + format(len(records), 'd') + " records")
+                for rec in records:
+                        modem.deleteFirstRecord(rec["addr"], rec["group"])
+                        time.sleep(1)
+        def restoreDB(self, modem, filename):
+                self.loadDB(filename)
+                records = getRecordsAsArray(self.recordDict)
+                out("restoring " + format(len(records), 'd') + " records")
+                for rec in records:
+                        modem.modifyFirstOrAdd(rec["addr"], rec["group"], rec["type"], rec["data"])
+                        time.sleep(1)
 
 class modem2413U(Device):
     dbbuilder = None
@@ -153,15 +174,47 @@ class modem2413U(Device):
         self.querier.setMsgHandler(DefaultMsgHandler("cancel linking"))
         msg = Msg.s_makeMessage("CancelALLLinking")
         self.querier.sendMsg(msg)
+    def addSoftwareController(self, addr):
+        self.modifyRecord(addr, 0xef, 0x41, 0xa2, [0,0,0xef], "addSoftwareController")
+    def deleteSoftwareController(self, addr):
+        self.modifyRecord(addr, 0xef, 0x80, 0x00, [0,0,0], "deleteSoftwareController")
     def deleteFirstRecord(self, addr, group):
+        self.modifyRecord(addr, group, 0x80, 0x00, [0,0,0], "delete record")
+    def modifyFirstOrAdd(self, addr, group, recordFlags, data):
+        if (recordFlags & (1 << 6)): # controller
+                self.modifyRecord(addr, group, 0x40, recordFlags, data, "modify first or add")
+        else:
+                self.modifyRecord(addr, group, 0x41, recordFlags, data, "modify first or add")
+    def modifyFirstControllerOrAdd(self, addr, group, data):
+        self.modifyRecord(addr, group, 0x40, 0xe2, data, "modify first controller found or add")
+    def modifyFirstResponderOrAdd(self, addr, group, data):
+        self.modifyRecord(addr, group, 0x41, 0xa2, data, "modify first responder found or add")
+    def modifyRecord(self, addr, group, controlCode, recordFlags, data, txt):
         msg = Msg.s_makeMessage("ManageALLLinkRecord");
-        msg.setByte("controlCode", 0x80); # code for erase
-        msg.setByte("recordFlags", 0x00);
+        msg.setByte("controlCode", controlCode); # modify first controller found or add
+        msg.setByte("recordFlags", recordFlags);
         msg.setByte("ALLLinkGroup", group);
         msg.setAddress("linkAddress", InsteonAddress(addr));
-        msg.setByte("linkData1", 0x00);
-        msg.setByte("linkData2", 0x00);
-        msg.setByte("linkData3", 0x00);
+        msg.setByte("linkData1", data[0] & 0xFF)
+        msg.setByte("linkData2", data[1] & 0xFF)
+        msg.setByte("linkData3", data[2] & 0xFF)
         self.querier = Querier(self.m_address)
-        self.querier.setMsgHandler(DefaultMsgHandler("delete record"))
+        self.querier.setMsgHandler(DefaultMsgHandler(txt))
         self.querier.sendMsg(msg)
+            
+    def saveDB(self, filename):
+        self.dbbuilder.start()
+        self.dbbuilder.wait()
+        self.dbbuilder.saveDB(filename)
+    def loadDB(self, filename):
+        self.dbbuilder.loadDB(filename)
+        self.dbbuilder.dumpDB()
+    def nukeDB(self):
+        self.dbbuilder.start()
+        self.dbbuilder.wait()
+        self.dbbuilder.nukeDB(self)
+    def restoreDB(self, filename):
+        self.loadDB(filename)
+        self.dbbuilder.restoreDB(self, filename)
+    
+
