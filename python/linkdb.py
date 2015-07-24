@@ -18,7 +18,7 @@ def dumpRecord(rec, prefix = ""):
         bracketOpen   = " " if valid else "("
         bracketClose  = " " if valid else ")"
         cr = bracketOpen + ("CTRL" if (ctrl & (0x01 << 6)) else "RESP") + bracketClose
-        out(prefix + format(off, '04x') + " " + format(dev, '20s') +
+        out(prefix + format(off, '04x') + " " + format(dev, '30s') +
             " " + format(addr, '8s') + " " + cr + " " +
             '{0:08b}'.format(rec["type"]) + 
             " group: " + format(rec["group"], '02x') + " data: " +
