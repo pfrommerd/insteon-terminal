@@ -6,14 +6,21 @@ Look elsewhere if you want a polished interface to automate your home. The Inste
 # Getting started
 All instructions are for Ubuntu 14.04
 
-- install ant
-  sudo apt-get install ant
-- clone the repository:
-  git clone https://github.com/vastsuperking/insteon-terminal.git
-- create your custom init.py
-  cd insteon-terminal
-  cp init.py.example init.py
-- edit init.py following the instructions there:
-  emacs -nw init.py
+1) install ant:
+
+    sudo apt-get install ant
+
+2) clone the repository:
+
+    git clone https://github.com/vastsuperking/insteon-terminal.git
+
+3) create your custom init.py
+
+    cd insteon-terminal
+    cp init.py.example init.py
+
+4) edit init.py following the instructions there:
+
+    emacs -nw init.py
 
 
