@@ -5,6 +5,12 @@ from python.modem2413U import *
 from python.switch2477S import *
 from python.dimmer2477D import *
 
+#
+# if you are using a hub, replace login and password below with your
+# hub login and password. Note: this is not the email address and password to
+# the insteon web site, but the login/password on the back of the hub
+#
+
 def connectToMyHub():
     connectToHub("insteonhub", 25105, 1000, "MyHubLogin", "MyHubPassword")
     out("connected")
@@ -12,7 +18,17 @@ def connectToMyHub():
 def connectToMySerial():
     connectToSerial("/dev/insteon")
 
+#
+# uncomment correct line, depending on if you have a PLM modem or a hub
+#
 connectToMySerial()
+#connectToMyHub()
+
+#
+# Now define the devices you want to work with. For a list of
+# available devices, look at the source code in the "python" directory
+#
+#
 
 kp          = keypad2487S("office_keypad", "30.0d.9f")
 th          = thermostat2441TH("kitchen_thermostat", "32.f7.2c")
