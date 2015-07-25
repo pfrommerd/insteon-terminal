@@ -21,7 +21,7 @@ def connectToMySerial():
 #
 # uncomment correct line, depending on if you have a PLM modem or a hub
 #
-connectToMySerial()
+#connectToMySerial()
 #connectToMyHub()
 
 #
