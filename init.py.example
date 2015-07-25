@@ -20,6 +20,7 @@ def connectToMySerial():
 
 #
 # uncomment correct line, depending on if you have a PLM modem or a hub
+# to automatically connect on startup. You will also have to change the info in the corresponding connectToMy...() function
 #
 #connectToMySerial()
 #connectToMyHub()
