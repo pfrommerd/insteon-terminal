@@ -1,123 +1,202 @@
+#-------------------------------------------------------------------------------
+#
+# Insteon keypad 2487S
+#
+
 import commands
+import message
 
 from device import Device
 from commands import insteon
-from commands import Querier
+from querier import Querier
+from querier import MsgHandler
 from threading import Timer
 from linkdb import *
+from dbbuilder import LightDBBuilder
 
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 def out(msg = ""):
-	insteon.out().println(msg)
+	commands.out(msg)
+def outchars(msg = ""):
+	commands.outchars(msg)
 
-class DefaultMsgHandler:
-        label = None
-        def __init__(self, l):
-                self.label = l
-        def processMsg(self, msg):
-                out(self.label + " got msg: " + msg.toString())
-                return 1
+class DefaultMsgHandler(MsgHandler):
+	label = None
+	def __init__(self, l):
+		self.label = l
+	def processMsg(self, msg):
+		out(self.label + " got msg: " + msg.toString())
+		return 1
 
-class ClearDatabase:
-        dbbuilder = None
-        def do(self, dbb):
-                self.dbbuilder = dbb
-                
+class ExtMsgHandler(MsgHandler):
+	def __init__(self, n = "ExtMsgHandler"):
+		self.name = n
+	def processMsg(self, msg):
+		tmp = msg.getByte("command1") & 0xFF
+		if (tmp != 0x2e):
+			out(self.name + " got unexpected msg: " + msg.toString())
+			return 0
+		if msg.isExtended():
+			out(self.name + " got ext: " + msg.toString())
+			return 1
+		else:
+			out(self.name + " got ack, waiting for ext msg!")
+			return 0
 
-class DBBuilder(MsgListener):
-        addr   = None
-        timer  = None
-        completeAction = None
-        db = {};
-        def __init__(self, addr):
-                self.addr = addr
-        def clear(self):
-                db = {};
-        def setCompleteAction(self, action):
-                self.completeAction = action
-        def start(self):
-                insteon.addListener(self)
-                msg = commands.createExtendedMsg(InsteonAddress(self.addr), 0x2f, 0, 0, 0, 0)
-                msg.setByte("userData1", 0);
-                msg.setByte("userData2", 0);
-                msg.setByte("userData3", 0);
-                msg.setByte("userData4", 0);
-                msg.setByte("userData5", 0);
-                commands.writeMsg(msg)
-                out("sent query msg ... ")
-                self.timer = Timer(20.0, self.giveUp)
-                self.timer.start()
+class Flags1MsgHandler(MsgHandler):
+	label = None
+	def __init__(self, l):
+		self.label = l
+	def processMsg(self, msg):
+		tmp = msg.getByte("command2") & 0xFF
+		f = ""
+		f +=  "Plock ON|"  if (tmp & (0x1 << 0)) else "Plock OFF|"
+		f +=  "LED on TX ON|" if (tmp & (0x1 << 1)) else "LED on TX OFF|"
+		f +=  "Resume Dim bit ON|" if (tmp & (0x1<<2)) else "Resum Dim bit OFF|"
+		f +=  "LED OFF|" if (tmp & (0x1 << 4)) else "LED ON|"
+		f +=  "KeyBeep ON|" if (tmp & (0x1 << 5)) else "KeyBeep OFF|"
+		f +=  "RF Disable ON|" if (tmp & (0x1 << 6)) else "RF Disable OFF|"
+		f +=  "Powerline Disable ON|" if (tmp & (0x1<<7)) else "Powerline Disable OFF"
+		out(self.label + " got flags1: " + f);
+		return 1
 
-        def restartTimer(self):
-                if self.timer:
-                        self.timer.cancel()
-                self.timer = Timer(20.0, self.giveUp)
-                self.timer.start()
+class Flags2MsgHandler(MsgHandler):
+	label = None
+	def __init__(self, l):
+		self.label = l
+	def processMsg(self, msg):
+		tmp = msg.getByte("command2") & 0xFF
+		out(self.label + " = " + format(tmp, '02d'))
+		f = ""
+		f +=  "TenD ON|"  if (tmp & (0x1 << 0)) else "TenD OFF|"
+		f +=  "NX10Flag ON|" if (tmp & (0x1 << 1)) else "NX10Flag OFF|"
+		f +=  "blinkOnError ON|" if (tmp & (0x1 << 2)) else "blinkOnError OFF|"
+		f +=  "CleanupReport ON|" if (tmp & (0x1 << 3)) else "CleanupReport OFF|"
+		f +=  "Detach Load ON|" if (tmp & (0x1 << 5)) else "Detach Load OFF|"
+		f +=  "Smart Hops ON|" if (tmp & (0x1 << 6)) else "Smart Hops OFF"
+		out(self.label + " got flags2: " + f);
+		return 1
 
-        def giveUp(self):
-                out("did not get full database, giving up!")
-                insteon.removeListener(self)
-                self.timer.cancel()
+class StatusMsgHandler(MsgHandler):
+	label = None
+	def __init__(self, l):
+		self.label = l
+	def processMsg(self, msg):
+		tmp = msg.getByte("command2") & 0xFF
+		out(self.label + " = " + format(tmp, '02d'))
+		return 1
 
-        def done(self):
-                insteon.removeListener(self)
-                if self.timer:
-                        self.timer.cancel()
-                dumpDB(self.db)
-                out("database complete!")
-                if not self.completeAction == None:
-                        self.completeAction.do(self)
+class CountMsgHandler(MsgHandler):
+	label = None
+	def __init__(self, l):
+		self.label = l
+	def processMsg(self, msg):
+		tmp = msg.getByte("command2") & 0xFF
+		out(self.label + " = " + format(tmp, '02d'))
+		return 1
 
-                
-        def msgReceived(self, msg):
-                self.restartTimer()
-                if msg.isPureNack():
-                        out("got pure NACK")
-                        return
-                if msg.getByte("Cmd") == 0x62:
-                        out("query msg acked!")
-                elif msg.getByte("Cmd") == 0x51:
-                        off   = (msg.getByte("userData3") & 0xFF) << 8 | (msg.getByte("userData4") & 0xFF)
-                        rb    = msg.getBytes("userData6", 8); # ctrl + group + [data1,data2,data3] + whatever
-                        ltype = rb[0] & 0xFF
-                        group = rb[1] & 0xFF
-                        data  = rb[5:8]
-                        addr  = InsteonAddress(rb[2] & 0xff, rb[3] & 0xff, rb[4] & 0xff)
-                        rec   = {"offset" : off, "addr": addr, "type" : ltype,
-                                 "group" : group, "data" : data}
-                        addRecord(self.db, rec, False)
-                        if (ltype & 0x02 == 0):
-#                                out("last record: " + msg.toString())
-                                self.done()
-                                return
-#                        dumpRecord(rec)
-                else:
-                        out("got unexpected msg: " + msg.toString())
+class KPRecordFormatter(RecordFormatter):
+	def __init__(self):
+		pass
+	def format(self, rec):
+		dumpRecord(rec)
 
 
-class keypad2487S(Device):
-    def __init__(self, name, addr):
-        Device.__init__(self, name, addr)
-        self.dbbuilder = DBBuilder(addr)
-        self.querier = Querier(addr)
+class Keypad2487S(Device):
+	querier = None
+	def __init__(self, name, addr):
+		Device.__init__(self, name, addr)
+		self.dbbuilder = LightDBBuilder(addr, self.db)
+		self.querier = Querier(addr)
+	def getdb(self):
+		out("getting db, be patient!")
+		self.dbbuilder.clear()
+		self.dbbuilder.start()
+	def startLinking(self):
+		self.querier.setMsgHandler(DefaultMsgHandler("start linking"))
+		self.querier.querysd(0x09, 0x03);
 
-    def getdb(self):
-        out("getting db, be patient!")
-        self.dbbuilder.clear()
-        self.dbbuilder.start()
+	def ping(self):
+		self.querier.setMsgHandler(DefaultMsgHandler("ping"))
+		self.querier.querysd(0x0F, 0x01)
 
-    def startLinking(self):
-        self.querier.setMsgHandler(DefaultMsgHandler("start linking"))
-        self.querier.querysd(0x09, 0x03);
+	def idrequest(self):
+		self.querier.setMsgHandler(DefaultMsgHandler("id request"))
+		self.querier.querysd(0x10, 0x00)
 
-    def ping(self):
-        self.querier.setMsgHandler(DefaultMsgHandler("ping"))
-        self.querier.querysd(0x0F, 0x01);
- 
-    def idrequest(self):
-        self.querier.setMsgHandler(DefaultMsgHandler("id request"))
-        self.querier.querysd(0x10, 0x00);
+	def getext(self):
+		self.querier.setMsgHandler(ExtMsgHandler("getext"))
+		self.querier.queryext(0x2e, 0x00, [])
+
+
+	def readFlags1(self):
+		self.querier.setMsgHandler(Flags1MsgHandler("read flags1"))
+		self.querier.querysd(0x1f, 0x01)
+
+	def readFlags2(self):
+		self.querier.setMsgHandler(Flags2MsgHandler("read flags2"))
+		self.querier.querysd(0x1f, 0x05)
+
+	def readCRCErrorCount(self):
+		self.querier.setMsgHandler(CountMsgHandler("CRC error count"))
+		self.querier.querysd(0x1f, 0x02)
+
+	def readSNFailureCount(self):
+		self.querier.setMsgHandler(CountMsgHandler("S/N failure count"))
+		self.querier.querysd(0x1f, 0x03)
+
+	def readDeltaFlag(self):
+		self.querier.setMsgHandler(CountMsgHandler("database delta flag"))
+		self.querier.querysd(0x1f, 0x01)
+
+	def on(self, level=0xFF):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x11, level, -1))
+
+	def onFast(self, level=0xFF):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x12, level, -1))
+
+	def off(self):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x13, 0x00, -1))
+
+	def offFast(self):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x14, 0x00, -1))
+
+	def incrementalBright(self):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x15, 0x00, -1))
+
+	def incrementalDim(self):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x16, 0x00, -1))
+
+	def startManualChangeUp(self):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x17, 0x01, -1))
+
+	def startManualChangeDown(self):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x17, 0x00, -1))
+
+	def stopManualChange(self):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x18, 0x00, -1))
+
+	def getStatus(self):
+		self.querier.setMsgHandler(StatusMsgHandler("light level"))
+		self.querier.querysd(0x19, 0x0)
+	
+	def beep(self):
+		commands.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x30, 0x00, -1))
+
+	def setLEDBrightness(self, level):
+		self.querier.setMsgHandler(ExtMsgHandler("set led level"))
+		self.querier.queryext(0x2e, 00, [0x01, 0x07, level])
 
