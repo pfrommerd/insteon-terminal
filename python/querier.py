@@ -3,7 +3,7 @@
 # class for querying devices
 #
 
-import commands
+import iofun
 import message
 
 from java.lang import System
@@ -15,7 +15,7 @@ from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 
 def out(msg = ""):
-	commands.out(msg)
+	iofun.out(msg)
 
 class MsgHandler:
 	name = "MsgHandler"
@@ -44,8 +44,8 @@ class Querier(MsgListener):
 	def setMsgHandler(self, handler):
 		self.msgHandler = handler
 	def sendMsg(self, msg):
-		commands.addListener(self)
-		commands.writeMsg(msg)
+		iofun.addListener(self)
+		iofun.writeMsg(msg)
 		out("sent msg: " + msg.toString())
 		if self.timer:
 			self.timer.cancel()
@@ -53,14 +53,14 @@ class Querier(MsgListener):
 		self.timer.start()
 		# out("started timer!")
 	def startWait(self, time):
-		commands.addListener(self)
+		iofun.addListener(self)
 		if self.timer:
 			self.timer.cancel()
 		self.timer = Timer(time, self.giveUp)
 		self.timer.start()
 	def cancel(self):
 		# out("querier timer canceled")
-		commands.removeListener(self)
+		iofun.removeListener(self)
 		if self.timer:
 			self.timer.cancel()
 	def queryext(self, cmd1, cmd2, data):
@@ -81,10 +81,10 @@ class Querier(MsgListener):
 	def giveUp(self):
 		self.msgHandler.gotNoReply()
 		#                out("did not get response, giving up!")
-		commands.removeListener(self)
+		iofun.removeListener(self)
 		self.timer.cancel()
 	def done(self):
-		commands.removeListener(self)
+		iofun.removeListener(self)
 		if self.timer:
 			self.timer.cancel()
 

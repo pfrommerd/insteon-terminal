@@ -2,11 +2,10 @@
 #
 # Insteon switch 2477S
 #
-import commands
+import iofun
 import message
 
 from device import Device
-from commands import insteon
 from querier import Querier
 from querier import MsgHandler
 from threading import Timer
@@ -19,7 +18,7 @@ from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 def out(msg = ""):
-	commands.out(msg)
+	iofun.out(msg)
 
 class DefaultMsgHandler(MsgHandler):
 	label = None

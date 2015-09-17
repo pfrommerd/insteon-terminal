@@ -1,11 +1,14 @@
+#-------------------------------------------------------------------------------
+#
+# global translation map for all device addresses
+#
+
+import iofun
+
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 devNameMap = {}
 devAddressMap = {}
-
-def out(msg = ""):
-    from commands import insteon
-    insteon.out().println(msg)
 
 def addDev(dev):
 	devNameMap[dev.getName()] = dev

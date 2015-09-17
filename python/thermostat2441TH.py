@@ -22,7 +22,7 @@ import message
 #
 
 def out(msg = ""):
-	commands.out(msg)
+	iofun.out(msg)
 
 def getTime(msg):
 	hour    = msg.getByte("userData3")
@@ -252,7 +252,7 @@ class SetScheduleMsgHandler(MsgHandler):
 			out(self.name + " existing schedule:")
 			printScheduleMsg(msg)
 			idx  = 3 * self.period;
-			data = commands.getMsgData(msg)
+			data = message.getMsgData(msg)
 			data = [(data[k] & 0xFF) for k in range(len(data))]
 			data[idx]     = self.time & 0xFF
 			data[idx + 1] = self.cool & 0xFF
@@ -262,7 +262,7 @@ class SetScheduleMsgHandler(MsgHandler):
 				0x2e, (0x03 + self.day) & 0xFF, data)
 			out(self.name + " new schedule:")
 			printScheduleMsg(nmsg)
-			commands.writeMsg(nmsg)
+			iofun.writeMsg(nmsg)
 			out(self.name + " sent new schedule: " + nmsg.toString())
 			return 1
 		else:
@@ -522,7 +522,7 @@ class Thermostat2441TH(Device):
 		self.querier.sendMsg(msg)
 
 	def __sendMsg(self, msg):
-		commands.writeMsg(msg)
+		iofun.writeMsg(msg)
 		out("sent msg: " + msg.toString())
 
 	def __sd(self, cmd1, cmd2):
@@ -536,7 +536,7 @@ class Thermostat2441TH(Device):
 		msg.setByte("messageFlags", flags)
 		msg.setByte("command1", cmd1)
 		msg.setByte("command2", cmd2)
-		commands.writeMsg(msg)
+		iofun.writeMsg(msg)
 
 	def __setOperatingFlags(self, mask, bits):
 		self.querier.setMsgHandler(SetOperatingFlagsMsgHandler(self, mask,bits))
@@ -584,7 +584,7 @@ class Thermostat2441TH(Device):
 	def beep(self):
 		msg = message.createStdMsg(
 			InsteonAddress(self.address), 0x0f, 0x30, 0x00, -1);
-		commands.writeMsg(msg)
+		iofun.writeMsg(msg)
 	def sendOn(self): #  send ON bcast on group #1 (see if thermostat responds)
 		self.__bcast(0x01, 0x11, 0x00)
 	def sendOff(self): # send OFF bcast on group #1

@@ -3,15 +3,13 @@
 # Insteon dimmer 2477D
 #
 
-import commands
+import iofun
 from linkdb import *
 
 from device import Device
-from commands import insteon
 from querier import Querier
 from querier import MsgHandler
 from dbbuilder import LightDBBuilder
-from threading import Timer
 from dimmer import Dimmer
 
 from us.pfrommer.insteon.cmd.msg import Msg
@@ -19,7 +17,7 @@ from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 def out(msg = ""):
-	insteon.out().println(msg)
+	iofun.out(msg)
 
 class DefaultMsgHandler(MsgHandler):
 	label = None

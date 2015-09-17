@@ -3,7 +3,7 @@
 # database builders shared by various devices
 #
 
-import commands
+import iofun
 import message
 
 from us.pfrommer.insteon.cmd.msg import Msg
@@ -15,9 +15,9 @@ from threading import Condition
 
 
 def out(msg = ""):
-	commands.out(msg)
+	iofun.out(msg)
 def outchars(msg = ""):
-	commands.outchars(msg)
+	iofun.outchars(msg)
 
 class DBBuilder(MsgListener):
 	addr   = None
@@ -33,14 +33,14 @@ class DBBuilder(MsgListener):
 		self.db.clear()
 	def start(self):
 		self.db.clear()
-		commands.addListener(self)
+		iofun.addListener(self)
 		msg = message.createExtendedMsg(InsteonAddress(self.addr), 0x2f, 0, [])
 		msg.setByte("userData1", 0);
 		msg.setByte("userData2", 0);
 		msg.setByte("userData3", 0);
 		msg.setByte("userData4", 0);
 		msg.setByte("userData5", 0);
-		commands.writeMsg(msg)
+		iofun.writeMsg(msg)
 		outchars("sent db query msg, incoming records: ")
 		self.timer = Timer(20.0, self.giveUp)
 		self.timer.start()
@@ -51,13 +51,13 @@ class DBBuilder(MsgListener):
 		self.timer.start()
 	def giveUp(self):
 		out("did not get full database, giving up!")
-		commands.removeListener(self)
+		iofun.removeListener(self)
 		self.timer.cancel()
 		if self.listener:
 			self.listener.databaseIncomplete(self.db)
 		self.listener = None
 	def done(self):
-		commands.removeListener(self)
+		iofun.removeListener(self)
 		if self.timer:
 			self.timer.cancel()
 		out("")
@@ -159,11 +159,11 @@ class ModemDBBuilder(MsgListener):
 	def start(self):
 		self.db.clear()
 		self.keepRunning = True
-		commands.addListener(self)
-		commands.writeMsg(Msg.s_makeMessage("GetFirstALLLinkRecord"))
+		iofun.addListener(self)
+		iofun.writeMsg(Msg.s_makeMessage("GetFirstALLLinkRecord"))
 
 	def done(self):
-		commands.removeListener(self)
+		iofun.removeListener(self)
 		self.condition.acquire()
 		self.keepRunning = False
 		self.condition.notify()
@@ -183,7 +183,7 @@ class ModemDBBuilder(MsgListener):
 				self.done()
 		elif msg.getByte("Cmd") == 0x57:
 			self.dbMsg(msg)
-			commands.writeMsg(Msg.s_makeMessage("GetNextALLLinkRecord"))
+			iofun.writeMsg(Msg.s_makeMessage("GetNextALLLinkRecord"))
 		else:
 			out("got unexpected msg: " + msg.toString())
 

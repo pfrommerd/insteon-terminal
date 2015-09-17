@@ -5,7 +5,7 @@
 
 import json
 import re
-from commands import insteon
+import iofun
 
 from all_devices import getDevByAddr
 
@@ -13,7 +13,7 @@ from all_devices import getDevByAddr
 # --------------- bunch of helper functions ------------
 #
 def out(msg = ""):
-	insteon.out().println(msg)
+	iofun.out(msg)
 
 def dumpRecord(rec, prefix = ""):
 	off  = rec["offset"]

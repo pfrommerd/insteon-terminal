@@ -12,10 +12,12 @@ from python.dimmer2477D import *
 #
 
 def connectToMyHub():
+    """connects to my insteon hub modem at pre-defined address"""
     connectToHub("insteonhub", 25105, 1000, "MyHubLogin", "MyHubPassword")
     out("connected")
 
 def connectToMySerial():
+    """connects to my modem on pre-defined serial port"""
     connectToSerial("/dev/insteon")
 
 #
@@ -32,10 +34,10 @@ def connectToMySerial():
 #
 
 # Example device definitions
-# kp          = keypad2487S("office_keypad", "30.0d.9f")
-# th          = thermostat2441TH("kitchen_thermostat", "32.f7.2c")
-# modem       = modem2413U("test_modem", "23.9b.65")
-# closetLight = switch2477S("closetLight", "25.65.d6")
-# dimmer 	    = dimmer2477D("dining_room_dinner", "20.ab.26")
+# kp          = Keypad2487S("office_keypad", "30.0d.9f")
+# th          = Thermostat2441TH("kitchen_thermostat", "32.f7.2c")
+# modem       = Modem2413U("test_modem", "23.9b.65")
+# closetLight = Switch2477S("closetLight", "25.65.d6")
+# dimmer      = Dimmer2477D("dining_room_dinner", "20.ab.26")
 
 
