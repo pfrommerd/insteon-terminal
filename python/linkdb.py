@@ -19,16 +19,19 @@ def dumpRecord(rec, prefix = ""):
 	off  = rec["offset"]
 	addr = rec["addr"].toString()
 	dev = getDevByAddr(addr).getName() if getDevByAddr(addr) else addr
-	ctrl = rec["type"]
-	valid  = (ctrl & (0x01 << 7))
-	bracketOpen   = " " if valid else "("
-	bracketClose  = " " if valid else ")"
-	cr = bracketOpen + ("CTRL" if (ctrl & (0x01<<6)) else "RESP") + bracketClose
+	cr = ctrlToString(ctrl)
 	out(prefix + format(off, '04x') + " " + format(dev, '30s') +
 		" " + format(addr, '8s') + " " + cr + " " +
 		'{0:08b}'.format(rec["type"]) + 
 		" group: " + format(rec["group"], '02x') + " data: " +
 		' '.join([format(x & 0xFF, '02x') for x in rec["data"]]))
+
+def ctrlToString(ctrl):
+	valid  = (ctrl & (0x01 << 7))
+	bracketOpen   = " " if valid else "("
+	bracketClose  = " " if valid else ")"
+	return (bracketOpen + ("CTRL" if (ctrl & (0x01<<6)) else "RESP")
+			+ bracketClose)
 
 def saveRecord(f, rec):
 	d = rec["data"]
@@ -49,11 +52,31 @@ def getRecordsAsArray(d):
 class RecordFormatter():
 	def format(self, rec):
 		dumpRecord(rec)
+	@staticmethod
+	def ctrlToString(rec):
+		dumpRecord(rec)
 
 class DefaultRecordFormatter(RecordFormatter):
 	def format(self, rec, prefix = ""):
 		dumpRecord(rec, prefix)
 
+class LightDBRecordFormatter(RecordFormatter):
+	@staticmethod
+	def dataToString(data):
+		return ("ON LVL: " + format(data[0] & 0xFF, '3d')
+				+ " RMPRT: " + format(data[1] & 0xFF, '3d')
+				+ " BUTTON: " + format(data[2] & 0xFF, '3d'))
+	def format(self, rec, prefix = ""):
+		off  = rec["offset"]
+		addr = rec["addr"].toString()
+		dev = getDevByAddr(addr).getName() if getDevByAddr(addr) else addr
+		cr = ctrlToString(rec["type"])
+		out(prefix + format(off, '04x') + " " + format(dev, '30s') +
+			" " + format(addr, '8s') + " " + cr + " " +
+			'{0:08b}'.format(rec["type"]) + 
+			" group: " + format(rec["group"], '02x') + " " +
+			self.dataToString(rec["data"]))
+	
 #
 # ------ cross-device class to manipulate the link databases ------------------
 #

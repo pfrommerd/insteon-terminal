@@ -6,7 +6,7 @@
 from threading import Timer
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
-
+from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 from device import Device
 from linkdb import DB
@@ -14,8 +14,9 @@ from querier import Querier
 from querier import MsgHandler
 from dbbuilder import ThermostatDBBuilder
 
-import commands
+import iofun
 import message
+
 
 #
 # various helper functions used by the message handlers
@@ -120,18 +121,19 @@ class ReadData1bMsgHandler(MsgHandler):
 			out("unexpected msg!")
 			return 0
 		if msg.isExtended():
-			humlow  = msg.getByte("userData4") & 0xFF
-			humhigh = msg.getByte("userData5") & 0xFF
+			humhigh = msg.getByte("userData4") & 0xFF
+			humlow  = msg.getByte("userData5") & 0xFF
 			fwv     = msg.getByte("userData6") & 0xFF
 			coolpt  = msg.getByte("userData7") & 0xFF
 			heatpt  = msg.getByte("userData8") & 0xFF
 			rfoff   = msg.getByte("userData9") & 0xFF
 			esspt   = msg.getByte("userData10") & 0xFF
-			exoff   = msg.getByte("userData11") & 0xFF
+			stage1  = msg.getByte("userData11") & 0xFF
 			srenab  = msg.getByte("userData12") & 0xFF
 			extpwr  = msg.getByte("userData13") & 0xFF
 			exttmp  = msg.getByte("userData14") & 0xFF
 
+			out("stage 1 mins: "   + format(stage1, 'd'))
 			out("hum low:      "   + format(humlow, 'd'))
 			out("hum high:     "   + format(humhigh, 'd'))
 			out("fw revision:  "   + format(fwv, '02x'))
@@ -139,7 +141,6 @@ class ReadData1bMsgHandler(MsgHandler):
 			out("heatpt:       "   + format(heatpt, 'd'))
 			out("rf offset:    "   + format(rfoff, 'd'))
 			out("en sv set pt: "   + format(esspt, 'd'))
-			out("ext T off:    "   + format(exoff, 'd'))
 			out("stat rep enb: "   + format(srenab, 'd'))
 			out("ext pwr on:   "   + format(extpwr, 'd'))
 			out("ext tmp opt:  "   + format(exttmp, 'd'))
@@ -353,8 +354,8 @@ class EngineVersionMsgHandler(MsgHandler):
 		out(" i2CS engine version:  " + format(tmp, '02x'))
 		return 1
 
-class IDRequestMsgHandler(MsgHandler):
-	def __init__(self, n = "IDRequestMsgHandler"):
+class FirmwareVersionMsgHandler(MsgHandler):
+	def __init__(self, n = "FirmwareVersionMsgHandler"):
 		self.name = n
 	def processMsg(self, msg):
 		out(self.name + " got: " + msg.toString())
@@ -476,6 +477,7 @@ class LinkRecordAdder(DBBuilderListener):
 		out("database incomplete, reload() and retry!")
 
 class Thermostat2441TH(Device):
+	"""==============  Insteon Thermostat 2441TH ==============="""
 	dbbuilder = None
 	querier = None
 	def __init__(self, name, addr):
@@ -554,157 +556,262 @@ class Thermostat2441TH(Device):
 #
 #   link database management
 #
-	def getdb(self):
-		out("getting database...")
-		self.dbbuilder.start()
-	def printdb(self):
-		self.dbbuilder.printdb()
 	def addSoftwareController(self, addr):
+		"""addSoftwareController(addr)
+		add device with "addr" as software controller"""
 		self.addController(addr, 0xef, [0x03, 0x1f, 0xef])
 	def removeSoftwareController(self, addr):
+		"""removeSoftwareController(addr)
+		remove device with "addr" as software controller"""
+		self.addController(addr, 0xef, [0x03, 0x1f, 0xef])
 		self.removeController(addr, 0xef)
 	def addController(self, addr, group, data = None):
+		"""addController(addr, group, data)
+		add device with "addr" as controller for group "group", with link data "data" """
 		data = data if data else [00, 00, group];
 		self.__modifyDB(LinkRecordAdder(self, addr, group, data, True))
 	def removeController(self, addr, group):
+		"""removeController(addr, group, data)
+		remove device with "addr" as controller for group "group", with link data "data" """
 		self.__modifyDB(LinkRecordRemover(self, addr, group, True))
 	def addResponder(self, addr, group, data = None):
+		"""addResponder(addr, group, data)
+		add device with "addr" as responder for group "group", with link data "data" """
 		data = data if data else [00, 00, group];
 		self.__modifyDB(LinkRecordAdder(self, addr, group, data, False))
 	def removeResponder(self, addr, group):
+		"""removeResponder(addr, group)
+		remove device with "addr" as responder for group "group" """
 		self.__modifyDB(LinkRecordRemover(self, addr, group, False))
 	def removeLastRecord(self):
+		"""removeLastRecord()
+		removes the last device in the link database"""
 		self.__modifyDB(LastRecordRemover(self))
 #
 #   misc simple commands
 #
 	def ping(self):
+		"""ping()
+		pings the device"""
 		self.querier.setMsgHandler(MsgHandler("ping"))
 		self.__sd(0x0f, 0)
 	def beep(self):
+		"""beep()
+		sends beep command to the device"""
 		msg = message.createStdMsg(
 			InsteonAddress(self.address), 0x0f, 0x30, 0x00, -1);
 		iofun.writeMsg(msg)
 	def sendOn(self): #  send ON bcast on group #1 (see if thermostat responds)
+		"""sendOn()
+		sends on command to the device"""
 		self.__bcast(0x01, 0x11, 0x00)
 	def sendOff(self): # send OFF bcast on group #1
+		"""sendOff()
+		sends off command to the device"""
 		self.__bcast(0x01, 0x13, 0x00)
 
 #
 #   methods for querying the device
 #
-	def getId(self):
-		self.querier.setMsgHandler(IDRequestMsgHandler())
+	def getFirmwareVersion(self):
+		"""getFirmwareVersion()
+		queries device for firmware version"""
+		self.querier.setMsgHandler(FirmwareVersionMsgHandler())
 		self.__sd(0x10, 0x00)
-	def getVersion(self):
+	def getEngineVersion(self):
+		"""getEngineVersion()
+		queries device for engine version"""
 		self.querier.setMsgHandler(EngineVersionMsgHandler())
 		self.__sd(0x0d, 0x00)
 	def getTemperature(self):
+		"""getTemperature()
+		queries temperature"""
 		self.querier.setMsgHandler(StatusInfoMsgHandler("temperature", 0.5))
 		self.__sd(0x6a, 0x00)
 	def getHumidity(self):
+		"""getHumidity()
+		queries humidity"""
 		self.querier.setMsgHandler(StatusInfoMsgHandler("humidity"))
 		self.__sd(0x6a, 0x60)
 	def getSetPoint(self):
+		"""getSetPoint()
+		queries temperature set point"""
 		self.querier.setMsgHandler(StatusInfoMsgHandler("setpoint", 0.5))
 		self.__sd(0x6a, 0x20)
 	def getOpFlagsSD(self):
+		"""getOpFlagsSD()
+		gets operational flags via sd message"""
 		self.querier.setMsgHandler(OpFlagsSDMsgHandler())
 		self.__sd(0x1f, 0x00)
 	def getOpFlagsExt(self):
+		"""getOpFlagsExt()
+		gets operational flags via ext message"""
 		self.querier.setMsgHandler(OpFlagsExtMsgHandler())
 		self.ext(0x2e, 0, [0x00, 0x00, 0x00])
 	def getSchedule(self, day):
+		"""getSchedule(day)
+		gets schedule for day (0=Sunday, 6=Saturday)"""
 		self.querier.setMsgHandler(ScheduleMsgHandler())
 		self.ext2(0x2e, 0x0A + 2 * day, [0x00])
 	def getData1(self):
+		"""getData1()
+		performs data1 query"""
 		self.querier.setMsgHandler(ReadData1MsgHandler())
 		self.ext(0x2e, 0, [0x00, 0x00, 0x00])
 	def getData1b(self): # only documented in the 2441ZTH notes!
+		"""getData1b()
+		performs data1b query"""
 		self.querier.setMsgHandler(ReadData1bMsgHandler())
 		self.ext(0x2e, 0, [0x00, 0x00, 0x01])
 	def getData2(self):
+		"""getData2()
+		performs data2 query"""
 		self.querier.setMsgHandler(ReadData2MsgHandler())
 		self.ext2(0x2e, 0x02, [00, 0x00, 0x00])
 #
 #   methods to change settings
 #
 	def enableStatusReports(self):
+		"""enableStatusReports()
+		enables status reports being sent to group #0xef"""
 		self.querier.setMsgHandler(EnableStatusReportsMsgHandler())
 		self.ext(0x2e, 0, [0x00, 0x08, 0x00])
 	def linkingLockOn(self):
+		"""linkingLockOn()
+		sets linking lock on"""
 		self.__setOperatingFlags(0x01 << 0, 0x01 << 0)
 	def linkingLockOff(self):
+		"""linkingLockOff()
+		sets linking lock off"""
 		self.__setOperatingFlags(0x01 << 0, 0x00 << 0)
 	def buttonBeepOn(self):
+		"""buttonBeepOn()
+		sets button beep on"""
 		self.__setOperatingFlags(0x01 << 1, 0x01 << 1)
 	def buttonBeepOff(self):
+		"""buttonBeepOff()
+		sets button beep off"""
 		self.__setOperatingFlags(0x01 << 1, 0x00 << 1)
 	def buttonLockOn(self):
+		"""buttonLockOn()
+		sets button lock on"""
 		self.__setOperatingFlags(0x01 << 2, 0x01 << 2)
 	def buttonLockOff(self):
+		"""buttonLockOff()
+		sets button lock off"""
 		self.__setOperatingFlags(0x01 << 2, 0x00 << 2)
 	def useFahrenheit(self):
+		"""useFahrenheit()
+		set temperature display in fahrenheit"""
 		self.__setOperatingFlags(0x01 << 3, 0x00 << 3)
 	def useCelsius(self):
+		"""useCelsius()
+		set temperature display in celsius"""
 		self.__setOperatingFlags(0x01 << 3, 0x01 << 3)
 	def use24hFormat(self):
+		"""use24hFormat()
+		set time format 24h"""
 		self.__setOperatingFlags(0x01 << 4, 0x01 << 4)
 	def use12hFormat(self):
+		"""use12hFormat()
+		set time format 12h"""
 		self.__setOperatingFlags(0x01 << 4, 0x00 << 4)
 	def statusLEDOn(self):
+		"""statusLEDOn()
+		switch status LED on when heating/cooling"""
 		self.__setOperatingFlags(0x01 << 6, 0x01 << 6)
 	def statusLEDOff(self):
+		"""statusLEDOff()
+		don't switch status LED on when heating/cooling"""
 		self.__setOperatingFlags(0x01 << 6, 0x00 << 6)
 	def setTemperatureOffset(self, offset):
+		"""setTemperatureOffset(offset)
+		set temperature offset(for calibration, use with care!)"""
 		self.querier.setMsgHandler(MsgHandler("set temp offset return msg:"))
 		self.ext(0x2e, 0, [0x01, 0x02, offset])
 	def setHumidityOffset(self, offset):
+		"""setHumidityOffset(offset)
+		set humidity offset(for calibration, use with care!)"""
 		self.querier.setMsgHandler(MsgHandler("set humidity offset return msg:"))
 		self.ext(0x2e, 0, [0x01, 0x03, offset])
 	def setBacklightSeconds(self, time):
+		"""setBacklightSeconds(time)
+		set backlight time in seconds"""
 		self.querier.setMsgHandler(MsgHandler("set backlight secs return msg:"))
 		self.ext(0x2e, 0, [0x01, 0x05, time])
+	def setStage1Minutes(self, time):
+		"""setStage1Minutes(time)
+		set number of minutes to try stage 1 before going into stage2"""
+		self.querier.setMsgHandler(MsgHandler("set stage 1 mins return msg:"))
+		self.ext(0x2e, 0, [0x01, 0x0A, time])
 	def setACHysteresis(self, mins):
+		"""setACHysteresis(minutes)
+		set A/C hysteresis (in minutes)"""
 		self.querier.setMsgHandler(MsgHandler("set a/c hysteresis return msg:"))
 		self.ext(0x2e, 0, [0x01, 0x06, mins])
 	def setTime(self, day, hour, min, sec):
+		"""setTime(day, hour, min, sec)
+		sets clock time (day = 0(Sunday) .. 6 (Saturday)) """
 		self.querier.setMsgHandler(MsgHandler("set time return msg:"))
 		self.ext2(0x2e, 0x02, [0x02, day, hour, min,  0,  sec])
 	def setSchedule(self, day, period, time, cool, heat):
+		"""setSchedule(day, period, time, cool, heat)
+		sets schedule params: day = 0(Sunday) .. 6 (Saturday), period = (0=wake, 1=leave, 2=return, 3=sleep), time = (e.g.) "06:30", cool/heat = temperatures"""
 		self.querier.setMsgHandler(
 			SetScheduleMsgHandler(self, day, period, time, cool, heat))
 		# query will trigger the handler to send command
 		self.ext2(0x2e, 0x0A + 2 * day, [0x00])
 	def setCoolPoint(self, temp):
+		"""setCoolPoint(temp)
+		sets cooling temperature"""
 		self.querier.setMsgHandler(MsgHandler("set cool point"))
 		self.ext(0x6c,  temp * 2, [0x0, 0x0, 0x0])
 	def setHeatPoint(self, temp):
+		"""setHeatPoint(temp)
+		sets heating temperature"""
 		self.querier.setMsgHandler(MsgHandler("set heat point"))
 		self.ext(0x6d,  temp * 2, [0x0, 0x0, 0x0])
 	def setHumidityHighPoint(self, point):
+		"""setHumidityHighPoint(point)
+		sets high point for dehumidification"""
 		self.querier.setMsgHandler(MsgHandler("set humidity high pt"))
 		self.ext(0x2e, 0, [0x01, 0x0b, point])
 	def setHumidityLowPoint(self, point):
+		"""setHumidityLowPoint(point)
+		sets low point for humidification"""
 		self.querier.setMsgHandler(MsgHandler("set humidity low pt"))
 		self.ext(0x2e, 0, [0x01, 0x0c, point])
 #
 #   commands to switch the mode
 #
 	def setToHeat(self):
+		"""setToHeat()
+		set system mode to HEAT"""
 		self.__setMode(0x04)
 	def setToCool(self):
+		"""setToCool()
+		set system mode to COOL"""
 		self.__setMode(0x05)
 	def setToAuto(self):
+		"""setToAuto()
+		set system mode to AUTO (manual)"""
 		self.__setMode(0x06)
-	def setFanOn(self):
-		self.__setMode(0x07)
-	def setFanAuto(self):
-		self.__setMode(0x08)
 	def setAllOff(self):
+		"""setAllOff()
+		set system mode to OFF"""
 		self.__setMode(0x09)
 	def setToProgram(self):
+		"""setToProgram()
+		set system mode to AUTO (program)"""
 		self.__setMode(0x0A)
+	def setFanOn(self):
+		"""setFanOn()
+		set fan mode to ALWAYS ON"""
+		self.__setMode(0x07)
+	def setFanAuto(self):
+		"""setFanAuto()
+		set fan mode to AUTO"""
+		self.__setMode(0x08)
 #
 #  stuff that should work but doesn't. Maybe just for the battery operated ZTH?
 #

@@ -88,7 +88,8 @@ def help(obj = None):
 	"""help(object) prints out help for object, e.g. help(modem)"""
 	if obj is not None :
 		if obj.__doc__ is None :
-			iofun.out("No documentation for \"" + obj.__name__ + "\"")
+			iofun.out("No documentation for \"" +
+					  obj.__class__.__name__ + "\"")
 			return
 		sep='\n'
 		if isinstance(obj, (types.MethodType)):
@@ -96,6 +97,8 @@ def help(obj = None):
 		elif isinstance(obj, (types.ClassType, types.ObjectType)):
 			iofun.out(obj.__doc__)
 			docList = [getattr(obj, method).__doc__ for method in dir(obj) if callable(getattr(obj, method)) and getattr(obj, method).__doc__]
+			if len(docList) == 0:
+				return
 			maxMethodLen = max([len(doc.split(sep)[0]) for doc in docList])
 			iofun.out("\n".join(["%s %s" %
 								 (doc.split(sep)[0].ljust(maxMethodLen + 1),

@@ -6,6 +6,7 @@
 # if group is -1, the address will be used, otherwise the group will be used
 #
 from us.pfrommer.insteon.cmd.msg import Msg
+import commands
 
 def createStdMsg(adr, flags, cmd1, cmd2, group):
 	msg = Msg.s_makeMessage("SendStandardMessage")
@@ -66,7 +67,6 @@ def createExtendedMsg(adr, cmd1, cmd2, data, flags = 0x1f):
 	msg.setByte("messageFlags", flags | 0x10)
 	checksum = (~(cmd1 + cmd2 + sum(data)) + 1) & 0xFF
 	msg.setByte("userData14", checksum)
-	#	msg.setByte("userData14", 0)
 	return msg
 
 def createExtendedMsg2(adr, cmd1, cmd2, data, flags = 0x1f):

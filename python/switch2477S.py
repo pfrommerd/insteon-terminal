@@ -11,6 +11,7 @@ from querier import MsgHandler
 from threading import Timer
 from switch import Switch
 from dbbuilder import LightDBBuilder
+from linkdb import LightDBRecordFormatter
 from linkdb import *
 
 from us.pfrommer.insteon.cmd.msg import Msg
@@ -29,26 +30,14 @@ class DefaultMsgHandler(MsgHandler):
 		return 1
 
 class Switch2477S(Switch):
+	"""==============  Insteon SwitchLinc 2477S ==============="""
 	querier = None
 	def __init__(self, name, addr):
-		Device.__init__(self, name, addr)
-		self.dbbuilder = LightDBBuilder(addr, self.db)
-		self.querier = Querier(addr)
+		Switch.__init__(self, name, addr)
 
-	def getdb(self):
-		out("getting db, be patient!")
-		self.dbbuilder.clear()
-		self.dbbuilder.start()
-
-	def startLinking(self):
-		self.querier.setMsgHandler(DefaultMsgHandler("start linking"))
-		self.querier.querysd(0x09, 0x03);
-
-	def ping(self):
-		self.querier.setMsgHandler(DefaultMsgHandler("ping"))
-		self.querier.querysd(0x0F, 0x01);
- 
-	def idrequest(self):
-		self.querier.setMsgHandler(DefaultMsgHandler("id request"))
-		self.querier.querysd(0x10, 0x00);
+	def readOpFlags(self):
+		"""readOpFlags()
+		read operational flags"""
+		self.querier.setMsgHandler(DefaultMsgHandler("read op flags"))
+		self.querier.querysd(0x1f, 0x00);
 

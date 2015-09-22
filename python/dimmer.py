@@ -6,45 +6,50 @@ import iofun
 import message
 
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
-from device import Device
+from light import Light
 
-class Dimmer(Device):
+class Dimmer(Light):
 	def __init__(self, name, adr):
-		Device.__init__(self, name, adr)
-
-	def on(self, level=0xFF):
-		iofun.writeMsg(message.createStdMsg(
-			InsteonAddress(self.getAddress()), 0x0F, 0x11, level, -1))
-
+		Light.__init__(self, name, adr)
 	def onFast(self, level=0xFF):
+		"""onFast(level)
+		switch light on fast, to given level"""
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x12, level, -1))
 
-	def off(self):
-		iofun.writeMsg(message.createStdMsg(
-			InsteonAddress(self.getAddress()), 0x0F, 0x13, 0x00, -1))
-
 	def offFast(self):
+		"""offFast()
+		switch light off fast"""
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x14, 0x00, -1))
 
 	def incrementalBright(self):
+		"""incrementalBright()
+		brighten light incrementally"""
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x15, 0x00, -1))
 
 	def incrementalDim(self):
+		"""incrementalDim()
+		dim light incrementally"""
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x16, 0x00, -1))
 
 	def startManualChangeUp(self):
+		"""startManualChangeUp()
+		start manual change, dim up"""
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x17, 0x01, -1))
 
 	def startManualChangeDown(self):
+		"""startManualChangeDown()
+		start manual change, dim down"""
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x17, 0x00, -1))
 
 	def stopManualChange(self):
+		"""stopManualChange()
+		stop manual change"""
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x18, 0x00, -1))
 
