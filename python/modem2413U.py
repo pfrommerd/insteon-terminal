@@ -4,6 +4,7 @@
 #
 import iofun
 import time
+import message
 
 from device import *
 from linkdb import DB
@@ -72,6 +73,21 @@ class Modem2413U(Device):
 		self.querier.setMsgHandler(IMInfoMsgHandler("getid"))
 		msg = Msg.s_makeMessage("GetIMInfo")
 		self.querier.sendMsg(msg)
+	def sendOn(self, group):
+		"""sendOn(group)
+		sends ALLLink broadcast ON message to group "group" """
+		msg = message.createStdMsg(InsteonAddress("00.00.00"), 0x0f,
+									0x11, 0xFF, group)
+		iofun.writeMsg(msg)
+		iofun.out("sent msg: " + msg.toString())
+	def sendOff(self, group):
+		"""sendOff(group)
+		sends ALLLink broadcast OFF message to group "group" """
+		msg = message.createStdMsg(InsteonAddress("00.00.00"), 0x0f,
+									0x13, 0xFF, group)
+		iofun.writeMsg(msg)
+		iofun.out("sent msg: " + msg.toString())
+
 	def linkAsController(self, otherDevice, group):
 		"""linkAsController(otherDevice, group)
 		puts modem in link mode to control device "otherDevice" on group "group" """

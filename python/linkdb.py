@@ -19,7 +19,7 @@ def dumpRecord(rec, prefix = ""):
 	off  = rec["offset"]
 	addr = rec["addr"].toString()
 	dev = getDevByAddr(addr).getName() if getDevByAddr(addr) else addr
-	cr = ctrlToString(ctrl)
+	cr = ctrlToString(rec["type"])
 	out(prefix + format(off, '04x') + " " + format(dev, '30s') +
 		" " + format(addr, '8s') + " " + cr + " " +
 		'{0:08b}'.format(rec["type"]) + 

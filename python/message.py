@@ -6,6 +6,7 @@
 # if group is -1, the address will be used, otherwise the group will be used
 #
 from us.pfrommer.insteon.cmd.msg import Msg
+from us.pfrommer.insteon.cmd.msg import InsteonAddress
 import commands
 
 def createStdMsg(adr, flags, cmd1, cmd2, group):
