@@ -125,8 +125,8 @@ class DB():
 		arr = getRecordsAsArray(self.records)
 		for r in arr:
 			saveRecord(f, r)
-			out("saved " + format(len(arr), 'd') + " records")
 		f.close()
+		out("saved " + format(len(arr), 'd') + " records")
 	def load(self, d, filename):
 		r = re.compile('[ \t\n\r:]+')
 		with open(filename, 'r') as f:
