@@ -141,6 +141,10 @@ class Modem2413U(Device):
 		self.querier.setMsgHandler(DefaultMsgHandler("cancel linking"))
 		msg = Msg.s_makeMessage("CancelALLLinking")
 		self.querier.sendMsg(msg)
+	def addController(self, addr, group):
+		"""addController(addr, group):
+		adds device with address "addr" to modem link database as controller for group "group" """
+		self.__modifyRecord(addr, group, 0x40, 0xa2, [0,0,group], "addResponder")
 	def addResponder(self, addr, group):
 		"""addResponder(addr, group):
 		adds device with address "addr" to modem link database as responder to group "group" """
