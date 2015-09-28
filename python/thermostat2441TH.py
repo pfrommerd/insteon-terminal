@@ -571,7 +571,7 @@ class Thermostat2441TH(Device):
 		data = data if data else [00, 00, group];
 		self.__modifyDB(LinkRecordAdder(self, addr, group, data, True))
 	def removeController(self, addr, group):
-		"""removeController(addr, group, data)
+		"""removeController(addr, group)
 		remove device with "addr" as controller for group "group", with link data "data" """
 		self.__modifyDB(LinkRecordRemover(self, addr, group, True))
 	def addResponder(self, addr, group, data = None):
