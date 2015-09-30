@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 #
-# Base class for all light type of devices (dimmers, switches ...)
+# Base class for all motion sensors
 #
 import iofun
 import message
@@ -28,7 +28,7 @@ class StatusMsgHandler(MsgHandler):
 		iofun.out(self.label + " = " + format(tmp, '02d'))
 		return 1
 
-class Light(Device):
+class MotionSensor(Device):
 	def __init__(self, name, addr):
 		Device.__init__(self, name, addr)
 		self.dbbuilder = LightDBBuilder(addr, self.db)
@@ -40,33 +40,8 @@ class Light(Device):
 		self.querier.setMsgHandler(DefaultMsgHandler("ping"))
 		self.querier.querysd(0x0F, 0x01);
  
-	def on(self, level=0xFF):
-		"""on(level)
-		switch on to given light level"""
-		iofun.writeMsg(message.createStdMsg(
-			InsteonAddress(self.getAddress()), 0x0F, 0x11, level, -1))
-
-	def off(self):
-		"""off()
-		switch off"""
-		iofun.writeMsg(message.createStdMsg(
-			InsteonAddress(self.getAddress()), 0x0F, 0x13, 0x00, -1))
-
-	def beep(self):
-		"""beep()
-		make device beep"""
-		iofun.writeMsg(message.createStdMsg(
-			InsteonAddress(self.getAddress()), 0x0F, 0x30, 0x00, -1))
-
 	def getStatus(self):
 		"""getStatus()
 		get current light level of device"""
 		self.querier.setMsgHandler(StatusMsgHandler("light level"))
 		self.querier.querysd(0x19, 0x0)
-	
-
-	def setLEDBrightness(self, level):
-		"""setLEDBrightness(level)
-		set brightness level from 0x11 -> 0x7f"""
-		self.querier.setMsgHandler(DefaultMsgHandler("set led brightness"))
-		self.querier.queryext(0x2e, 0x00, [0x01, 0x07, level]);

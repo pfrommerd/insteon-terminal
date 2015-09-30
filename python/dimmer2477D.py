@@ -27,5 +27,6 @@ class DefaultMsgHandler(MsgHandler):
 		return 1
 
 class Dimmer2477D(Dimmer):
-    def __init__(self, name, addr):
-        Dimmer.__init__(self, name, addr)
+	"""==============  Insteon SwitchLinc Dimmer 2477D ==============="""
+	def __init__(self, name, addr):
+		Dimmer.__init__(self, name, addr)

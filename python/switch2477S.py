@@ -31,7 +31,6 @@ class DefaultMsgHandler(MsgHandler):
 
 class Switch2477S(Switch):
 	"""==============  Insteon SwitchLinc 2477S ==============="""
-	querier = None
 	def __init__(self, name, addr):
 		Switch.__init__(self, name, addr)
 

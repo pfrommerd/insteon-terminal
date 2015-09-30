@@ -366,124 +366,12 @@ class FirmwareVersionMsgHandler(MsgHandler):
 		elif cmd1 == 0x01:
 			out("firmware version: " + msg.getAddress("toAddress").toString())
 			return 1
-class DBBuilderListener:
-	def databaseComplete(self, db):
-		out("databaseComplete() not implemented!")
-	def databaseIncomplete(self, db):
-		out("databaseIncomplete() not implemented!")
-
-class LastRecordRemover(DBBuilderListener):
-	thermostat = None
-	def __init__(self, th):
-		self.thermostat = th
-	def databaseComplete(self, db):
-		out("database complete, removing last record")
-		above, stopaddr, below = db.findStopRecordAddresses()
-		if (above == 0):
-			out("db already empty!")
-		else:
-			self.thermostat.setRecord(above, InsteonAddress("00.00.00"),
-									  0x00, 0x00, [0, 0, 0])
-	def databaseIncomplete(self, db):
-		out("database incomplete, reload() and retry!")
-
-class LinkRecordRemover(DBBuilderListener):
-	group = None
-	data  = [0x03, 0x1f, 0xef]
-	isController = True
-	linkAddr = None
-	thermostat = None
-	def __init__(self, th, linkAddr, g, isContr):
-		self.thermostat = th
-		self.linkAddr = InsteonAddress(linkAddr)
-		self.group = g;
-		self.isController = isContr
-	def databaseComplete(self, db):
-		out("database complete, analyzing...")
-		if not self.group:
-			out("group to remove not set, aborting!")
-			return
-		if not self.linkAddr:
-			out("address to remove not set, aborting!")
-			return
-		linkType = (1 << 6) if self.isController else 0
-		linkType |= (1 << 1) # high water mark
-		linkType |= (1 << 5) # unused bit, but seems to be always 1
-		# linkType |= (1 << 7) # valid record
-		searchRec = {"offset" : 0, "addr": self.linkAddr, "type" : linkType,
-					 "group" : self.group, "data" : self.data}
-		rec = db.findActiveRecord(searchRec);
-		if not rec:
-			out("no matching found record, no action taken!")
-			return
-		out("erasing active record at offset: " + format(rec["offset"], '04x'))
-		self.thermostat.setRecord(rec["offset"], rec["addr"], rec["group"],
-								  rec["type"] & 0x3f, rec["data"]);
-	def databaseIncomplete(self, db):
-		out("database incomplete, reload() and retry!")
-
-class LinkRecordAdder(DBBuilderListener):
-	group = None
-	data  = [0x03, 0x1f, 0xef]
-	isController = True
-	linkAddr = None
-	thermostat = None
-	isController = True
-	def __init__(self, th, linkAddr, g, d, isContr):
-		self.thermostat = th
-		self.linkAddr = InsteonAddress(linkAddr)
-		self.group = g
-		self.data = d
-		self.isController = isContr
-	def addEmptyRecordAtEnd(self, db):
-		above, stopaddr, below = db.findStopRecordAddresses()
-		self.thermostat.setRecord(below, InsteonAddress("00.00.00"),
-								  0x00, 0x00, [0, 0, 0])
-		return stopaddr
-	def databaseComplete(self, db):
-		out("database complete, analyzing...")
-		linkType = (1 << 6) if self.isController else 0
-		linkType |= (1 << 1) # set high water mark
-		linkType |= (1 << 5) # unused bit, but seems to be always 1
-		linkType |= (1 << 7) # valid record
-		searchRec = {"offset" : 0, "addr": self.linkAddr, "type" : linkType,
-					 "group" : self.group, "data" : self.data}
-		rec = db.findActiveRecord(searchRec)
-		if rec:
-			db.dumpRecord(rec, "found active record:");
-			out("already linked, no action taken!")
-			return
-		searchRec["type"] = linkType;
-		# match all but data
-		rec = db.findInactiveRecord(searchRec, True, True, False)
-		if not rec:
-			# match address
-			rec = db.findInactiveRecord(searchRec, True, False, False)
-		if not rec:
-			# match any unused record
-			rec = db.findInactiveRecord(searchRec, False, False, False)
-		if rec:
-			db.dumpRecord(rec, "reusing inactive record:")
-			self.thermostat.setRecord(rec["offset"], self.linkAddr,
-									  self.group, linkType, self.data)
-			out("link record added!")
-		else:
-			out("no unused records, adding one at the end!")
-			newOffset = self.addEmptyRecordAtEnd(db)
-			out("now setting the new record!")
-			self.thermostat.setRecord(newOffset, self.linkAddr, self.group,
-									  linkType, self.data)
-	def databaseIncomplete(self, db):
-		out("database incomplete, reload() and retry!")
 
 class Thermostat2441TH(Device):
 	"""==============  Insteon Thermostat 2441TH ==============="""
-	dbbuilder = None
-	querier = None
 	def __init__(self, name, addr):
 		Device.__init__(self, name, addr)
 		self.dbbuilder = ThermostatDBBuilder(addr, self.db)
-		self.querier = Querier(addr)
 #
 #   helper functions 
 #
@@ -497,31 +385,6 @@ class Thermostat2441TH(Device):
 										  cmd1, cmd2, data)
 		self.__sendMsg(msg);
 		return msg;
-	def setRecord(self, offset, laddr, group, linkType, data):
-		msg   = Msg.s_makeMessage("SendExtendedMessage")
-		msg.setAddress("toAddress", InsteonAddress(self.getAddress()))
-		msg.setByte("messageFlags", 0x1f)
-		msg.setByte("command1", 0x2f)
-		msg.setByte("command2", 0x00)
-		msg.setByte("userData1", 0x00) # don't care info
-		msg.setByte("userData2", 0x02) # set database
-		msg.setByte("userData3", offset >> 8)  # high byte
-		msg.setByte("userData4", offset & 0xff) # low byte
-		msg.setByte("userData5", 8)  # number of bytes set:  1...8
-		msg.setByte("userData6", linkType)
-		msg.setByte("userData7", group)
-		msg.setByte("userData8", laddr.getHighByte())
-		msg.setByte("userData9", laddr.getMiddleByte())
-		msg.setByte("userData10", laddr.getLowByte())
-		# depends on mode: could be e.g. trigger point
-		msg.setByte("userData11", data[0])
-		msg.setByte("userData12", data[1]) # unused?
-		msg.setByte("userData13", data[2]) # unused?
-		rb = msg.getBytes("command1", 15);
-		checksum = (~sum(rb) + 1) & 0xFF
-		msg.setByte("userData14", checksum)
-		self.querier.setMsgHandler(MsgHandler("got set record"))
-		self.querier.sendMsg(msg)
 
 	def __sendMsg(self, msg):
 		iofun.writeMsg(msg)
@@ -549,44 +412,8 @@ class Thermostat2441TH(Device):
 	def __setMode(self, mode):
 		self.querier.setMsgHandler(MsgHandler("got mode set return msg"))
 		self.ext(0x6b,  mode, [0x0, 0x0, 0x0])
-	def __modifyDB(self, listener):
-		self.dbbuilder.setListener(listener)
-		self.getdb() # this initiates the transfer
+
 		
-#
-#   link database management
-#
-	def addSoftwareController(self, addr):
-		"""addSoftwareController(addr)
-		add device with "addr" as software controller"""
-		self.addController(addr, 0xef, [0x03, 0x1f, 0xef])
-	def removeSoftwareController(self, addr):
-		"""removeSoftwareController(addr)
-		remove device with "addr" as software controller"""
-		self.addController(addr, 0xef, [0x03, 0x1f, 0xef])
-		self.removeController(addr, 0xef)
-	def addController(self, addr, group, data = None):
-		"""addController(addr, group, data)
-		add device with "addr" as controller for group "group", with link data "data" """
-		data = data if data else [00, 00, group];
-		self.__modifyDB(LinkRecordAdder(self, addr, group, data, True))
-	def removeController(self, addr, group):
-		"""removeController(addr, group)
-		remove device with "addr" as controller for group "group", with link data "data" """
-		self.__modifyDB(LinkRecordRemover(self, addr, group, True))
-	def addResponder(self, addr, group, data = None):
-		"""addResponder(addr, group, data)
-		add device with "addr" as responder for group "group", with link data "data" """
-		data = data if data else [00, 00, group];
-		self.__modifyDB(LinkRecordAdder(self, addr, group, data, False))
-	def removeResponder(self, addr, group):
-		"""removeResponder(addr, group)
-		remove device with "addr" as responder for group "group" """
-		self.__modifyDB(LinkRecordRemover(self, addr, group, False))
-	def removeLastRecord(self):
-		"""removeLastRecord()
-		removes the last device in the link database"""
-		self.__modifyDB(LastRecordRemover(self))
 #
 #   misc simple commands
 #
@@ -813,6 +640,18 @@ class Thermostat2441TH(Device):
 		set fan mode to AUTO"""
 		self.__setMode(0x08)
 #
+#   link database management
+#
+	def addSoftwareController(self, addr):
+		"""addSoftwareController(addr)
+		add device with "addr" as software controller"""
+		self.addController(addr, 0xef, [0x03, 0x1f, 0xef])
+	def removeSoftwareController(self, addr):
+		"""removeSoftwareController(addr)
+		remove device with "addr" as software controller"""
+		self.addController(addr, 0xef, [0x03, 0x1f, 0xef])
+		self.removeController(addr, 0xef)
+#
 #  stuff that should work but doesn't. Maybe just for the battery operated ZTH?
 #
 	def stayAwake(self): # stay awake for 4mins
@@ -821,3 +660,4 @@ class Thermostat2441TH(Device):
 	def goToSleep(self): # go to sleep after 3 seconds
 		self.querier.setMsgHandler(MsgHandler("got go to sleep msg:"))
 		self.ext(0x20,  0x07, [0x0, 0x0, 0x0])
+

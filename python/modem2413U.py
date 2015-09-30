@@ -43,8 +43,6 @@ class MsgDumper(MsgHandler):
 
 class Modem2413U(Device):
 	"""==============  Insteon PowerLinc modem (PLM) ==============="""
-	dbbuilder = None
-	querier = None
 	def __init__(self, name, addr):
 		Device.__init__(self, name, addr)
 		self.dbbuilder = ModemDBBuilder(addr, self.db)

@@ -15,6 +15,7 @@ from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 from us.pfrommer.insteon.cmd.gui import PortTracker
 
+import all_devices
 import iofun
 import struct
 import types
@@ -72,6 +73,10 @@ def connectToSerial(dev):
 def disconnect():
 	"""disconnects from serial port or hub"""
 	insteon.setPort(None)
+
+def listDevices():
+	"""lists all configured devices"""
+	all_devices.listDevices()
 
 #
 # start serial port tracker

@@ -93,7 +93,6 @@ class KPRecordFormatter(RecordFormatter):
 
 class Keypad2487S(Switch):
 	"""==============  Insteon Keypad2487S ==============="""
-	querier = None
 	def __init__(self, name, addr):
 		Switch.__init__(self, name, addr)
 
