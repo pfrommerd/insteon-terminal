@@ -1,7 +1,11 @@
 # Insteon Terminal
 The Insteon Terminal is a simple tool to send and receive messages on an Insteon network, using either a PLM modem or a Hub.
 
-Look elsewhere if you want a polished interface to automate your home. The Insteon Terminal is meant as a raw developer tool for the purpose of exploring how a device responds to a message, and what messages a device emits. Be forewarned: you can do highly dangerous stuff like directly modifying a device's (or your modem's) link database.
+Look elsewhere if you want a polished interface to automate your home, or if you don't like command line interfaces.
+
+The Insteon Terminal is meant as a raw developer tool for the purpose of exploring how a device responds to a message, and what messages a device emits. It is also well suited to examine and modify device link databases.
+
+BE FOREWARNED: you can directly manipulate your modem's link database, and IF YOU TRY HARD YOU CAN WIPE IT OUT, potentially requiring you to re-link with your devices. Use the saveDB() method on the modem to save the database before you modify it.
 
 ### Support
 
@@ -38,16 +42,289 @@ All instructions are for Ubuntu 14.04
 
 Getting the serial terminal to work under java / rxtx can be tricky. Make sure you have the correct port name configured in init.py and that you have read/write permissions to the port (usually this involves adding yourself to the plugdev group and logging out/back in for the changes to take effect).
 
-7) If all goes well, try using some of the devices you defined in init.py, for example print out your modem db:
+7) If all goes well a window will pop up, and you will see the following text:
 
-    modem.getdb()
-
-or switch on a light:
-
-    closetLight.on()
-    
+    Insteon Terminal
+    Python interpreter initialized...
+    >>>       
 
 
+#First steps:
+
+    >>> help()
+    -------Welcome to the Insteon Terminal-------
+    to get a list of available functions, type '?'
+    to get help, type help(funcName) or help(objectName)
+    for example: help(Modem2413U)
+    to quit, type 'quit()'
+
+
+let's see what functions we have available:
+    >>> ?
+    ----All available functions---
+    Timer() - No doc
+    clear() - clears the console screen
+    connectToHub() - connectToHub(adr, port, pollMillis, user, password) connects to specific hub
+    connectToMyHub() - connects to my insteon hub modem at pre-defined address
+    connectToMySerial() - connects to my modem on pre-defined serial port
+    connectToSerial() - connectToSerial("/path/to/device") connects to specific serial port
+    disconnect() - disconnects from serial port or hub
+    err() - prints to std err the value of msg and a newline character
+    exit() - quits the interpreter
+    help() - help(object) prints out help for object, e.g. help(modem)
+    init() - No doc
+    listDevices() - lists all configured devices
+    out() - out("text") prints text to the console
+    quit() - quits the interpreter
+    reload() - Reloads the interpreter. Use this whenever you feel the state got screwed up.
+    reset() - Resets the interpreter
+    trackPort() - start serial port tracker(monitor) that shows all incoming/outgoing bytes
+
+listDevices() will dump a list of all devices that are defined in init.py:
+
+    >>> listDevices()
+    diningRoomEastDimmer           20.ac.99
+    computerRoomEast               24.ac.f4
+    kitchenFireplaceLights         23.e8.2e
+    modem                          23.9b.65
+
+you can get help for any device by using the help() function on the object
+
+    >>> help(modem)
+    ==============  Insteon PowerLinc modem (PLM) ===============
+    addController(addr, group):               adds device with address "addr" to modem link database as controller for group "group"
+    addResponder(addr, group):                adds device with address "addr" to modem link database as responder to group "group"
+    addSoftwareResponder(addr):               adds device with address "addr" to modem link database as software responder
+    cancelLinking()                           takes modem out of linking or unlinking mode
+    getId()                                   get category, subcategory, firmware, hardware version
+    getdb()                                   download the modem database and print it on the console
+    getid()                                   get modem id data
+    linkAsController(otherDevice, group)      puts modem in link mode to control device "otherDevice" on group "group"
+    linkAsEither(otherDevice, group)          puts modem in link mode to link as controller or responder to device "otherDevice" on group "group"
+    linkAsResponder(otherDevice, group)       puts modem in link mode to respond to device "otherDevice" on group "group"
+    loadDB(filename)                          restore modem database from file "filename"
+    nukeDB()                                  delete complete modem database!
+    printdb()                                 print the downloaded link database to the console
+    removeController(addr, group)             remove device with "addr" as controller for group "group", with link data "data"
+    removeLastRecord()                        removes the last device in the link database
+    removeResponder(addr, group)              remove device with "addr" as responder for group "group"
+    removeResponderOrController(addr, group)  removes device with address "addr" and group "group" from modem link database
+    respondToUnlink(otherDevice, group)       make modem respond to unlink message from other device
+    restoreDB()                               restore modem database from file "filename"
+    saveDB(filename)                          save modem database to file "filename"
+    sendOff(group)                            sends ALLLink broadcast OFF message to group "group"
+    sendOn(group)                             sends ALLLink broadcast ON message to group "group"
+    startWatch()                              modem will print all incoming messages on terminal
+    stopWatch()                               stop modem from printing all incoming messages on terminal
+    unlinkAsController(otherDevice, group)    puts modem in unlink mode to unlink as controller from device "otherDevice" on group "group"
+
+Now we can dump the modem's link database:
+
+    >>> modem.getdb()
+    0000 kitchenFireplaceLights         23.E8.2E  RESP  10100010 group: 01 data: 00 00 01
+    0000 kitchenFireplaceLights         23.E8.2E  CTRL  11100010 group: 01 data: 02 2a 43
+    0000 diningRoomEastDimmer           20.AB.26  RESP  10100010 group: 01 data: 01 20 41
+    0000 diningRoomEastDimmer           20.AB.26  CTRL  11100010 group: 01 data: 01 20 41
+
+Turns out the computerRoomEast device is not linked to the modem yet, which is sort of a problem, because then it won't respond to
+a whole bunch of queries, like asking for its database etc. When pinging it, it returns a nasty NACK_OF_DIRECT.
+
+    >>> computerRoomEast.ping()
+    sent msg: OUT:Cmd:0x62|toAddress:24.AC.F4|messageFlags:0x0F=DIRECT:3:3|command1:0x0F|command2:0x01|
+    >>> ping got msg: IN:Cmd:0x50|fromAddress:24.AC.F4|toAddress:23.9B.65|messageFlags:0xA7=NACK_OF_DIRECT:3:1|command1:0x0F|command2:0xFF|
+
+
+And when querying the database:
+    >>> computerRoomEast.getdb()
+    getting db, be patient!
+    sent db query msg, incoming records: >>> did not get full database, giving up!
+
+Nothing comes back.
+
+This is because the computerRoomEast device does not have any entries about the modem in its link database, so it won't answer queries. No way around the press-the-button dance, so we link (using the set button) the modem as a controller, and the computerRoomEast device as a responder. Now things look better:
+
+    >>> computerRoomEast.getdb()
+    getting db, be patient!
+    sent db query msg, incoming records: >>>  1 2
+    ----- database -------
+
+    0fff modem                          23.9B.65  RESP  10101010 group: 01 ON LVL: 254 RMPRT:  28 BUTTON:   1
+    0ff7 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+
+If we wanted to modem to be a responder (such that it gets messages when the device is toggled), we could link with the set button, but now that the device responds to modem commands, we can configure it as a controller of the modem by directly manipulating its link database:
+
+    >>> computerRoomEast.addController("23.9b.65", 01, [3, 28, 1])
+
+And now the device's database looks like this:
+
+    >>> computerRoomEast.getdb()
+    getting db, be patient!
+    sent db query msg, incoming records: >>>  1 2 3
+    ----- database -------
+    0fff modem                          23.9B.65  RESP  10101010 group: 01 ON LVL: 254 RMPRT:  28 BUTTON:   1
+    0ff7 modem                          23.9B.65  CTRL  11100010 group: 01 ON LVL:   3 RMPRT:  28 BUTTON:   1
+    0fef 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+    ----- end ------------
+
+
+But let's not forget about the modem database! That one also needs an entry, as a responder. So far the modem has only an entry to control the device:
+
+
+    >>> modem.getdb()
+    0000 computerRoomEast               24.AC.F4  CTRL  11100010 group: 01 data: 01 20 41
+    Modem Link DB complete
+
+Let's configure the modem also as a controller:
+
+    >>> modem.addResponder("24.ac.f4", 01)
+    sent msg: OUT:Cmd:0x6F|controlCode:0x41|recordFlags:0xA2|ALLLinkGroup:0x01|linkAddress:24.AC.F4|linkData1:0x00|linkData2:0x00|linkData3:0x01|
+    >>> addResponder got msg: IN:Cmd:0x6F|controlCode:0x41|recordFlags:0xA2|ALLLinkGroup:0x01|linkAddress:24.AC.F4|linkData1:0x00|linkData2:0x00|linkData3:0x01|ACK/NACK:0x06|
+Voila, the modem is now also a responder to the device:
+    >>> modem.getdb()
+
+
+    0000 computerRoomEast               24.AC.F4  RESP  10100010 group: 01 data: 00 00 01
+    0000 computerRoomEast               24.AC.F4  CTRL  11100010 group: 01 data: 01 20 41
+    Modem Link DB complete
 
 
 
+# Supported devices
+
+Right now the list of supported devices is fairly short:
+
+- SwitchLinc Switch 2477S
+- SwitchLinc Dimmer 2477D
+- KeypadLinc 2487S
+- Thermostat 2441TH
+- Modem 2413U/Hub pre-2014/Hub 2014
+
+But many of the devices work very similarly. You can easily add your own device by creating a new file in the python directory. Just pick a device that looks similar, copy/rename its .py file, and import it in init.py. If you are looking for code snippets, the most complex device so far is the thermostat, see below
+
+## Thermostat 2441TH
+
+While not complete, most features of the 2441TH are supported:
+
+    >>> help(Thermostat2441TH)
+    ==============  Insteon Thermostat 2441TH ===============
+    addController(addr, group, data)                           add device with "addr" as controller for group "group", with link data "data"
+    addResponder(addr, group, data)                            add device with "addr" as responder for group "group", with link data "data"
+    addSoftwareController(addr)                                add device with "addr" as software controller
+    beep()                                                     sends beep command to the device
+    buttonBeepOff()                                            sets button beep off
+    buttonBeepOn()                                             sets button beep on
+    buttonLockOff()                                            sets button lock off
+    buttonLockOn()                                             sets button lock on
+    enableStatusReports()                                      enables status reports being sent to group #0xef
+    getData1()                                                 performs data1 query
+    getData1b()                                                performs data1b query
+    getData2()                                                 performs data2 query
+    getEngineVersion()                                         queries device for engine version
+    getFirmwareVersion()                                       queries device for firmware version
+    getHumidity()                                              queries humidity
+    getId()                                                    get category, subcategory, firmware, hardware version
+    getOpFlagsExt()                                            gets operational flags via ext message
+    getOpFlagsSD()                                             gets operational flags via sd message
+    getSchedule(day)                                           gets schedule for day (0=Sunday, 6=Saturday)
+    getSetPoint()                                              queries temperature set point
+    getTemperature()                                           queries temperature
+    getdb()                                                    download the device database and print it on the console
+    linkingLockOff()                                           sets linking lock off
+    linkingLockOn()                                            sets linking lock on
+    ping()                                                     pings the device
+    printdb()                                                  print the downloaded link database to the console
+    removeController(addr, group)                              remove device with "addr" as controller for group "group", with link data "data"
+    removeLastRecord()                                         removes the last device in the link database
+    removeResponder(addr, group)                               remove device with "addr" as responder for group "group"
+    removeSoftwareController(addr)                             remove device with "addr" as software controller
+    sendOff()                                                  sends off command to the device
+    sendOn()                                                   sends on command to the device
+    setACHysteresis(minutes)                                   set A/C hysteresis (in minutes)
+    setAllOff()                                                set system mode to OFF
+    setBacklightSeconds(time)                                  set backlight time in seconds
+    setCoolPoint(temp)                                         sets cooling temperature
+    setFanAuto()                                               set fan mode to AUTO
+    setFanOn()                                                 set fan mode to ALWAYS ON
+    setHeatPoint(temp)                                         sets heating temperature
+    setHumidityHighPoint(point)                                sets high point for dehumidification
+    setHumidityLowPoint(point)                                 sets low point for humidification
+    setHumidityOffset(offset)                                  set humidity offset(for calibration, use with care!)
+    setOnLevel(addr, group, level, ramprate = 28, button = 1)  sets (on level, ramp rate, button) for controller with "addr" and group "group"
+    setSchedule(day, period, time, cool, heat)                 sets schedule params: day = 0(Sunday) .. 6 (Saturday), period = (0=wake, 1=leave, 2=return, 3=sleep), time = (e.g.) "06:30", cool/heat = temperatures
+    setStage1Minutes(time)                                     set number of minutes to try stage 1 before going into stage2
+    setTemperatureOffset(offset)                               set temperature offset(for calibration, use with care!)
+    setTime(day, hour, min, sec)                               sets clock time (day = 0(Sunday) .. 6 (Saturday))
+    setToAuto()                                                set system mode to AUTO (manual)
+    setToCool()                                                set system mode to COOL
+    setToHeat()                                                set system mode to HEAT
+    setToProgram()                                             set system mode to AUTO (program)
+    statusLEDOff()                                             don't switch status LED on when heating/cooling
+    statusLEDOn()                                              switch status LED on when heating/cooling
+    use12hFormat()                                             set time format 12h
+    use24hFormat()                                             set time format 24h
+    useCelsius()                                               set temperature display in celsius
+    useFahrenheit()                                            set temperature display in fahrenheit
+
+Fully linking the thermostat to modem requires linking the following groups:
+
+- group 1: cooling mode change
+- group 2: heating mode change
+- group 3: dehumid, high humidity set point
+- group 4: humidification, low humidity set point
+- group 5: no idea what that one is doing
+- group EF: direct message on any change (software controller)
+
+The following sequence of commands (wait for each to complete successfully!) will link thermostat to modem (replace the "23.9b.65" with your modem's address):
+
+    thermostat.addResponder("23.9b.65", 00)
+    thermostat.addController("23.9b.65", 01)
+    thermostat.addController("23.9b.65", 02)
+    thermostat.addController("23.9b.65", 03)
+    thermostat.addController("23.9b.65", 04)
+    thermostat.addController("23.9b.65", 05)
+    thermostat.addSoftwareController("23.9b.65")
+    thermostat.enableStatusReports()
+
+
+Here is how the thermostat database should look when you are done:
+
+    >>> thermostat.getdb()    
+    getting db, be patient!
+    sent db query msg, incoming records: >>> 1 2 3 4 5 6 7 8
+    ----- database -------
+    1fff modem                     23.9B.65  RESP  10100010 group: 00 data: 00 00 00
+    1ff7 modem                     23.9B.65  CTRL  11100010 group: 01 data: 00 00 01
+    1fef modem                     23.9B.65  CTRL  11100010 group: 02 data: 00 00 02
+    1fe7 modem                     23.9B.65  CTRL  11100010 group: 03 data: 00 00 03
+    1fdf modem                     23.9B.65  CTRL  11100010 group: 04 data: 00 00 04
+    1fd7 modem                     23.9B.65  CTRL  11100010 group: 05 data: 00 00 05
+    1fcf modem                     23.9B.65  CTRL  11100010 group: ef data: 03 1f ef
+    1fc7 00.00.00                  00.00.00 (RESP) 00000000 group: 00 data: 00 00 00
+    ----- end ------------
+
+Not sure if or why the thermostat has to be configured as a responder, but HouseLinc did it that way, so I followed their example.
+
+
+Now make the corresponding entries on the modem database (replace "32.f4.22" with your thermostat's address):
+
+    modem.addController("32.f4.22",00)
+    modem.addResponder("32.f4.22",01)
+    modem.addResponder("32.f4.22",02)
+    modem.addResponder("32.f4.22",03)
+    modem.addResponder("32.f4.22",04)
+    modem.addResponder("32.f4.22",05)
+    modem.addSoftwareResponder("32.f4.22")
+
+And the modem db should look like that:
+
+    >>> modem.getdb()
+    0000 thermostat                 32.F4.22  RESP  10100010 group: 01 data: 00 00 01
+    0000 thermostat                 32.F4.22  RESP  10100010 group: 02 data: 00 00 02
+    0000 thermostat                 32.F4.22  RESP  10100010 group: 03 data: 00 00 03
+    0000 thermostat                 32.F4.22  RESP  10100010 group: 04 data: 00 00 04
+    0000 thermostat                 32.F4.22  RESP  10100010 group: 05 data: 00 00 05
+    0000 thermostat                 32.F4.22  RESP  10100010 group: ef data: 00 00 ef
+    0000 thermostat                 32.F4.22  CTRL  11100010 group: 00 data: 01 00 00
+    Modem Link DB complete
+
+That's it, modem and thermostat are linked up.

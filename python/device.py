@@ -57,40 +57,6 @@ class LastRecordRemover(DBBuilderListener):
 	def databaseIncomplete(self, db):
 		iofun.out("database incomplete, reload() and retry!")
 
-class LinkRecordRemover(DBBuilderListener):
-	group = None
-	data  = [0x03, 0x1f, 0xef]
-	isController = True
-	linkAddr = None
-	def __init__(self, dev, linkAddr, g, isContr):
-		self.dev = dev
-		self.linkAddr = InsteonAddress(linkAddr)
-		self.group = g;
-		self.isController = isContr
-	def databaseComplete(self, db):
-		iofun.out("database complete, analyzing...")
-		if not self.group:
-			iofun.out("group to remove not set, aborting!")
-			return
-		if not self.linkAddr:
-			iofun.out("address to remove not set, aborting!")
-			return
-		linkType = (1 << 6) if self.isController else 0
-		linkType |= (1 << 1) # high water mark
-		linkType |= (1 << 5) # unused bit, but seems to be always 1
-		# linkType |= (1 << 7) # valid record
-		searchRec = {"offset" : 0, "addr": self.linkAddr, "type" : linkType,
-					 "group" : self.group, "data" : self.data}
-		rec = db.findActiveRecord(searchRec);
-		if not rec:
-			iofun.out("no matching found record, no action taken!")
-			return
-		iofun.out("erasing active record at offset: " + format(rec["offset"], '04x'))
-		self.dev.setRecord(rec["offset"], rec["addr"], rec["group"],
-								  rec["type"] & 0x3f, rec["data"]);
-	def databaseIncomplete(self, db):
-		iofun.out("database incomplete, reload() and retry!")
-
 class LinkRecordAdder(DBBuilderListener):
 	group = None
 	data  = [0x03, 0x1f, 0xef]
@@ -141,6 +107,43 @@ class LinkRecordAdder(DBBuilderListener):
 			iofun.out("now setting the new record!")
 			self.dev.setRecord(newOffset, self.linkAddr, self.group,
 								 linkType, self.data)
+	def databaseIncomplete(self, db):
+		iofun.out("database incomplete, reload() and retry!")
+
+
+class OnLevelModifier(DBBuilderListener):
+	group = None
+	data  = [0x03, 0x1f, 0xef]
+	isController = True
+	linkAddr = None
+	isController = True
+	def __init__(self, dev, linkAddr, g, level, ramprate, button, isContr):
+		self.dev = dev
+		self.linkAddr = InsteonAddress(linkAddr)
+		self.group = g
+		self.data = [level, ramprate, button]
+		self.isController = isContr
+	def addEmptyRecordAtEnd(self, db):
+		above, stopaddr, below = db.findStopRecordAddresses()
+		self.dev.setRecord(below, InsteonAddress("00.00.00"),
+							 0x00, 0x00, [0, 0, 0])
+		return stopaddr
+	def databaseComplete(self, db):
+		iofun.out("database complete, analyzing...")
+		linkType = (1 << 6) if self.isController else 0
+		linkType |= (1 << 1) # set high water mark
+		linkType |= (1 << 5) # unused bit, but seems to be always 1
+		linkType |= (1 << 7) # valid record
+		searchRec = {"offset" : 0, "addr": self.linkAddr, "type" : linkType,
+					 "group" : self.group, "data" : self.data}
+		rec = db.findActiveRecord(searchRec)
+		if rec:
+			db.dumpRecord(rec, "found active record:");
+			self.dev.setRecord(rec["offset"], rec["addr"], rec["group"],
+								 rec["type"], self.data)
+		else:
+			iofun.out("no matching record found, check your data!")
+			return
 	def databaseIncomplete(self, db):
 		iofun.out("database incomplete, reload() and retry!")
 
@@ -240,3 +243,7 @@ class Device:
 		"""removeLastRecord()
 		removes the last device in the link database"""
 		self.__modifyDB(LastRecordRemover(self))
+	def setOnLevelResponder(self, addr, group, level, ramprate = 28, button = 1):
+		"""setOnLevel(addr, group, level, ramprate = 28, button = 1)
+		sets (on level, ramp rate, button) for controller with "addr" and group "group" """
+		self.__modifyDB(OnLevelModifier(self, addr, group, level, ramprate, button, False))

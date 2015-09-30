@@ -5,13 +5,9 @@
 import iofun
 import message
 
-from device import Device
 from querier import Querier
 from querier import MsgHandler
-from threading import Timer
 from switch import Switch
-from dbbuilder import LightDBBuilder
-from linkdb import LightDBRecordFormatter
 from linkdb import *
 
 from us.pfrommer.insteon.cmd.msg import Msg

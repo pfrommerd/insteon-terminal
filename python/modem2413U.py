@@ -142,7 +142,7 @@ class Modem2413U(Device):
 	def addController(self, addr, group):
 		"""addController(addr, group):
 		adds device with address "addr" to modem link database as controller for group "group" """
-		self.__modifyRecord(addr, group, 0x40, 0xa2, [0,0,group], "addResponder")
+		self.__modifyRecord(addr, group, 0x40, 0xa2, [0,0,group], "addController")
 	def addResponder(self, addr, group):
 		"""addResponder(addr, group):
 		adds device with address "addr" to modem link database as responder to group "group" """
