@@ -244,6 +244,6 @@ class Device:
 		removes the last device in the link database"""
 		self.__modifyDB(LastRecordRemover(self))
 	def setOnLevelResponder(self, addr, group, level, ramprate = 28, button = 1):
-		"""setOnLevel(addr, group, level, ramprate = 28, button = 1)
+		"""setOnLevelResponder(addr, group, level, ramprate = 28, button = 1)
 		sets (on level, ramp rate, button) for controller with "addr" and group "group" """
 		self.__modifyDB(OnLevelModifier(self, addr, group, level, ramprate, button, False))
