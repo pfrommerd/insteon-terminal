@@ -49,7 +49,7 @@ Getting the serial terminal to work under java / rxtx can be tricky. Make sure y
     >>>       
 
 
-#First steps:
+#First steps
 
     >>> help()
     -------Welcome to the Insteon Terminal-------
@@ -60,6 +60,7 @@ Getting the serial terminal to work under java / rxtx can be tricky. Make sure y
 
 
 let's see what functions we have available:
+
     >>> ?
     ----All available functions---
     Timer() - No doc
@@ -118,7 +119,7 @@ you can get help for any device by using the help() function on the object
     stopWatch()                               stop modem from printing all incoming messages on terminal
     unlinkAsController(otherDevice, group)    puts modem in unlink mode to unlink as controller from device "otherDevice" on group "group"
 
-Now we can dump the modem's link database:
+Here is how to dump the modem's link database:
 
     >>> modem.getdb()
     0000 kitchenFireplaceLights         23.E8.2E  RESP  10100010 group: 01 data: 00 00 01
@@ -135,6 +136,7 @@ a whole bunch of queries, like asking for its database etc. When pinging it, it 
 
 
 And when querying the database:
+
     >>> computerRoomEast.getdb()
     getting db, be patient!
     sent db query msg, incoming records: >>> did not get full database, giving up!
@@ -179,10 +181,10 @@ Let's configure the modem also as a controller:
     >>> modem.addResponder("24.ac.f4", 01)
     sent msg: OUT:Cmd:0x6F|controlCode:0x41|recordFlags:0xA2|ALLLinkGroup:0x01|linkAddress:24.AC.F4|linkData1:0x00|linkData2:0x00|linkData3:0x01|
     >>> addResponder got msg: IN:Cmd:0x6F|controlCode:0x41|recordFlags:0xA2|ALLLinkGroup:0x01|linkAddress:24.AC.F4|linkData1:0x00|linkData2:0x00|linkData3:0x01|ACK/NACK:0x06|
+
 Voila, the modem is now also a responder to the device:
+
     >>> modem.getdb()
-
-
     0000 computerRoomEast               24.AC.F4  RESP  10100010 group: 01 data: 00 00 01
     0000 computerRoomEast               24.AC.F4  CTRL  11100010 group: 01 data: 01 20 41
     Modem Link DB complete
@@ -191,7 +193,7 @@ Voila, the modem is now also a responder to the device:
 
 # Supported devices
 
-Right now the list of supported devices is fairly short:
+So far the list of supported devices is fairly short:
 
 - SwitchLinc Switch 2477S
 - SwitchLinc Dimmer 2477D
