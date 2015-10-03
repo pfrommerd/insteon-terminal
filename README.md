@@ -330,3 +330,284 @@ And the modem db should look like that:
     Modem Link DB complete
 
 That's it, modem and thermostat are linked up.
+
+## KeypadLinc 2487S
+
+
+The buttons on the Keypadlinc devices have device internal numbers that need to be provided during configuration. Moreover, when pressed each button emits a broadcast message with a different group #. For the 2487S the assignment looks like this:
+
+Button Name     Button Number    Group
+
+   Load              1           0x01
+     A               3           0x03
+     B               4           0x04
+     C               5           0x05
+     D               6           0x06
+
+
+### Step by step instructions
+
+If you are impatient and already know what you are doing, skip this
+section and go to the next one.
+
+The following example is for a keypad with address "30.0d.9f", and a modem at "23.9b.65"
+
+
+Begin with linking the modem as a controller: first long press the
+modem button until it beeps/blinks. Then switch the keypad ON, and
+long press the set button until both modem and keypad double-beep and
+stop blinking. This step is necessary so the keypad will start taking
+commands from the modem.
+
+Now if you do
+
+    modem.getdb()
+
+you should see something like this in the database:
+
+    0000 keypad                         30.0D.9F  CTRL  11100010 group: 01 data: 02 2c 41
+
+The keypad also has an entry now:
+
+    >>> keypad.getdb()
+    getting db, be patient!
+    sent db query msg, incoming records: >>>  1 2
+    ----- database -------
+    0fff modem                          23.9B.65  RESP  10101010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   1
+    0ff7 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+
+This means the keypad will respond when it gets an ON command on group #1
+by going into ON state (brightness level 255 means full on).
+
+The main load (button #1) can be switched on without resorting to
+broadcasting group messages. You can simply send a direct message like this:
+
+    keypad.off()
+    keypad.on()
+
+This shoulds switch the main light on and off.
+
+However, the modem will not learn if button #1 is pressed. For that,
+we need to link the keypad as a controller, and the modem as a
+responder so it gets group messages on group #1 (the group on which
+the keypad sends its broadcasts):
+
+    modem.addResponder("30.0d.9f", 0x01)
+    keypad.addControllerForButton("23.9b.65", 1)
+
+Now the modem database should have two lines like these:
+
+    >>>modem.getdb()
+    ...
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 01 data: 00 00 01
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: 01 data: 02 2c 41
+    ...
+
+
+And the keypad should look like this:
+
+    >>> keypad.getdb()
+    getting db, be patient!
+    sent db query msg, incoming records: >>>  1 2 3
+    ----- database -------
+    0fff modem                     23.9B.65  RESP  10101010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   1
+    0ff7 modem                     23.9B.65  CTRL  11100010 group: 01 ON LVL:   3 RMPRT:  28 BUTTON:   1
+    0fef 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+    ----- end ------------
+
+Now if you put the modem into "watch" mode:
+
+    >>> modem.startWatch()
+
+and switch on the light, you should see messages coming in:
+
+    >>> modem got msg: IN:Cmd:0x50|fromAddress:30.0D.9F|toAddress:00.00.01|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x11|command2:0x00|
+    modem got msg: IN:Cmd:0x50|fromAddress:30.0D.9F|toAddress:23.9B.65|messageFlags:0x40=ALL_LINK_CLEANUP:0:0|command1:0x11|command2:0x01|
+    modem got msg: IN:Cmd:0x50|fromAddress:30.0D.9F|toAddress:11.01.01|messageFlags:0xC7=ALL_LINK_BROADCAST:3:1|command1:0x06|command2:0x00|
+
+Don't forget to stop watching:
+
+    >>> modem.stopWatch()
+
+
+If we want the modem to get messages when the other buttons are
+pressed, we analogously establish a keypad controller/modem responder
+relationship:
+
+    keypad.addControllerForButton("23.9b.65", 3)
+    keypad.addControllerForButton("23.9b.65", 4)
+    keypad.addControllerForButton("23.9b.65", 5)
+    keypad.addControllerForButton("23.9b.65", 6)
+
+    modem.addResponder("30.0d.9f", 0x03)
+    modem.addResponder("30.0d.9f", 0x04)
+    modem.addResponder("30.0d.9f", 0x05)
+    modem.addResponder("30.0d.9f", 0x06)
+
+
+Always check your work. Here is how the databases should look now:
+
+    >>>modem.getb()
+    ...
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 01 data: 00 00 01
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 03 data: 00 00 03
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 04 data: 00 00 04
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 05 data: 00 00 05
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 06 data: 00 00 06
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: 01 data: 02 2c 41
+    ...
+
+    >>> keypad.getdb()
+    getting db, be patient!
+    sent db query msg, incoming records: >>>  1 2 3 4 5 6 7
+    ----- database -------
+    0fff modem                     23.9B.65  RESP  10101010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   1
+    0ff7 modem                     23.9B.65  CTRL  11100010 group: 01 ON LVL:   3 RMPRT:  28 BUTTON:   1
+    0fef modem                     23.9B.65  CTRL  11100010 group: 03 ON LVL:   3 RMPRT:  28 BUTTON:   3
+    0fe7 modem                     23.9B.65  CTRL  11100010 group: 04 ON LVL:   3 RMPRT:  28 BUTTON:   4
+    0fdf modem                     23.9B.65  CTRL  11100010 group: 05 ON LVL:   3 RMPRT:  28 BUTTON:   5
+    0fd7 modem                     23.9B.65  CTRL  11100010 group: 06 ON LVL:   3 RMPRT:  28 BUTTON:   6
+    0fcf 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+    ----- end ------------
+
+
+Note that the order of records is not important. If some of the
+entries aren't there, rerun the respective command until success. The
+transmission on the Insteon network isn't always completely reliable.
+
+In the last step, we get the keypad buttons to respond to the
+modem. Unlike for the main load (button #1), there is no direct command to
+set them. Instead, must set the button up as a responder to a group
+(pick any group number you want), and then have the modem send out a broadcast for that
+group number.
+
+In the following example the groups 0xf3 to 0xf6 are used. It doesn't
+matter exactly what groups you use so long as they are globally (on
+the whole insteon network) unique. This is because when the modem sends out the
+broadcast on that group number, *all* devices that are configured as responders to it
+will change their state!
+
+    keypad.addResponderForButton("23.9b.65", 0xf3, 3)
+    keypad.addResponderForButton("23.9b.65", 0xf4, 4)
+    keypad.addResponderForButton("23.9b.65", 0xf5, 5)
+    keypad.addResponderForButton("23.9b.65", 0xf6, 6)
+
+
+Likewise, the modem should be set up as a controller for those groups:
+
+    modem.addController("30.0d.9f", 0xf3)
+    modem.addController("30.0d.9f", 0xf4)
+    modem.addController("30.0d.9f", 0xf5)
+    modem.addController("30.0d.9f", 0xf6)
+
+
+Finally all done, this is how things should look:
+
+    >>> modem.getdb()
+    ...
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 01 data: 00 00 01
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 03 data: 00 00 03
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 04 data: 00 00 04
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 05 data: 00 00 05
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 06 data: 00 00 06
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: 01 data: 02 2c 41
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: f3 data: 00 00 f3
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: f4 data: 00 00 f4
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: f5 data: 00 00 f5
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: f6 data: 00 00 f6
+    ...
+
+    >>> keypad.getdb()
+    getting db, be patient!
+    sent db query msg, incoming records: >>>  1 2 3 4 5 5 6 7 8 9 10 11
+    ----- database -------
+    0fff modem                     23.9B.65  RESP  10101010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   1
+    0ff7 modem                     23.9B.65  CTRL  11100010 group: 01 ON LVL:   3 RMPRT:  28 BUTTON:   1
+    0fef modem                     23.9B.65  CTRL  11100010 group: 03 ON LVL:   3 RMPRT:  28 BUTTON:   3
+    0fe7 modem                     23.9B.65  CTRL  11100010 group: 04 ON LVL:   3 RMPRT:  28 BUTTON:   4
+    0fdf modem                     23.9B.65  CTRL  11100010 group: 05 ON LVL:   3 RMPRT:  28 BUTTON:   5
+    0fd7 modem                     23.9B.65  CTRL  11100010 group: 06 ON LVL:   3 RMPRT:  28 BUTTON:   6
+    0fcf modem                     23.9B.65  RESP  10100010 group: f3 ON LVL:   3 RMPRT:  28 BUTTON:   3
+    0fc7 modem                     23.9B.65  RESP  10100010 group: f4 ON LVL:   3 RMPRT:  28 BUTTON:   4
+    0fbf modem                     23.9B.65  RESP  10100010 group: f5 ON LVL:   3 RMPRT:  28 BUTTON:   5
+    0fb7 modem                     23.9B.65  RESP  10100010 group: f6 ON LVL:   3 RMPRT:  28 BUTTON:   6
+    0faf 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+    ----- end ------------
+
+
+Ready to test the setup: sending a broadcast message from the modem on
+group 0xf4 should toggle button #4, which is the "B" button:
+
+    >>> modem.sendOn(0xf4)
+    >>> modem.sendOff(0xf4)
+
+
+
+### Fast setup
+
+In the following instructions, replace address "30.0d.9f" with the address of your keypad,
+replace "23.9b.65" with the address of your modem.
+
+- link modem as a controller via set buttons: first press long on the modem, then press long on the keypad
+- establish connections so modem gets notified of button and switch toggles:
+
+    modem.addResponder("30.0d.9f", 0x01)
+    modem.addResponder("30.0d.9f", 0x03)
+    modem.addResponder("30.0d.9f", 0x04)
+    modem.addResponder("30.0d.9f", 0x05)
+    modem.addResponder("30.0d.9f", 0x06)
+
+    keypad.addControllerForButton("23.9b.65", 1)
+    keypad.addControllerForButton("23.9b.65", 3)
+    keypad.addControllerForButton("23.9b.65", 4)
+    keypad.addControllerForButton("23.9b.65", 5)
+    keypad.addControllerForButton("23.9b.65", 6)
+
+
+- pick some group numbers that are not used anywhere else,
+  (in this case we picked 0xf3, 0xf4, 0xf5, 0xf6, replace with your group numbers) and link the
+  modem as controller, the keypad buttons as responders:
+
+    keypad.addResponderForButton("23.9b.65", 0xf3, 3)
+    keypad.addResponderForButton("23.9b.65", 0xf4, 4)
+    keypad.addResponderForButton("23.9b.65", 0xf5, 5)
+    keypad.addResponderForButton("23.9b.65", 0xf6, 6)
+
+    modem.addController("30.0d.9f", 0xf3)
+    modem.addController("30.0d.9f", 0xf4)
+    modem.addController("30.0d.9f", 0xf5)
+    modem.addController("30.0d.9f", 0xf6)
+
+- verify that your databases look correct:
+
+    >>> modem.getdb()
+    ...
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 01 data: 00 00 01
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 03 data: 00 00 03
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 04 data: 00 00 04
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 05 data: 00 00 05
+    0000 keypad                             30.0D.9F  RESP  10100010 group: 06 data: 00 00 06
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: 01 data: 02 2c 41
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: f3 data: 00 00 f3
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: f4 data: 00 00 f4
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: f5 data: 00 00 f5
+    0000 keypad                             30.0D.9F  CTRL  11100010 group: f6 data: 00 00 f6
+    ...
+
+    >>> keypad.getdb()
+    getting db, be patient!
+    sent db query msg, incoming records: >>>  1 2 3 4 5 5 6 7 8 9 10 11
+    ----- database -------
+    0fff modem                     23.9B.65  RESP  10101010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   1
+    0ff7 modem                     23.9B.65  CTRL  11100010 group: 01 ON LVL:   3 RMPRT:  28 BUTTON:   1
+    0fef modem                     23.9B.65  CTRL  11100010 group: 03 ON LVL:   3 RMPRT:  28 BUTTON:   3
+    0fe7 modem                     23.9B.65  CTRL  11100010 group: 04 ON LVL:   3 RMPRT:  28 BUTTON:   4
+    0fdf modem                     23.9B.65  CTRL  11100010 group: 05 ON LVL:   3 RMPRT:  28 BUTTON:   5
+    0fd7 modem                     23.9B.65  CTRL  11100010 group: 06 ON LVL:   3 RMPRT:  28 BUTTON:   6
+    0fcf modem                     23.9B.65  RESP  10100010 group: f3 ON LVL:   3 RMPRT:  28 BUTTON:   3
+    0fc7 modem                     23.9B.65  RESP  10100010 group: f4 ON LVL:   3 RMPRT:  28 BUTTON:   4
+    0fbf modem                     23.9B.65  RESP  10100010 group: f5 ON LVL:   3 RMPRT:  28 BUTTON:   5
+    0fb7 modem                     23.9B.65  RESP  10100010 group: f6 ON LVL:   3 RMPRT:  28 BUTTON:   6
+    0faf 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+    ----- end ------------
+
