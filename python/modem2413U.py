@@ -41,11 +41,52 @@ class MsgDumper(MsgHandler):
 		out(self.name + " got msg: " + msg.toString())
 		return 0 # return 0 to keep it running!
 
+class DeviceRemover(DBBuilderListener):
+	linkAddr = None
+	def __init__(self, dev, linkAddr):
+		self.dev = dev
+		self.linkAddr = InsteonAddress(linkAddr)
+	def databaseComplete(self, db):
+		iofun.out("database complete, analyzing...")
+		if not self.linkAddr:
+			iofun.out("address to remove not set, aborting!")
+			return
+		if not self.dev:
+			iofun.out("no valid device set, aborting!")
+			return
+			
+		linkType = 0
+		linkType |= (1 << 1) # high water mark
+		linkType |= (1 << 5) # unused bit, but seems to be always 1
+		searchRec = {"offset" : 0, "addr": self.linkAddr, "type" : linkType,
+					 "group" : 0, "data" : [0,0,0]}
+		iofun.out("database has " + format(db.getNumberOfRecords(), 'd') + " records");
+		records = db.findActiveRecords(searchRec, True, False, False);
+		if not records:
+			iofun.out("no matching record found, no action taken!")
+			return
+		iofun.out("found active " + format(len(records), 'd') +  " records.");
+		for rec in records:
+			self.dev.modifyRecord(rec["addr"], rec["group"],
+								  0x80, 0x00, [0,0,0], "remove record")
+			time.sleep(5.0)
+
+	def databaseIncomplete(self, db):
+		iofun.out("database incomplete, reload() and retry!")
+
+
 class Modem2413U(Device):
 	"""==============  Insteon PowerLinc modem (PLM) ==============="""
 	def __init__(self, name, addr):
 		Device.__init__(self, name, addr)
 		self.dbbuilder = ModemDBBuilder(addr, self.db)
+	def __modifyModemDB(self, listener):
+		self.dbbuilder.setListener(listener)
+		# after db download complete, listener will perform action
+		iofun.out("getting db, be patient!")
+		self.dbbuilder.clear()
+		self.dbbuilder.start()
+
 	def getdb(self):
 		"""getdb()
 		download the modem database and print it on the console"""
@@ -142,36 +183,55 @@ class Modem2413U(Device):
 	def addController(self, addr, group):
 		"""addController(addr, group):
 		adds device with address "addr" to modem link database as controller for group "group" """
-		self.__modifyRecord(addr, group, 0x40, 0xa2, [0,0,group], "addController")
+		self.modifyRecord(addr, group, 0x40, 0xa2, [0,0,group], "addController")
 	def addResponder(self, addr, group):
 		"""addResponder(addr, group):
 		adds device with address "addr" to modem link database as responder to group "group" """
-		self.__modifyRecord(addr, group, 0x41, 0xa2, [0,0,group], "addResponder")
+		self.modifyRecord(addr, group, 0x41, 0xa2, [0,0,group], "addResponder")
 	def addSoftwareResponder(self, addr):
 		"""addSoftwareResponder(addr):
 		adds device with address "addr" to modem link database as software responder"""
-		self.__modifyRecord(addr, 0xef, 0x41, 0xa2, [0,0,0xef],
+		self.modifyRecord(addr, 0xef, 0x41, 0xa2, [0,0,0xef],
 						  "addSoftwareController")
 	def removeResponderOrController(self, addr, group):
 		"""removeResponderOrController(addr, group)
 		removes device with address "addr" and group "group" from modem link database"""
 		self.__deleteFirstRecord(addr, group, "removeResponderOrController")
+	def removeResponder(self, addr, group):
+		"""removeResponder(addr, group)
+		could not be implemented for the modem. Use removeResponderOrController() instead!"""
+		iofun.out("removeResponder(addr, group) could not be implemented" +
+				  " for the modem. Use removeResponderOrController() instead!")
+	def removeController(self, addr, group):
+		"""removeController(addr, group)
+		could not be implemented for the modem. Use removeResponderOrController() instead!"""
+		iofun.out("removeController(addr, group) could not be implemented" +
+				  " for the modem. Use removeResponderOrController() instead!")
+	def removeDevice(self, addr):
+		"""removeDevice(addr):
+		removes all links to device with address "addr" from modem database"""
+		self.__modifyModemDB(DeviceRemover(self, addr))
 	def __deleteFirstRecord(self, addr, group, text = "delete record"):
-		self.__modifyRecord(addr, group, 0x80, 0x00, [0,0,0], text)
+		self.modifyRecord(addr, group, 0x80, 0x00, [0,0,0], text)
 	def modifyFirstOrAdd(self, addr, group, recordFlags, data):
 		if (recordFlags & (1 << 6)): # controller
-			self.__modifyRecord(addr, group, 0x40, recordFlags,
+			self.modifyRecord(addr, group, 0x40, recordFlags,
 							  data, "modify first or add")
 		else:
-			self.__modifyRecord(addr, group, 0x41, recordFlags,
+			self.modifyRecord(addr, group, 0x41, recordFlags,
 							  data, "modify first or add")
 	def modifyFirstControllerOrAdd(self, addr, group, data):
-		self.__modifyRecord(addr, group, 0x40, 0xe2, data,
+		self.modifyRecord(addr, group, 0x40, 0xe2, data,
 						  "modify first ctrl found or add")
 	def modifyFirstResponderOrAdd(self, addr, group, data):
-		self.__modifyRecord(addr, group, 0x41, 0xa2, data,
+		self.modifyRecord(addr, group, 0x41, 0xa2, data,
 						  "modify first resp found or add")
-	def __modifyRecord(self, addr, group, controlCode, recordFlags, data, txt):
+	def modifyRecord(self, addr, group, controlCode, recordFlags, data, txt):
+		msg = self.__makeModMsg(addr, group, controlCode, recordFlags, data, txt)
+		self.querier = Querier(self.address)
+		self.querier.setMsgHandler(DefaultMsgHandler(txt))
+		self.querier.sendMsg(msg)
+	def __makeModMsg(self, addr, group, controlCode, recordFlags, data, txt):
 		msg = Msg.s_makeMessage("ManageALLLinkRecord");
 		msg.setByte("controlCode", controlCode); # mod. first ctrl found or add
 		msg.setByte("recordFlags", recordFlags);
@@ -180,9 +240,7 @@ class Modem2413U(Device):
 		msg.setByte("linkData1", data[0] & 0xFF)
 		msg.setByte("linkData2", data[1] & 0xFF)
 		msg.setByte("linkData3", data[2] & 0xFF)
-		self.querier = Querier(self.address)
-		self.querier.setMsgHandler(DefaultMsgHandler(txt))
-		self.querier.sendMsg(msg)
+		return msg;
 	def saveDB(self, filename):
 		"""saveDB(filename)
 		save modem database to file "filename" """

@@ -149,12 +149,11 @@ class LightDBBuilder(DBBuilder):
 			out("got unexpected msg: " + msg.toString())
 
 
-class ModemDBBuilder(MsgListener):
+class ModemDBBuilder(DBBuilder):
 	condition = Condition()
 	keepRunning = True
-	timer  = None
-	db     = None
 	def __init__(self, addr, db):
+		self.addr = addr
 		self.db = db
 	def start(self):
 		self.db.clear()
@@ -168,6 +167,9 @@ class ModemDBBuilder(MsgListener):
 		self.keepRunning = False
 		self.condition.notify()
 		self.condition.release()
+		if self.listener:
+			self.listener.databaseComplete(self.db)
+		self.listener = None
 
 	def wait(self):
 		self.condition.acquire()

@@ -11,6 +11,7 @@ from querier import Querier
 from querier import MsgHandler
 from threading import Timer
 from linkdb import *
+from device import LinkRecordAdder
 
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
@@ -130,3 +131,18 @@ class Keypad2487S(Switch):
 		self.querier.setMsgHandler(CountMsgHandler("database delta flag"))
 		self.querier.querysd(0x1f, 0x01)
 
+
+#
+#   convenience functions for database manipulation
+#
+	def addControllerForButton(self, addr, button):
+		"""addControllerForButton(addr, button)
+		add device with "addr" as controller for button (1=load, 3=A, 4=B, 5=C, 6=D) """
+		group = button
+		data = [03, 28, button]; # not sure what the first two entries are supposed to be
+		self.modifyDB(LinkRecordAdder(self, addr, group, data, True))
+	def addResponderForButton(self, addr, group, button):
+		"""addResponderForButton(addr, group, button)
+		add device with "addr" as responder on group "group" for button (1=load, 3=A, 4=B, 5=C, 6=D) """
+		data = [03, 28, button]; # not sure what the first two entries are supposed to be
+		self.modifyDB(LinkRecordAdder(self, addr, group, data, False))

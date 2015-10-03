@@ -8,6 +8,7 @@ import message
 
 from java.lang import System
 from threading import Timer
+from threading import Condition
 
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
@@ -39,30 +40,44 @@ class Querier(MsgListener):
 	addr   = None
 	timer  = None
 	msgHandler = None
+	condition = Condition()
+	gotReply = False
 	def __init__(self, addr):
 		self.addr = addr
 	def setMsgHandler(self, handler):
 		self.msgHandler = handler
 	def sendMsg(self, msg):
+		self.started()
 		iofun.addListener(self)
-		iofun.writeMsg(msg)
-		out("sent msg: " + msg.toString())
 		if self.timer:
 			self.timer.cancel()
 		self.timer = Timer(5.0, self.giveUp)
 		self.timer.start()
+		iofun.writeMsg(msg)
+		out("sent msg: " + msg.toString())
 		# out("started timer!")
+		
 	def startWait(self, time):
 		iofun.addListener(self)
 		if self.timer:
 			self.timer.cancel()
 		self.timer = Timer(time, self.giveUp)
 		self.timer.start()
+
+	def waitForReply(self, timeout):
+		self.condition.acquire()
+		self.condition.wait(timeout)
+		gotReply = self.gotReply
+		self.condition.release()
+		return gotReply
+
 	def cancel(self):
 		# out("querier timer canceled")
 		iofun.removeListener(self)
 		if self.timer:
 			self.timer.cancel()
+		self.timer = None
+		self.complete(False)
 	def queryext(self, cmd1, cmd2, data):
 		msg = message.createExtendedMsg(InsteonAddress(self.addr),
 										 cmd1, cmd2, data)
@@ -83,10 +98,22 @@ class Querier(MsgListener):
 		#                out("did not get response, giving up!")
 		iofun.removeListener(self)
 		self.timer.cancel()
+		self.complete(False)
 	def done(self):
 		iofun.removeListener(self)
 		if self.timer:
 			self.timer.cancel()
+		self.complete(True)
+	def complete(self, gotReply):
+		self.condition.acquire()
+		self.gotReply = gotReply
+		self.condition.notify()
+		self.condition.release()
+	def started(self):
+		self.condition.acquire()
+		self.gotReply = False
+		self.condition.release()
+
 
 	def msgReceived(self, msg):
 		if msg.isPureNack():

@@ -9,6 +9,7 @@ import iofun
 
 from all_devices import getDevByAddr
 
+debug = False
 #
 # --------------- bunch of helper functions ------------
 #
@@ -92,7 +93,7 @@ class DB():
 	def setRecordFormatter(self, fmt):
 		self.recordFormatter = fmt
 	def getNumberOfRecords(self):
-		return len(self.records)
+		return len(getRecordsAsArray(self.records))
 	def addRecord(self, rec, allowDuplicates = True):
 		off  = rec["offset"]
 		addr = rec["addr"]
@@ -146,6 +147,18 @@ class DB():
 		mask = 0xc2 # mask unused bits, but match all other bits
 		return self.findRecord(rec, mask, matchAddress,
 							   matchGroup, matchData) != None
+	def findAllRecords(self, rec, matchAddress = True,
+						 matchGroup = True, matchData = False):
+		rec["type"] = (1 << 1) # set high water mark
+		mask = 0x02 # must match these two bits
+		return self.findRecord(rec, mask, matchAddress, matchGroup, matchData, True)
+	def findActiveRecords(self, rec, matchAddress = True,
+						  matchGroup = True, matchData = False, matchController = False):
+		rec["type"] |= (1 << 7) # set record in use bit
+		rec["type"] |= (1 << 1) # set high water mark
+		mask = 0x82 # must match these two bits
+		mask |= (1<<6) if matchController else 0 # and maybe controller bit
+		return self.findRecord(rec, mask, matchAddress, matchGroup, matchData, True)
 	def findActiveRecord(self, rec, matchAddress = True,
 						 matchGroup = True, matchData = False):
 		rec["type"] |= (1 << 7) # set record in use bit
@@ -173,34 +186,63 @@ class DB():
 		return aboveStopAddress, stopAddress, belowStopAddress
 
 	def findRecord(self, rec, mask, matchAddress = True, matchGroup = True,
-				   matchData = True):
-		#          dumpRecord(rec, "testing for:")
-		#          out("MASK: " + '{0:08b}'.format(mask))
+				   matchData = True, returnAll = False):
+		recs = [];
+		if debug:
+			dumpRecord(rec, "testing for:")
+			out("MASK: " + '{0:08b}'.format(mask))
+			out("number of records: " + format(self.getNumberOfRecords()))
 		for off in sorted(self.records, reverse = True):  # loop through offsets
-			# out("offset: " + format(off, '04x'))
-			recsByAddr =  {rec["addr"] : self.records[off].get(rec["addr"], {})} if matchAddress else self.records[off]
+			a = rec["addr"]
+			recsByAddr =  {a : self.records[off].get(a, {})} if matchAddress else self.records[off]
+			if debug:
+				out("offset: " + format(off, '04x') + " has " +
+					format(len(recsByAddr), '3d') + " addresses, matchaddr: " +
+					(a.toString() if matchAddress else "NO"))
 			# loop through all matching addresses at offset
 			for addr, allRecsByType in recsByAddr.iteritems():
-				# out(" address: " + addr.toString())
+				if debug:
+					out(" address: " + addr.toString())
+					out(" # of types: " + format(len(allRecsByType), 'd'))
 				# loop through all types at address
 				for rt, allRecsByGroup in allRecsByType.iteritems():
-					# out("  link type: " + '{0:08b}'.format(rt))
+					if debug:
+						out("  link type: " + '{0:08b}'.format(rt) +
+							"  mask:      " + '{0:08b}'.format(mask) +
+							"  search:    " + '{0:08b}'.format(rec["type"]))
 					if (rt & mask) != (rec["type"] & mask): # mask no match: skip
-						# out("    link type no match!")
+						if debug:
+							out("    link type no match!")
 						continue
 					recsByGroup =  {rec["group"] : allRecsByGroup.get(rec["group"], [])} if matchGroup else allRecsByGroup;
 					# loop through all groups
+					if debug:
+						out("    found groups " + format(len(recsByGroup), 'd') + ", match groups: " +
+							(format(rec["group"], "02x") if matchGroup else "NO"))
 					for group, recList in recsByGroup.iteritems():
-						#  out("   group: " + format(group, '02x') + " size: " + format(len(recList), 'd'))
+						if debug:
+							out("   group: " + format(group, '02x') + " size: " + format(len(recList), 'd'))
 						for tmprec in recList:
 							if not matchData:
-								return tmprec
+								if returnAll:
+									recs.append(tmprec)
+									continue
+								else:
+									return tmprec
 							if (tmprec["data"] == rec["data"]):
-								#  out("data matches: ")
-								#  dumpRecord(tmprec)
-								return tmprec
+								if debug:
+									out("data matches: ")
+									dumpRecord(tmprec)
+								if returnAll:
+									recs.append(tmprec)
+								else:
+									return tmprec
 							else:
-								#   out("data does not match: ")
-								#dumpRecord(tmprec)
-								return None
-
+								if debug:
+									out("data does not match: ")
+									dumpRecord(tmprec)
+								if not returnAll:
+									return None
+		if returnAll:
+			return recs
+		return None
