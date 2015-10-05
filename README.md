@@ -580,7 +580,7 @@ replace "23.9b.65" with the address of your modem.
 
 - verify that your databases look correct:
 
-    >>> modem.getdb()
+    modem.getdb()
     ...
     0000 keypad                             30.0D.9F  RESP  10100010 group: 01 data: 00 00 01
     0000 keypad                             30.0D.9F  RESP  10100010 group: 03 data: 00 00 03
