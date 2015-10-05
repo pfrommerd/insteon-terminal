@@ -336,13 +336,14 @@ That's it, modem and thermostat are linked up.
 
 The buttons on the Keypadlinc devices have device internal numbers that need to be provided during configuration. Moreover, when pressed each button emits a broadcast message with a different group #. For the 2487S the assignment looks like this:
 
-Button Name     Button Number    Group
 
-   Load              1           0x01
-     A               3           0x03
-     B               4           0x04
-     C               5           0x05
-     D               6           0x06
+|Button Name | Button Number | Group |
+|------------|---------------|-------|
+|   Load     |        1      |  0x01 |
+|     A      |        3      |  0x03 |
+|     B      |        4      |  0x04 |
+|     C      |        5      |  0x05 |
+|     D      |        6      |  0x06 |
 
 
 ### Step by step instructions
