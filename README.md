@@ -543,7 +543,7 @@ group 0xf4 should toggle button #4, which is the "B" button:
 
 
 
-### Fast setup
+### Quick setup
 
 In the following instructions, replace address "30.0d.9f" with the address of your keypad,
 replace "23.9b.65" with the address of your modem.
