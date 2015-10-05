@@ -580,34 +580,36 @@ replace "23.9b.65" with the address of your modem.
 
 - verify that your databases look correct:
 
-    modem.getdb()
-    ...
-    0000 keypad                             30.0D.9F  RESP  10100010 group: 01 data: 00 00 01
-    0000 keypad                             30.0D.9F  RESP  10100010 group: 03 data: 00 00 03
-    0000 keypad                             30.0D.9F  RESP  10100010 group: 04 data: 00 00 04
-    0000 keypad                             30.0D.9F  RESP  10100010 group: 05 data: 00 00 05
-    0000 keypad                             30.0D.9F  RESP  10100010 group: 06 data: 00 00 06
-    0000 keypad                             30.0D.9F  CTRL  11100010 group: 01 data: 02 2c 41
-    0000 keypad                             30.0D.9F  CTRL  11100010 group: f3 data: 00 00 f3
-    0000 keypad                             30.0D.9F  CTRL  11100010 group: f4 data: 00 00 f4
-    0000 keypad                             30.0D.9F  CTRL  11100010 group: f5 data: 00 00 f5
-    0000 keypad                             30.0D.9F  CTRL  11100010 group: f6 data: 00 00 f6
-    ...
+      >>modem.getdb()
+      ...
+      0000 keypad                             30.0D.9F  RESP  10100010 group: 01 data: 00 00 01
+      0000 keypad                             30.0D.9F  RESP  10100010 group: 03 data: 00 00 03
+      0000 keypad                             30.0D.9F  RESP  10100010 group: 04 data: 00 00 04
+      0000 keypad                             30.0D.9F  RESP  10100010 group: 05 data: 00 00 05
+      0000 keypad                             30.0D.9F  RESP  10100010 group: 06 data: 00 00 06
+      0000 keypad                             30.0D.9F  CTRL  11100010 group: 01 data: 02 2c 41
+      0000 keypad                             30.0D.9F  CTRL  11100010 group: f3 data: 00 00 f3
+      0000 keypad                             30.0D.9F  CTRL  11100010 group: f4 data: 00 00 f4
+      0000 keypad                             30.0D.9F  CTRL  11100010 group: f5 data: 00 00 f5
+      0000 keypad                             30.0D.9F  CTRL  11100010 group: f6 data: 00 00 f6
+      ...
 
-    >>> keypad.getdb()
-    getting db, be patient!
-    sent db query msg, incoming records: >>>  1 2 3 4 5 5 6 7 8 9 10 11
-    ----- database -------
-    0fff modem                     23.9B.65  RESP  10101010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   1
-    0ff7 modem                     23.9B.65  CTRL  11100010 group: 01 ON LVL:   3 RMPRT:  28 BUTTON:   1
-    0fef modem                     23.9B.65  CTRL  11100010 group: 03 ON LVL:   3 RMPRT:  28 BUTTON:   3
-    0fe7 modem                     23.9B.65  CTRL  11100010 group: 04 ON LVL:   3 RMPRT:  28 BUTTON:   4
-    0fdf modem                     23.9B.65  CTRL  11100010 group: 05 ON LVL:   3 RMPRT:  28 BUTTON:   5
-    0fd7 modem                     23.9B.65  CTRL  11100010 group: 06 ON LVL:   3 RMPRT:  28 BUTTON:   6
-    0fcf modem                     23.9B.65  RESP  10100010 group: f3 ON LVL:   3 RMPRT:  28 BUTTON:   3
-    0fc7 modem                     23.9B.65  RESP  10100010 group: f4 ON LVL:   3 RMPRT:  28 BUTTON:   4
-    0fbf modem                     23.9B.65  RESP  10100010 group: f5 ON LVL:   3 RMPRT:  28 BUTTON:   5
-    0fb7 modem                     23.9B.65  RESP  10100010 group: f6 ON LVL:   3 RMPRT:  28 BUTTON:   6
-    0faf 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
-    ----- end ------------
+      >>> keypad.getdb()
+      getting db, be patient!
+      sent db query msg, incoming records: >>>  1 2 3 4 5 5 6 7 8 9 10 11
+      ----- database -------
+      0fff modem                     23.9B.65  RESP  10101010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   1
+      0ff7 modem                     23.9B.65  CTRL  11100010 group: 01 ON LVL:   3 RMPRT:  28 BUTTON:   1
+      0fef modem                     23.9B.65  CTRL  11100010 group: 03 ON LVL:   3 RMPRT:  28 BUTTON:   3
+      0fe7 modem                     23.9B.65  CTRL  11100010 group: 04 ON LVL:   3 RMPRT:  28 BUTTON:   4
+      0fdf modem                     23.9B.65  CTRL  11100010 group: 05 ON LVL:   3 RMPRT:  28 BUTTON:   5
+      0fd7 modem                     23.9B.65  CTRL  11100010 group: 06 ON LVL:   3 RMPRT:  28 BUTTON:   6
+      0fcf modem                     23.9B.65  RESP  10100010 group: f3 ON LVL:   3 RMPRT:  28 BUTTON:   3
+      0fc7 modem                     23.9B.65  RESP  10100010 group: f4 ON LVL:   3 RMPRT:  28 BUTTON:   4
+      0fbf modem                     23.9B.65  RESP  10100010 group: f5 ON LVL:   3 RMPRT:  28 BUTTON:   5
+      0fb7 modem                     23.9B.65  RESP  10100010 group: f6 ON LVL:   3 RMPRT:  28 BUTTON:   6
+      0faf 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+      ----- end ------------
 
+
+  
