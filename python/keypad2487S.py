@@ -85,6 +85,17 @@ class CountMsgHandler(MsgHandler):
 		out(self.name + " = " + format(tmp, '02d'))
 		return 1
 
+class LEDStatusMsgHandler(MsgHandler):
+	label = None
+	def __init__(self, l):
+		self.label = l
+	def processMsg(self, msg):
+		tmp = msg.getByte("command2") & 0xFF
+		iofun.out(self.label + " = " + format(tmp, '02d') + " = " +
+				  '{0:08b}'.format(tmp))
+		return 1
+
+
 class KPRecordFormatter(RecordFormatter):
 	def __init__(self):
 		pass
@@ -131,6 +142,11 @@ class Keypad2487S(Switch):
 		self.querier.setMsgHandler(CountMsgHandler("database delta flag"))
 		self.querier.querysd(0x1f, 0x01)
 
+	def getLEDStatus(self):
+		"""getLEDStatus()
+		get current led status """
+		self.querier.setMsgHandler(LEDStatusMsgHandler("led level"))
+		self.querier.querysd(0x19, 0x01)
 
 #
 #   convenience functions for database manipulation
