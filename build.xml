@@ -48,17 +48,38 @@
       </javac>
     </target>
 
-    <target name="jar">
+    <target name="jar-gui">
       <mkdir dir="${jars.dir}"/>
-      <jar destfile="${jars.dir}/insteon-terminal.jar">
+      <jar destfile="${jars.dir}/insteon-terminal-gui.jar" basedir="${bin.dir}">
+	<manifest>
+          <attribute name="Main-Class" value="${gui-main.class}"/>
+        </manifest>
+      </jar>
+    </target>
+
+    <target name="jar-console">
+      <mkdir dir="${jars.dir}"/>
+      <jar destfile="${jars.dir}/insteon-terminal-console.jar" basedir="${bin.dir}">
 	<manifest>
           <attribute name="Main-Class" value="${jline-main.class}"/>
         </manifest>
       </jar>
     </target>
 
+    <target name="jar" depends="jar-gui, jar-console">
+    </target>
+
     <target name="run">
       <java classname="${gui-main.class}" fork="true">
+	<classpath>
+	  <path location="${bin.dir}"/>
+	  <path refid="master-classpath"/>
+	</classpath>
+      </java>
+    </target>
+
+    <target name="run-console">
+      <java classname="${jline-main.class}" fork="true">
 	<classpath>
 	  <path location="${bin.dir}"/>
 	  <path refid="master-classpath"/>
