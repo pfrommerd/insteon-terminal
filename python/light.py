@@ -7,7 +7,7 @@ import message
 from device import Device
 from querier import Querier
 from querier import MsgHandler
-from dbbuilder import LightDBBuilder
+from dbbuilder import GenericDBBuilder
 from linkdb import LightDBRecordFormatter
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
@@ -31,7 +31,7 @@ class StatusMsgHandler(MsgHandler):
 class Light(Device):
 	def __init__(self, name, addr):
 		Device.__init__(self, name, addr)
-		self.dbbuilder = LightDBBuilder(addr, self.db)
+		self.dbbuilder = GenericDBBuilder(addr, self.db)
 		self.db.setRecordFormatter(LightDBRecordFormatter())
 
 	def ping(self):

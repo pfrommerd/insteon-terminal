@@ -115,7 +115,7 @@ class ThermostatDBBuilder(DBBuilder):
 			out("got unexpected msg: " + msg.toString())
 	
 
-class LightDBBuilder(DBBuilder):
+class GenericDBBuilder(DBBuilder):
 	def __init__(self, addr, db):
 		self.addr = addr
 		self.db = db

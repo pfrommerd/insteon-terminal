@@ -8,7 +8,6 @@ from linkdb import *
 
 from querier import Querier
 from querier import MsgHandler
-from dbbuilder import LightDBBuilder
 from dimmer import Dimmer
 
 from us.pfrommer.insteon.cmd.msg import Msg
