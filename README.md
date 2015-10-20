@@ -32,17 +32,15 @@ All instructions are for Ubuntu 14.04
 
     emacs -nw init.py
 
-5) See if it compiles:
+5) Run the insteon terminal (this should compile when run the first time)
 
-    ant compile
+    ./insteon-terminal
 
-6) Start the terminal:
-
-    ant run
+(Alternatively you can run ./insteon-terminal -g to start it in GUI mode)
 
 Getting the serial terminal to work under java / rxtx can be tricky. Make sure you have the correct port name configured in init.py and that you have read/write permissions to the port (usually this involves adding yourself to the plugdev group and logging out/back in for the changes to take effect).
 
-7) If all goes well a window will pop up, and you will see the following text:
+6) If all goes well you will see the following text:
 
     Insteon Terminal
     Python interpreter initialized...
