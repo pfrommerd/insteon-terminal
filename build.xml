@@ -49,7 +49,7 @@
     </target>
 
     <target name="jar-gui">
-      <mkdir dir="${jars.dir}"/>
+      <mkdir dir="${jars.dir}" depends="compile"/>
       <jar destfile="${jars.dir}/insteon-terminal-gui.jar" basedir="${bin.dir}">
 	<manifest>
           <attribute name="Main-Class" value="${gui-main.class}"/>
@@ -57,7 +57,7 @@
       </jar>
     </target>
 
-    <target name="jar-console">
+    <target name="jar-console" depends="compile">
       <mkdir dir="${jars.dir}"/>
       <jar destfile="${jars.dir}/insteon-terminal-console.jar" basedir="${bin.dir}">
 	<manifest>
@@ -66,10 +66,10 @@
       </jar>
     </target>
 
-    <target name="jar" depends="jar-gui, jar-console">
+    <target name="jar" depends="compile, jar-gui, jar-console">
     </target>
 
-    <target name="run">
+    <target name="run" depends="compile">
       <java classname="${gui-main.class}" fork="true">
 	<classpath>
 	  <path location="${bin.dir}"/>
