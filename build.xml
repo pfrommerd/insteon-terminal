@@ -33,6 +33,7 @@
       <delete dir="${bin.dir}"/>
       <delete>
 	<fileset dir="${python.dir}" includes="**/*.class"/>
+	<fileset dir="${jars.dir}" includes="**/*.jar"/>
       </delete>
     </target>
 

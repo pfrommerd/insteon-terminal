@@ -1,0 +1,28 @@
+#!/bin/bash
+
+gui_jar_file=build/jars/insteon-terminal-gui.jar
+console_jar_file=build/jars/insteon-terminal-console.jar
+common_path="lib/*:lib/hub/*:lib/logger/*"
+usage=$'usage:\n insteon-terminal [-g (launch gui)]'
+if [ ! -f $gui_jar_file ] || [ ! -f $terminal_jar_file ];
+then
+   ant jar-console jar-gui
+fi
+
+while getopts ":g" opt; do
+    case $opt in
+	g)
+	    echo "starting gui" >&2
+	    java -cp "${gui_jar_file}:${common_path}" us.pfrommer.insteon.cmd.gui.GUI
+	    exit 0
+	    ;;
+	\?)
+	    echo "invalid option: -$OPTARG" >&2
+	    echo "$usage"
+	    ;;
+    esac
+done
+
+java -cp "${console_jar_file}:${common_path}" us.pfrommer.insteon.cmd.terminal.JLineTerminal
+
+exit 0
