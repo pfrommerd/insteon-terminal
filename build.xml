@@ -48,8 +48,8 @@
       </javac>
     </target>
 
-    <target name="jar-gui">
-      <mkdir dir="${jars.dir}" depends="compile"/>
+    <target name="jar-gui" depends="compile">
+      <mkdir dir="${jars.dir}"/>
       <jar destfile="${jars.dir}/insteon-terminal-gui.jar" basedir="${bin.dir}">
 	<manifest>
           <attribute name="Main-Class" value="${gui-main.class}"/>
@@ -69,7 +69,7 @@
     <target name="jar" depends="compile, jar-gui, jar-console">
     </target>
 
-    <target name="run" depends="compile">
+    <target name="run">
       <java classname="${gui-main.class}" fork="true">
 	<classpath>
 	  <path location="${bin.dir}"/>
