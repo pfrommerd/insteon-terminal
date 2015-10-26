@@ -95,6 +95,48 @@ class LEDStatusMsgHandler(MsgHandler):
 				  '{0:08b}'.format(tmp))
 		return 1
 
+class ExtStatusMsgHandler(MsgHandler):
+	label = None
+	def __init__(self, l):
+		self.label = l
+	def processMsg(self, msg):
+		if not msg.isExtended():
+			if (msg.getByte("command1") == 0x2E):
+				iofun.out(self.label + " got ack: " + msg.toString())
+			else:
+				iofun.out(self.label + " got unexpected: " + msg.toString())
+			return 0 # still need to wait for ext message to come in
+		# got an extended message
+		iofun.out(self.label + " got " + msg.toString())
+		#
+		#
+
+		iofun.out(self.label + " on  mask:               " +
+				  '{0:08b}'.format(msg.getByte("userData3") & 0xFF))
+		iofun.out(self.label + " off mask:               " +
+				  '{0:08b}'.format(msg.getByte("userData4") & 0xFF))
+		iofun.out(self.label + " non-toggle mask bits:   " +
+				  '{0:08b}'.format(msg.getByte("userData10") & 0xFF))
+		iofun.out(self.label + " LED status bits:        " +
+				  '{0:08b}'.format(msg.getByte("userData11") & 0xFF))
+		iofun.out(self.label + " X10 all bit mask:       " +
+				  '{0:08b}'.format(msg.getByte("userData12") & 0xFF))
+		iofun.out(self.label + " on/off bit mask:        " +
+				  '{0:08b}'.format(msg.getByte("userData13") & 0xFF))
+		iofun.out(self.label + " trigger group bit mask: " +
+				  '{0:08b}'.format(msg.getByte("userData14") & 0xFF))
+		iofun.out(self.label + " X10 house code: " +
+				  format(msg.getByte("userData5") & 0xFF, '03x'))
+		iofun.out(self.label + " X10 unit:       " +
+				  format(msg.getByte("userData6") & 0xFF, '03x'))
+		iofun.out(self.label + " ramp rate:      " +
+				  format(msg.getByte("userData7") & 0xFF, '03d'))
+		iofun.out(self.label + " on level:       " +
+				  format(msg.getByte("userData8") & 0xFF, '03d'))
+		iofun.out(self.label + " LED brightness: " +
+				  format(msg.getByte("userData9") & 0xFF, '03d'))
+
+		return 1
 
 class KPRecordFormatter(RecordFormatter):
 	def __init__(self):
@@ -147,6 +189,13 @@ class Keypad2487S(Switch):
 		get current led status """
 		self.querier.setMsgHandler(LEDStatusMsgHandler("led level"))
 		self.querier.querysd(0x19, 0x01)
+
+	def getExtStatus(self):
+		"""getExtStatus()
+		get extended status of device"""
+		self.querier.setMsgHandler(ExtStatusMsgHandler("ext status"))
+		self.querier.queryext(0x2e, 0x00, [0, 0, 0]);
+
 
 #
 #   convenience functions for database manipulation
