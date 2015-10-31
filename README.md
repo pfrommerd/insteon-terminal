@@ -36,7 +36,7 @@ All instructions are for Ubuntu 14.04
 
     ./insteon-terminal
 
-(Alternatively you can run ./insteon-terminal -g to start it in GUI mode)
+(Alternatively you can run ./insteon-terminal -gui (previously -g) to start it in GUI mode)
 
 Getting the serial terminal to work under java / rxtx can be tricky. Make sure you have the correct port name configured in init.py and that you have read/write permissions to the port (usually this involves adding yourself to the plugdev group and logging out/back in for the changes to take effect).
 
