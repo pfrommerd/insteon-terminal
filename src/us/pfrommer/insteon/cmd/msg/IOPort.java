@@ -1,12 +1,9 @@
-package us.pfrommer.insteon.cmd;
+package us.pfrommer.insteon.cmd.msg;
 
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
-
-import us.pfrommer.insteon.cmd.msg.Msg;
-import us.pfrommer.insteon.cmd.msg.MsgReader;
 
 public class IOPort {
 	enum ReplyType {

@@ -107,10 +107,4 @@ public class JLineTerminal extends Reader implements Console {
 	public void close() throws IOException {
 		
 	}
-	
-	public static void main(String[] args) {
-		JLineTerminal t = new JLineTerminal();
-		InsteonInterpreter i = new InsteonInterpreter(t);
-		i.run();
-	}
 }

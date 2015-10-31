@@ -8,7 +8,7 @@ from threading import Timer
 from us.pfrommer.insteon.cmd.hub import HubStream
 from us.pfrommer.insteon.cmd.serial import SerialIOStream
 
-from us.pfrommer.insteon.cmd import IOPort
+from us.pfrommer.insteon.cmd.msg import IOPort
 from us.pfrommer.insteon.cmd.utils import Utils
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
@@ -19,15 +19,16 @@ import all_devices
 import iofun
 import struct
 import types
+
 insteon = None
 
 # sets up the environment with the correct interpreter
 # called from the java application
-# i.e, sets up insteon variable
+# i.e, sets up interpreter variable
 
-def init(interpreter):
+def init(int):
 	global insteon
-	insteon = interpreter
+	insteon = int
 
 #
 # resets the interpreter

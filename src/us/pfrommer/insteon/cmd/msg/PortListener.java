@@ -1,6 +1,5 @@
-package us.pfrommer.insteon.cmd;
+package us.pfrommer.insteon.cmd.msg;
 
-import us.pfrommer.insteon.cmd.msg.Msg;
 
 public interface PortListener {
 	public void msgWritten(Msg msg);

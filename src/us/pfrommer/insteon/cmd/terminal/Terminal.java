@@ -45,9 +45,4 @@ public class Terminal implements Console {
 		System.out.print(prompt);
 		return m_scanner.nextLine();
 	}
-	
-	public static void main(String[] args) throws IOException {
-		InsteonInterpreter i = new InsteonInterpreter(new Terminal());
-		i.run();
-	}
 }

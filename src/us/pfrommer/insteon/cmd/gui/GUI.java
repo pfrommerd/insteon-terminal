@@ -1,43 +1,99 @@
 package us.pfrommer.insteon.cmd.gui;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Reader;
 
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.JFrame;
-import javax.swing.JScrollBar;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 
+import us.pfrommer.insteon.cmd.Console;
+import us.pfrommer.insteon.cmd.ConsoleListener;
+import us.pfrommer.insteon.cmd.History;
 import us.pfrommer.insteon.cmd.InsteonInterpreter;
+import us.pfrommer.insteon.cmd.gui.InputArea.InputListener;
 
-public class GUI extends JFrame {
-	private static final long serialVersionUID = 1L;
+public class GUI implements Console {	
+	private JFrame m_frame;
 	
-	private JConsole m_console;
+	private History m_history = new History(100);
+	
+	private OutputArea m_output;
+	private InputArea m_input;
+	
+	private PrintStream m_out;
+	private PrintStream m_err;
+	
 	public GUI() {
-		//Load the system look and feel
-		/*try {
-			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-				if (info.getName().equals("Nimbus")) {
-					UIManager.setLookAndFeel(info.getClassName());
-					break;
-				}
+		JFrame frame = new JFrame();
+		
+		//Create the areas
+		Font f = new Font(Font.MONOSPACED, Font.PLAIN, 14);
+		
+		m_output = new OutputArea(f);
+		m_output.setEditable(false);
+		
+		m_output.addMouseListener(new MouseListener() {
+
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				m_input.requestFocus();
 			}
-		} catch (Exception e) { e.printStackTrace(); }*/ 
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {}
+
+			@Override
+			public void mouseExited(MouseEvent e) {}
+		});
+		
+		m_out = m_output.createOutput(Color.BLACK);
+		m_err = m_output.createOutput(Color.RED);
+		
+		m_input = new InputArea(f, m_history);
+		m_input.addInputListener(new InputListener() {
+			@Override
+			public void onInput(String input, String text) {
+				m_history.add(input);
+				GUI.this.m_out.println(text);
+			}
+		});
+		
+		m_input.setBorder(null);
+		
+		//Now create the scroll stuff, layouts....
 		
 		//Stop the pane from scrolling on arrow keys
 		UIManager.getDefaults().put("ScrollPane.ancestorInputMap",  
 		        new UIDefaults.LazyInputMap(new Object[] {}));
 		
+		
+		JPanel main = new JPanel(new BorderLayout()); 
+		
 		final JScrollPane pane = new JScrollPane();
+		
+		main.add(pane, BorderLayout.CENTER);
+		main.add(m_input, BorderLayout.SOUTH);
 	
 		//Stop it from using arrow keys again....
 		AbstractAction nothing = new AbstractAction() {
@@ -57,15 +113,11 @@ public class GUI extends JFrame {
 		pane.setBorder(null);
 		pane.getVerticalScrollBar().setUnitIncrement(16);
 		
-		//m_console = new JConsole(new Font("Courier New", Font.PLAIN, 15));
-		m_console = new JConsole(new Font(Font.MONOSPACED, Font.PLAIN, 14),
-										   Color.BLACK, Color.WHITE, Color.RED);
+		pane.getViewport().add(m_output);
 		
-		pane.getViewport().add(m_console);
+		frame.getContentPane().add(main);
 		
-		getContentPane().add(pane); 
-		
-		addWindowListener(new WindowListener() {
+		frame.addWindowListener(new WindowListener() {
 			@Override
 			public void windowOpened(WindowEvent e) {}
 			@Override
@@ -90,21 +142,66 @@ public class GUI extends JFrame {
 		});
 
 		
-		setTitle("Insteon Terminal");
-		setSize(500, 500);
-		setVisible(true);
-	}
-	
-	public void run() {
-		System.setErr(m_console.err());
-		System.setOut(m_console.out());
+		frame.setTitle("Insteon Terminal");
+		frame.setSize(500, 500);
 		
-		InsteonInterpreter i = new InsteonInterpreter(m_console);
-		i.run();
+		m_frame = frame;
 	}
 	
-	public static void main(String[] args) throws IOException {
-		GUI gui = new GUI();
-		gui.run();
+	public void setVisible(boolean visible) {
+		m_frame.setVisible(visible);
+	}
+
+	@Override
+	public String readLine() throws IOException {
+		return m_input.readLine();
+	}
+
+	@Override
+	public String readLine(String prompt) throws IOException {
+		return m_input.readLine(prompt);
+	}
+
+	@Override
+	public void addConsoleListener(ConsoleListener l) {
+		
+	}
+
+	@Override
+	public void removeConsoleListener(ConsoleListener l) {
+		
+	}
+
+	@Override
+	public Reader in() {
+		return m_input.getInput();
+	}
+
+	@Override
+	public PrintStream out() {
+		return m_out;
+	}
+
+	@Override
+	public PrintStream err() {
+		return m_err;
+	}
+
+	@Override
+	public void clear() {
+		m_output.clear();
+		m_input.clear();
+	}
+
+	@Override
+	public void reset() {
+		clear();
+	}
+	
+	public static void main(String[] args) {
+		GUI g = new GUI();
+		g.setVisible(true);
+		InsteonInterpreter i = new InsteonInterpreter(g);
+		i.run();
 	}
 }

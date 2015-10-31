@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import us.pfrommer.insteon.cmd.IOStream;
+import us.pfrommer.insteon.cmd.msg.IOStream;
 
 public class SerialIOStream implements IOStream {
 	private InputStream		m_in;

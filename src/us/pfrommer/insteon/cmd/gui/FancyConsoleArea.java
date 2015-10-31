@@ -1,42 +1,10 @@
-/*****************************************************************************
- *                                                                           *
- *  This file is part of the BeanShell Java Scripting distribution.          *
- *  Documentation and updates may be found at http://www.beanshell.org/      *
- *                                                                           *
- *  Sun Public License Notice:                                               *
- *                                                                           *
- *  The contents of this file are subject to the Sun Public License Version  *
- *  1.0 (the "License"); you may not use this file except in compliance with *
- *  the License. A copy of the License is available at http://www.sun.com    * 
- *                                                                           *
- *  The Original Code is BeanShell. The Initial Developer of the Original    *
- *  Code is Pat Niemeyer. Portions created by Pat Niemeyer are Copyright     *
- *  (C) 2000.  All Rights Reserved.                                          *
- *                                                                           *
- *  GNU Public License Notice:                                               *
- *                                                                           *
- *  Alternatively, the contents of this file may be used under the terms of  *
- *  the GNU Lesser General Public License (the "LGPL"), in which case the    *
- *  provisions of LGPL are applicable instead of those above. If you wish to *
- *  allow use of your version of this file only under the  terms of the LGPL *
- *  and not to allow others to use your version of this file under the SPL,  *
- *  indicate your decision by deleting the provisions above and replace      *
- *  them with the notice and other provisions required by the LGPL.  If you  *
- *  do not delete the provisions above, a recipient may use your version of  *
- *  this file under either the SPL or the LGPL.                              *
- *                                                                           *
- *  Patrick Niemeyer (pat@pat.net)                                           *
- *  Author of Learning Java, O'Reilly & Associates                           *
- *  http://www.pat.net/~pat/                                                 *
- *                                                                           *
- *****************************************************************************/
-
 package	us.pfrommer.insteon.cmd.gui;
 
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.HeadlessException;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
@@ -59,6 +27,8 @@ import java.util.Scanner;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTextPane;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
@@ -68,7 +38,9 @@ import javax.swing.text.StyledDocument;
 import us.pfrommer.insteon.cmd.Console;
 import us.pfrommer.insteon.cmd.ConsoleListener;
 
-public class JConsole extends JTextPane implements Console, KeyListener {
+//A no-longer-used class which
+//shows both the input and the output in the same text pane
+public class FancyConsoleArea extends JTextPane implements Console, KeyListener {
 	private static final long serialVersionUID = 1L;
 	
 	//A list sorted from most recent to least recent command
@@ -93,7 +65,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	
 	private JPopupMenu m_menu = new JPopupMenu();
 	
-	public JConsole(Font f, Color foreground, Color background, Color err) {
+	public FancyConsoleArea(Font f, Color foreground, Color background, Color err) {
 		m_foreground = foreground;
 		m_background = background;
 		m_errColor = err;
@@ -112,7 +84,6 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		m_scanner = new Scanner(in());
 		
 		addKeyListener(this);
-		
 		setFocusable(true);
 		requestFocus();
 		
@@ -122,26 +93,26 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 		m_menu.add(new JMenuItem("Cut")).addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				JConsole.this.cut();
+				FancyConsoleArea.this.cut();
 			}
 		});
 		m_menu.add(new JMenuItem("Copy")).addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				JConsole.this.copy();
+				FancyConsoleArea.this.copy();
 			}
 		});
 		m_menu.add(new JMenuItem("Paste")).addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				JConsole.this.paste();
+				FancyConsoleArea.this.paste();
 			}
 		});
 		
 		addMouseListener(new MouseListener(){
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				if (e.getButton() == MouseEvent.BUTTON3) m_menu.show(JConsole.this, e.getX(), e.getY());
+				if (e.getButton() == MouseEvent.BUTTON3) m_menu.show(FancyConsoleArea.this, e.getX(), e.getY());
 			}
 			@Override
 			public void mousePressed(MouseEvent e) {}
@@ -247,7 +218,7 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	public void keyReleased(KeyEvent e) {
 		e.consume();
 	}
-
+	
 	@Override
 	public Reader in() {
 		return m_in;
@@ -300,13 +271,14 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 	
 	@Override
 	public void paste() {
-		setCaretPosition(getStyledDocument().getLength());
 		super.paste();
 		//Add the pasted text to the end of the current line of input
 		try {
-			String text = (String) Toolkit.getDefaultToolkit()
-			        		.getSystemClipboard().getData(DataFlavor.stringFlavor);
-			m_in.getCurrent().append(text);
+			Clipboard b = Toolkit.getDefaultToolkit().getSystemClipboard();
+			if (b.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+				String text = (String) b.getData(DataFlavor.stringFlavor);
+				m_in.getCurrent().append(text);
+			}
 		} catch (HeadlessException e) {
 			e.printStackTrace();
 		} catch (UnsupportedFlavorException e) {
@@ -455,8 +427,10 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 			
 			updateCaret();
 		}
-
-
+				
+		public void insertText(String text) {
+			m_currentLine.insert(m_cursorIndex, text);
+		}
 		
 		public void setCurrentLine(String line) {
 			m_currentLine = new StringBuilder();
@@ -544,11 +518,11 @@ public class JConsole extends JTextPane implements Console, KeyListener {
 			super(new OutputStream() {
 				@Override
 				public void write(int b) throws IOException {
-					JConsole.this.append(Character.toString((char) b), attr);
+					FancyConsoleArea.this.append(Character.toString((char) b), attr);
 				}
 				@Override
 				public void write(byte[] b, int off, int len) throws IOException {
-					JConsole.this.append(new String(b, off, len), attr);
+					FancyConsoleArea.this.append(new String(b, off, len), attr);
 				}
 				
 				@Override

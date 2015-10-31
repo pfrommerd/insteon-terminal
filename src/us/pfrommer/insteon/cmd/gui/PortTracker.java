@@ -7,9 +7,9 @@ import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
-import us.pfrommer.insteon.cmd.IOPort;
-import us.pfrommer.insteon.cmd.PortListener;
+import us.pfrommer.insteon.cmd.msg.IOPort;
 import us.pfrommer.insteon.cmd.msg.Msg;
+import us.pfrommer.insteon.cmd.msg.PortListener;
 import us.pfrommer.insteon.cmd.utils.Utils;
 
 public class PortTracker extends JFrame  implements PortListener {

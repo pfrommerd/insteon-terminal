@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import us.pfrommer.insteon.InsteonHub;
-import us.pfrommer.insteon.cmd.IOStream;
+import us.pfrommer.insteon.cmd.msg.IOStream;
 
 public class HubStream implements IOStream {
 	private InsteonHub m_hub;

@@ -14,8 +14,10 @@ import org.python.core.PyFunction;
 import org.python.core.PyStringMap;
 import org.python.util.PythonInterpreter;
 
+import us.pfrommer.insteon.cmd.msg.IOPort;
 import us.pfrommer.insteon.cmd.msg.Msg;
 import us.pfrommer.insteon.cmd.msg.MsgListener;
+import us.pfrommer.insteon.cmd.msg.PortListener;
 
 public class InsteonInterpreter implements PortListener, ConsoleListener {
 	private PythonInterpreter m_interpreter;
@@ -30,11 +32,6 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	public InsteonInterpreter(Console c) {
 		m_console = c;
 		m_console.addConsoleListener(this);
-
-		out().println("Insteon Terminal");
-
-		initInterpreter();
-		out().println("Python interpreter initialized...");
 	}
 	
 	public PythonInterpreter getInterpreter() { return m_interpreter; }
@@ -164,18 +161,26 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	
 	public void run() {
 		try{
+			out().println("Insteon Terminal");
+
+			initInterpreter();
+			out().println("Python interpreter initialized...");
+
+			
 			while(true) {
 				String line = m_console.readLine(">>> ");
+				if (line.isEmpty()) continue;
+				line = line.trim();
 				try {
-					if (line.trim().equals("help")) {
+					if (line.equals("help")) {
 						out().println("Use help()");
-					} else if (line.trim().equals("exit")) {
+					} else if (line.equals("exit")) {
 						out().println("Use exit()");
-					} else if (line.trim().equals("quit")) {
+					} else if (line.equals("quit")) {
 						out().println("Use quit()");
-					} else if (line.trim().equals("clear")) {
+					} else if (line.equals("clear")) {
 						out().println("Use clear()");
-					} else if (line.trim().equals("reset")) {
+					} else if (line.equals("reset")) {
 						out().println("Use reset()");
 					} else if (line.equals("?")) {
 						dumpFuncs();
@@ -197,12 +202,7 @@ public class InsteonInterpreter implements PortListener, ConsoleListener {
 	//Terminate the current running program
 	@Override
 	public void terminate() {
-		System.out.println("terminate() called");
-		//For now do nothing
-		/*if (m_mainThread != null) {
-			System.out.println("Interrupt");
-			m_mainThread.interrupt();
-		}*/
+		out().println("terminate() called: no way to terminate a running python program");
 	}
 
 	//All the shorthand read-write methods

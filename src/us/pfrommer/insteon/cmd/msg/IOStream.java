@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.cmd;
+package us.pfrommer.insteon.cmd.msg;
 
 import java.io.IOException;
 import java.io.InputStream;
