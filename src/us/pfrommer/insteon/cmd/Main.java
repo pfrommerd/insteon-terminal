@@ -19,6 +19,7 @@ public class Main {
 		options.addOption("help", false, "Shows help information for the terminal");
 		
 		options.addOption("gui", false, "Forces the terminal to start in windowed mode");
+		options.addOption("g", false, "Same as -gui");
 		options.addOption("fancy", false, "If in windowed mode input and output are in the same text area");
 		
 		options.addOption("nw", false, "Forces the terminal to start in non-windowed mode");
@@ -41,7 +42,7 @@ public class Main {
 			boolean guiMode = !GraphicsEnvironment.isHeadless();
 			
 			if (cmd.hasOption("nw")) guiMode = false;
-			if (cmd.hasOption("gui")) guiMode = true;
+			if (cmd.hasOption("gui") || cmd.hasOption("g")) guiMode = true;
 			
 			if (guiMode) {
 				if (cmd.hasOption("fancy")) {

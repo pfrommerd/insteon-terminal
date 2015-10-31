@@ -16,10 +16,18 @@ import javax.swing.Action;
 import javax.swing.InputMap;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import javax.swing.text.DocumentFilter;
+import javax.swing.text.PlainDocument;
+import javax.swing.text.SimpleAttributeSet;
 
 import us.pfrommer.insteon.cmd.History;
 
 public class InputArea extends JTextField {
+	private static final long serialVersionUID = 1L;
+	
 	private InputAreaReader m_reader = null;
 	private Scanner m_scanner = null;
 	
@@ -81,10 +89,16 @@ public class InputArea extends JTextField {
 		KeyStroke upStroke = KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0);
 		KeyStroke downStroke = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0);
 		
+		
 		InputMap im = getInputMap();
+		
 		im.put(submitStroke, submit);
 		im.put(upStroke, up);
 		im.put(downStroke, down);
+		
+		//Setup the filter so we can't remove the prompt
+		PlainDocument doc = (PlainDocument) getDocument();
+		doc.setDocumentFilter(new PromptFilter());
 		
 		
 		m_scanner = new Scanner(m_reader);
@@ -99,6 +113,21 @@ public class InputArea extends JTextField {
 		}
 		return text;
 	}
+	
+	public void setCurrentInputLine(String input) {
+		if (m_prompt != null) {
+			Document d = getDocument();
+			try {
+				d.remove(m_prompt.length(), getCurrentInputLine().length());
+				d.insertString(m_prompt.length(), input, new SimpleAttributeSet());
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}			
+		} else setText(input); 
+
+		setCaretPosition(getText().length());
+	}
+
 	
 	
 	public void addInputListener(InputListener l) {
@@ -117,8 +146,8 @@ public class InputArea extends JTextField {
 	
 	public String readLine(String prompt) {
 		//Don't show the prompt
-		m_prompt = prompt;
 		setText(prompt + getText());
+		m_prompt = prompt;
 		
 		setCaretPosition(getText().length());
 		
@@ -128,7 +157,7 @@ public class InputArea extends JTextField {
 	public void clear() {
 		setText("");
 	}
-	
+		
 	public void up() {	
 		int idx = Math.min(m_selectionIdx + 1, m_history.length() - 1);
 
@@ -144,47 +173,37 @@ public class InputArea extends JTextField {
 
 		m_selectionIdx = idx;
 		
-		
+		System.out.println(m_selectionIdx);
 		
 		String sel = m_history.get(idx);
-		
-		if (m_prompt != null) {
-			sel = m_prompt + sel;
-		}
-		
-		setText(sel);
-		
-		setCaretPosition(sel.length());
+		setCurrentInputLine(sel);
 	}
 	
 	public void down() {
-		int idx = Math.max(m_selectionIdx - 1, -1);
-		
-		if (idx == -1) { // We can't go down
+		if (m_selectionIdx == -1) { // We can't go down
 			return;
 		}
+
+
+		int idx = Math.max(m_selectionIdx - 1, -1);
 		
 		m_selectionIdx = idx;
 		
 		String sel = null;
 		
-		if (m_selectionIdx == 0) {
+		if (m_selectionIdx == -1) {
 			sel = m_currentCache;
 			m_currentCache = null;
 		} else {
 			sel = m_history.get(idx);
 		}
 		
-		if (m_prompt != null) {
-			sel = m_prompt + sel;
-		}
-		
-		setText(sel);
-		
-		setCaretPosition(sel.length());
+		setCurrentInputLine(sel);
 	}
 
 	public void submit() {
+		m_selectionIdx = -1; //If we were previewing, doesn't matter anymore
+		
 		String text = getText();
 		
 		if (text.length() == 0) return;
@@ -194,6 +213,8 @@ public class InputArea extends JTextField {
 		if (m_prompt != null && text.startsWith(m_prompt)) {
 			input = text.substring(m_prompt.length());
 			m_prompt = null;
+		} else if (m_prompt != null) {
+			text = m_prompt + text;
 		}
 		
 		for (InputListener l : m_listeners) {
@@ -207,6 +228,35 @@ public class InputArea extends JTextField {
 		}
 		
 		clear();
+	}
+	
+	//Prevents us from modifying the caret...
+	private class PromptFilter extends DocumentFilter {
+		   @Override
+		   public void insertString(FilterBypass fb, int offset, String string,
+		         AttributeSet attr) throws BadLocationException {
+
+			   if (m_prompt != null && offset < m_prompt.length()) {
+				   //Do nothing...
+			   } else super.insertString(fb, offset, string, attr);
+		   }
+
+		   @Override
+		   public void replace(FilterBypass fb, int offset, int length, String text,
+		         AttributeSet attrs) throws BadLocationException {
+
+			   if (m_prompt != null && offset < m_prompt.length()) {
+				   //Do nothing...
+			   } else super.replace(fb, offset, length, text, attrs);
+		   }
+
+		   @Override
+		   public void remove(FilterBypass fb, int offset, int length)
+		         throws BadLocationException {
+			   if (m_prompt != null && offset < m_prompt.length()) {
+				   //Do nothing...
+			   } else super.remove(fb, offset, length);
+		   }
 	}
 	
 	private class InputAreaReader extends Reader {
