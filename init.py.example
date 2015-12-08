@@ -16,16 +16,26 @@ def connectToMyHub():
     connectToHub("insteonhub", 25105, 1000, "MyHubLogin", "MyHubPassword")
     out("connected")
 
+#If you are using a legacy hub (pre-2014 hub)
+
+def connectToMyLegacyHub():
+    """connects to my insteon hub modem at pre-defined address"""
+    connectToLegacyHub("insteonhub", 9761) # syntax is address, port (generally 9761)
+    out("connected")
+    
+
 def connectToMySerial():
     """connects to my modem on pre-defined serial port"""
     connectToSerial("/dev/insteon")
 
 #
-# uncomment correct line, depending on if you have a PLM modem or a hub
+# uncomment correct line, depending on if you have a PLM modem or a hub (or a legacy hub)
 # to automatically connect on startup. You will also have to change the info in the corresponding connectToMy...() function
 #
 #connectToMySerial()
 #connectToMyHub()
+#connectToMyLegacyHub()
+
 
 #
 # Now define the devices you want to work with. For a list of

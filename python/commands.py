@@ -6,6 +6,7 @@
 from java.lang import System
 from threading import Timer
 from us.pfrommer.insteon.cmd.hub import HubStream
+from us.pfrommer.insteon.cmd.hub import LegacyHubStream
 from us.pfrommer.insteon.cmd.serial import SerialIOStream
 
 from us.pfrommer.insteon.cmd.msg import IOPort
@@ -64,8 +65,12 @@ def exit():
 	quit()
 
 def connectToHub(adr, port, pollMillis, user, password):
-	"""connectToHub(adr, port, pollMillis, user, password) connects to specific hub"""
+	"""connectToHub(adr, port, pollMillis, user, password) connects to a specific non-legacy hub """
 	insteon.setPort(IOPort(HubStream(adr, port, pollMillis, user, password)))
+
+def connectToLegacyHub(adr, port):
+	"""connectToLegacyHub(adr, port) connects to a specific legacy hub"""
+	insteon.setPort(IOPort(LegacyHubStream(adr, port)))
 
 def connectToSerial(dev):
 	"""connectToSerial("/path/to/device") connects to specific serial port """
@@ -93,14 +98,19 @@ def trackPort():
 def help(obj = None):
 	"""help(object) prints out help for object, e.g. help(modem)"""
 	if obj is not None :
-		if obj.__doc__ is None :
-			iofun.out("No documentation for \"" +
-					  obj.__class__.__name__ + "\"")
-			return
 		sep='\n'
-		if isinstance(obj, (types.MethodType)):
+		if isinstance(obj, (types.FunctionType)):
+			if obj.__doc__ is None :
+				iofun.out("No documentation for \"" +
+						obj.__name__ + "\"")
+				return
+
 			iofun.out(obj.__doc__)
 		elif isinstance(obj, (types.ClassType, types.ObjectType)):
+			if obj.__doc__ is None :
+				iofun.out("No documentation for \"" +
+					  	obj.__class__.__name__ + "\"")
+				return
 			iofun.out(obj.__doc__)
 			docList = [getattr(obj, method).__doc__ for method in dir(obj) if callable(getattr(obj, method)) and getattr(obj, method).__doc__]
 			if len(docList) == 0:
