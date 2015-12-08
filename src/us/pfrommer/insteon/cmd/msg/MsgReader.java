@@ -105,7 +105,7 @@ public class MsgReader {
 			msg = Msg.s_createMessage(m_buf, msgLen, isExtended);
 			removeFromBuffer(msgLen);
 		}
-		logger.trace("keeping buffer len {} data: {}", m_end, Utils.getHexString(m_buf, m_end));
+		logger.trace("keeping buffer len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
 		return msg;
 	}
 	
@@ -125,5 +125,5 @@ public class MsgReader {
 		if (len > m_end) len = m_end;
 		System.arraycopy(m_buf, len, m_buf, 0, m_end + 1 - len);
 		m_end -= len;
-
+	}
 }

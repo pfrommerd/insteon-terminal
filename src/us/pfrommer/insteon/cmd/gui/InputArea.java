@@ -173,8 +173,6 @@ public class InputArea extends JTextField {
 
 		m_selectionIdx = idx;
 		
-		System.out.println(m_selectionIdx);
-		
 		String sel = m_history.get(idx);
 		setCurrentInputLine(sel);
 	}
