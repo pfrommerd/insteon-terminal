@@ -31,7 +31,7 @@ public class MsgReader {
 	 */
 	public MsgReader() {
 	}
-	
+
 	/**
 	 * Adds incoming data to the data buffer. First call addData(), then call processData()
 	 * @param data data to be added
@@ -46,7 +46,6 @@ public class MsgReader {
 		System.arraycopy(data, 0, m_buf, m_end, len);
 		m_end += len;
 		// copy the incoming data to the end of the buffer
-		//System.out.println("read buffer of length: " + m_end + " " + Utils.toHex(m_buf, m_end));
 		logger.trace("read buffer: len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
 	}
 	/**
@@ -70,9 +69,7 @@ public class MsgReader {
 		}
 		// drain the buffer until the first byte is 0x02
 		if (m_end > 0 && m_buf[0] != 0x02) {
-			logger.error("incoming message does not start with 0x02, searching for start");
-			drainBuffer();
-			throw new IOException("message does not start with 0x02!");
+			bail("incoming message does not start with 0x02");
 		}
 		// Now see if we have enough data for a complete message.
 		// If not, we return null, and expect this method to be called again
@@ -85,17 +82,17 @@ public class MsgReader {
 			isExtended = Msg.s_isExtended(m_buf, m_end, headerLength);
 			logger.trace("header length expected: {} extended: {}", headerLength, isExtended);
 			if (headerLength < 0) {
-				String cmdCode = Utils.toHexByte(m_buf[1]);
-				logger.debug("got unknown command code {}, draining!", cmdCode);
-				// got unknown command code, drain the buffer and wait for more data
-				removeFromBuffer(1); // get rid of the leading 0x02
-				drainBuffer(); // this will drain until end or it finds the next 0x02
-				msgLen = -1; // signal that we don't have a message
-				throw new IOException("got unknown command code: " + cmdCode);
+				removeFromBuffer(1); // get rid of the leading 0x02 so draining works
+				bail("got unknown command code " + Utils.toHex(m_buf[1]));
 			} else if (headerLength >= 2) {
 				if (m_end >= headerLength) {
 					// only when the header is complete do we know that isExtended is correct!
 					msgLen = Msg.s_getMessageLength(m_buf[1], isExtended);
+					if (msgLen < 0) {
+						// Cannot make sense out of the combined command code & isExtended flag.
+						removeFromBuffer(1);
+						bail("unknown command code/ext flag: " + Utils.toHex(m_buf[1]));
+					}
 				}
 			} else { // should never happen
 				logger.error("invalid header length, internal error!");
@@ -108,8 +105,14 @@ public class MsgReader {
 			msg = Msg.s_createMessage(m_buf, msgLen, isExtended);
 			removeFromBuffer(msgLen);
 		}
-		logger.trace("keeping buffer len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
+		logger.trace("keeping buffer len {} data: {}", m_end, Utils.getHexString(m_buf, m_end));
 		return msg;
+	}
+	
+	private void bail(String txt) throws IOException {
+		drainBuffer(); // this will drain until end or it finds the next 0x02
+		logger.warn(txt);
+		throw new IOException(txt);
 	}
 	
 	private void drainBuffer() {
@@ -122,5 +125,5 @@ public class MsgReader {
 		if (len > m_end) len = m_end;
 		System.arraycopy(m_buf, len, m_buf, 0, m_end + 1 - len);
 		m_end -= len;
-	}
+
 }
