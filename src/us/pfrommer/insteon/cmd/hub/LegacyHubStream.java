@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 import us.pfrommer.insteon.cmd.msg.IOStream;
@@ -40,7 +41,8 @@ public class LegacyHubStream implements IOStream {
 	public void open() throws IOException {
 		try {
 			m_socket = new Socket(m_host, m_port);
-			m_in	 = m_socket.getInputStream();
+			m_socket.setSoTimeout(1000);
+			m_in	 = new NonBlockingStream(m_socket.getInputStream());
 			m_out 	 = m_socket.getOutputStream();
 		} catch (UnknownHostException e) {
 			throw new IOException("Unkown host: " + m_host, e);
@@ -52,11 +54,35 @@ public class LegacyHubStream implements IOStream {
 	@Override
 	public void close() throws IOException {
 		try {
-			if (m_in != null) m_in.close();
-			if (m_out != null) m_out.close();
 			if (m_socket != null) m_socket.close();
 		} catch (IOException e) {
 			throw new IOException("Failed to close connection to hub!", e);
+		}
+	}
+	
+	public static class NonBlockingStream extends InputStream {
+		public InputStream m_in;
+		
+		public NonBlockingStream(InputStream in) {
+			m_in = in;
+		}
+		
+		@Override
+		public int read() throws IOException {
+			try {
+				return m_in.read();
+			} catch (SocketTimeoutException e) {
+				return -2; 
+			}
+		}
+		
+		@Override
+		public int read(byte[] b, int off, int len) throws IOException {
+			try {
+				return m_in.read(b, off, len);
+			} catch (SocketTimeoutException e) {
+				return 0;
+			}
 		}
 	}
 }

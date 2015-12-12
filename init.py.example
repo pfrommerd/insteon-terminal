@@ -1,9 +1,9 @@
-from python.commands import *
-from python.keypad2487S import *
-from python.thermostat2441TH import *
-from python.modem2413U import *
-from python.switch2477S import *
-from python.dimmer2477D import *
+from console_commands import *
+from keypad2487S import *
+from thermostat2441TH import *
+from modem2413U import *
+from switch2477S import *
+from dimmer2477D import *
 
 #
 # if you are using a hub, replace login and password below with your

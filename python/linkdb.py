@@ -7,6 +7,8 @@ import json
 import re
 import iofun
 
+from us.pfrommer.insteon.cmd.msg import InsteonAddress
+
 from all_devices import getDevByAddr
 
 debug = False
@@ -128,7 +130,7 @@ class DB():
 			saveRecord(f, r)
 		f.close()
 		out("saved " + format(len(arr), 'd') + " records")
-	def load(self, d, filename):
+	def load(self, filename):
 		r = re.compile('[ \t\n\r:]+')
 		with open(filename, 'r') as f:
 			for line in f:

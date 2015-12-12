@@ -249,7 +249,7 @@ class Modem2413U(Device):
 		self.dbbuilder.saveDB(filename)
 	def loadDB(self, filename):
 		"""loadDB(filename)
-		restore modem database from file "filename" """
+		load modem database from file "filename" (note: this will not change the actual modem db) """
 		self.dbbuilder.loadDB(filename)
 		self.dbbuilder.dumpDB()
 	def nukeDB(self):
@@ -259,7 +259,7 @@ class Modem2413U(Device):
 		self.dbbuilder.wait()
 		self.dbbuilder.nukeDB(self)
 	def restoreDB(self, filename):
-		"""restoreDB()
+		"""restoreDB(filename)
 		restore modem database from file "filename" """
 		self.loadDB(filename)
 		self.dbbuilder.restoreDB(self, filename)

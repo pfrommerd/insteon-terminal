@@ -118,7 +118,7 @@ public class IOPort {
 				}
 			} catch (IOException e)	{
 				e.printStackTrace();
-			}            
+			}         
 		}
 		
 		private void processMessages() {

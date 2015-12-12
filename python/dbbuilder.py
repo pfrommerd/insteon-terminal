@@ -5,6 +5,7 @@
 
 import iofun
 import message
+import time
 
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
@@ -209,7 +210,7 @@ class ModemDBBuilder(DBBuilder):
 		records = self.db.getRecordsAsArray()
 		out("nuking " + format(len(records), 'd') + " records")
 		for rec in records:
-			modem.deleteFirstRecord(rec["addr"], rec["group"])
+			modem.removeResponderOrController(rec["addr"], rec["group"])
 			time.sleep(1)
 	def restoreDB(self, modem, filename):
 		self.loadDB(filename)

@@ -16,69 +16,85 @@ from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
 from us.pfrommer.insteon.cmd.gui import PortTracker
 
+
 import all_devices
-import iofun
 import struct
 import types
 
-insteon = None
+# all io-based stuff
 
-# sets up the environment with the correct interpreter
-# called from the java application
-# i.e, sets up interpreter variable
 
-def init(int):
-	global insteon
-	insteon = int
-
-#
-# resets the interpreter
-#
-def reload():
-	"""
-	Reloads the interpreter. Use this whenever you feel the state got screwed up.
-	"""
-	insteon.reload()
+import iofun
 
 def err(msg = ""):
 	"""prints to std err the value of msg and a newline character"""
-	insteon.err().println(msg)
-	
-def clear():
-	"""clears the console screen"""
-	insteon.getConsole().clear()
-	
-def reset():
-	"""Resets the interpreter"""
-	insteon.reset()
+	iofun.err(msg)
 
 def out(msg = ""):
 	"""out("text") prints text to the console""" 
-	insteon.out().println(msg)
+	iofun.out(msg)
+
+def outchars(msg = ""):
+	"""out("text") prints text to the console, but without a newline""" 
+	iofun.outchars(msg)
+
+def clear():
+	"""clears the console screen"""
+	iofun.clear()
+
+def reload():
+	"""reloads the .py files and resets the interpreter"""
+	iofun.reload()
+	
+def reset():
+	"""Resets the interpreter (clear + reload)"""
+	iofun.reset()
+	
+def exit():
+	"""quits the application"""
+	iofun.exit()
 
 def quit():
-	"""quits the interpreter"""
-	System.exit(0)
-
-def exit():
-	"""quits the interpreter"""
-	quit()
+	"""quits the application"""
+	iofun.quit()
+	
+# Basic connection functions	
 
 def connectToHub(adr, port, pollMillis, user, password):
 	"""connectToHub(adr, port, pollMillis, user, password) connects to a specific non-legacy hub """
-	insteon.setPort(IOPort(HubStream(adr, port, pollMillis, user, password)))
-
+	iofun.connectToHub(adr, port, pollMillis, user, password)
+	
 def connectToLegacyHub(adr, port):
 	"""connectToLegacyHub(adr, port) connects to a specific legacy hub"""
-	insteon.setPort(IOPort(LegacyHubStream(adr, port)))
+	iofun.connectToLegacyHub(adr, port)
 
 def connectToSerial(dev):
 	"""connectToSerial("/path/to/device") connects to specific serial port """
-	insteon.setPort(IOPort(SerialIOStream(dev)))
+	iofun.connectToSerial(dev)
 
 def disconnect():
 	"""disconnects from serial port or hub"""
-	insteon.setPort(None)
+	iofun.disconnect()
+
+# Basic Message IO
+
+def writeMsg(msg):
+	iofun.writeMsg(msg)
+	
+def readMsg():
+	return iofun.readMsg()
+
+def addListener(listener):
+	iofun.addListener(listener)
+
+def removeListener(listener):
+	iofun.removeListener(listener)
+
+
+#
+# a bunch of useful miscellaneous commands
+# most of the io commands are defined in iofun
+#
 
 def listDevices():
 	"""lists all configured devices"""

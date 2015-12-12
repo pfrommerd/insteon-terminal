@@ -7,7 +7,6 @@
 #
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
-import commands
 
 def createStdMsg(adr, flags, cmd1, cmd2, group):
 	msg = Msg.s_makeMessage("SendStandardMessage")
