@@ -149,6 +149,26 @@ class DB():
 		mask = 0xc2 # mask unused bits, but match all other bits
 		return self.findRecord(rec, mask, matchAddress,
 							   matchGroup, matchData) != None
+	def isSane(self):
+		records = self.getRecordsAsArray()
+		if len(records) == 0:
+#			out("nrecords == 0")
+			return False
+		rec = records[0]
+		lastVal = rec["offset"];
+		if lastVal != 0x0fff:
+#			out("lastval = " + format(lastVal, 'x'))
+			return False
+		lastVal = lastVal + 8
+		for rec in records:
+			off = rec["offset"]
+			if off + 8 != lastVal:
+#				out("gap: " + format(lastVal, '04x') + " -> " + format(off, '04x'))
+				return False
+			lastVal = off
+#		out("sane!")
+		return True
+
 	def findAllRecords(self, rec, matchAddress = True,
 						 matchGroup = True, matchData = False):
 		rec["type"] = (1 << 1) # set high water mark

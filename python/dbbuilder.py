@@ -65,8 +65,12 @@ class DBBuilder(MsgListener):
 		out("----- database -------")
 		self.printdb()
 		out("----- end ------------")
+		self.db.isSane()
 		if self.listener:
-			self.listener.databaseComplete(self.db)
+			if self.db.isSane():
+				self.listener.databaseComplete(self.db)
+			else:
+				self.listener.databaseIncomplete(self.db)
 		self.listener = None
 	def printdb(self):
 		self.db.dump()
