@@ -8,6 +8,6 @@ then
    ant jar
 fi
 
-java -cp "${path}" us.pfrommer.insteon.cmd.Main "$@"
+java -cp "${path}" us.pfrommer.insteon.terminal.Main "$@"
 
 exit 0

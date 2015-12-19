@@ -5,7 +5,7 @@
 import iofun
 import message
 
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
+from us.pfrommer.insteon.msg import InsteonAddress
 from light import Light
 
 class Switch(Light):

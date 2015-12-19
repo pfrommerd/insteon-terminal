@@ -2,6 +2,7 @@
 #
 # Insteon Modem 2414U
 #
+
 import iofun
 import time
 import message
@@ -13,9 +14,9 @@ from querier import MsgHandler
 
 from dbbuilder import ModemDBBuilder
 
-from us.pfrommer.insteon.cmd.msg import Msg
-from us.pfrommer.insteon.cmd.msg import MsgListener
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
+from us.pfrommer.insteon.msg import Msg
+from us.pfrommer.insteon.msg import MsgListener
+from us.pfrommer.insteon.msg import InsteonAddress
 
 def out(msg = ""):
 	iofun.out(msg)

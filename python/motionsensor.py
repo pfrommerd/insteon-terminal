@@ -9,7 +9,7 @@ from querier import Querier
 from querier import MsgHandler
 from dbbuilder import GenericDBBuilder
 from linkdb import LightDBRecordFormatter
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
+from us.pfrommer.insteon.msg import InsteonAddress
 
 class DefaultMsgHandler(MsgHandler):
 	label = None
