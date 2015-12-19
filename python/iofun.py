@@ -59,6 +59,10 @@ def connectToSerial(dev):
 	"""connectToSerial("/path/to/device") connects to specific serial port"""
 	console.connectToSerial(dev)
 
+def connectToEmulator():
+	"""connectToEmulator() connects to an emulator and returns the emulator"""
+	return console.connectToEmulator()
+
 def disconnect():
 	"""disconnects from serial port or hub"""
 	console.disconnect()

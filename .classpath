@@ -15,7 +15,6 @@
 	<classpathentry kind="lib" path="lib/hub/httpclient-cache-4.3.6.jar"/>
 	<classpathentry kind="lib" path="lib/hub/httpcore-4.3.3.jar"/>
 	<classpathentry kind="lib" path="lib/hub/httpmime-4.3.6.jar"/>
-	<classpathentry kind="lib" path="lib/hub/insteonhub-plm.jar"/>
 	<classpathentry kind="lib" path="lib/logger/logback-core-1.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/logger/slf4j-api-1.7.10.jar"/>
 	<classpathentry kind="lib" path="lib/jython-standalone-2.7-b1.jar"/>

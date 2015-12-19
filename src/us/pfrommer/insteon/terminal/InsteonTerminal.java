@@ -94,7 +94,7 @@ public class InsteonTerminal {
 			init();
 			out().println("Terminal ready!");
 		} catch (Exception e) {
-			out().println("Failed to initialize python interpreter: " + e.getMessage());
+			out().println("Failed to initialize python interpreter: ");
 			e.printStackTrace(err());
 		}
 

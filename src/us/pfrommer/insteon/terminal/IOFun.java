@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import us.pfrommer.insteon.emulator.EmulatorStream;
+import us.pfrommer.insteon.emulator.ModemEmulator;
 import us.pfrommer.insteon.msg.IOPort;
 import us.pfrommer.insteon.msg.Msg;
 import us.pfrommer.insteon.msg.MsgListener;
@@ -50,6 +52,10 @@ public class IOFun implements PortListener {
 		} catch (Exception e) {
 			err().println("Failed to close connection: " + e.getMessage());
 		}
+		
+		//Clear the listeners to prevent python listeners from hanging around
+		m_msgListeners.clear();
+		m_portListeners.clear();
 
 		try {
 			m_terminal.init();
@@ -90,6 +96,12 @@ public class IOFun implements PortListener {
 
 	public void connectToSerial(String port) throws IOException {
 		updatePort(new IOPort(new SerialIOStream(port)));
+	}
+	
+	public ModemEmulator connectToEmulator() throws IOException {
+		ModemEmulator m = new ModemEmulator();
+		updatePort(new IOPort(new EmulatorStream(m)));
+		return m;
 	}
 
 	public void disconnect() throws IOException {
