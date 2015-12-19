@@ -1,4 +1,4 @@
-package	us.pfrommer.insteon.cmd.gui;
+package	us.pfrommer.insteon.cmd.console.gui;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -35,8 +35,8 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
-import us.pfrommer.insteon.cmd.Console;
-import us.pfrommer.insteon.cmd.ConsoleListener;
+import us.pfrommer.insteon.cmd.console.Console;
+import us.pfrommer.insteon.cmd.console.ConsoleListener;
 
 //A no-longer-used class which
 //shows both the input and the output in the same text pane

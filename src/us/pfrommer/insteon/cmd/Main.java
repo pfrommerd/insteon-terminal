@@ -8,15 +8,17 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
-import us.pfrommer.insteon.cmd.gui.FancyGUI;
-import us.pfrommer.insteon.cmd.gui.GUI;
-import us.pfrommer.insteon.cmd.terminal.JLineTerminal;
-import us.pfrommer.insteon.cmd.terminal.Terminal;
+import us.pfrommer.insteon.cmd.console.Console;
+import us.pfrommer.insteon.cmd.console.gui.FancyGUI;
+import us.pfrommer.insteon.cmd.console.gui.GUI;
+import us.pfrommer.insteon.cmd.console.terminal.JLineTerminal;
+import us.pfrommer.insteon.cmd.console.terminal.Terminal;
 
 public class Main {
 	public static void main(String[] args) {
 		Options options = new Options();
 		options.addOption("help", false, "Shows help information for the terminal");
+		options.addOption("h", false, "Shows help information for the terminal");
 		
 		options.addOption("gui", false, "Forces the terminal to start in windowed mode");
 		options.addOption("g", false, "Same as -gui");
@@ -31,7 +33,7 @@ public class Main {
 			
 			Console c = null;
 			
-			if (cmd.hasOption("help") || cmd.getArgList().contains("help")) {
+			if (cmd.hasOption("help") || cmd.hasOption("h") || cmd.getArgList().contains("help")) {
 				HelpFormatter formatter = new HelpFormatter();
 				formatter.printHelp("insteon-terminal", options);
 				return;
@@ -63,8 +65,8 @@ public class Main {
 
 			//RUN!
 			
-			InsteonInterpreter interpreter = new InsteonInterpreter(c);
-			interpreter.run();
+			InsteonTerminal interpreter = new InsteonTerminal();
+			interpreter.run(c);
 			
 		} catch (Exception e) {
 			System.err.println("Error: " + e.getMessage());

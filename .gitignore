@@ -5,3 +5,5 @@ build
 *.class
 
 init.py
+/backup.db
+insteon-terminal.log

@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.cmd.gui;
+package us.pfrommer.insteon.cmd.console.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -20,11 +20,11 @@ import javax.swing.JScrollPane;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 
-import us.pfrommer.insteon.cmd.Console;
-import us.pfrommer.insteon.cmd.ConsoleListener;
-import us.pfrommer.insteon.cmd.History;
-import us.pfrommer.insteon.cmd.InsteonInterpreter;
-import us.pfrommer.insteon.cmd.gui.InputArea.InputListener;
+import us.pfrommer.insteon.cmd.InsteonTerminal;
+import us.pfrommer.insteon.cmd.console.Console;
+import us.pfrommer.insteon.cmd.console.ConsoleListener;
+import us.pfrommer.insteon.cmd.console.History;
+import us.pfrommer.insteon.cmd.console.gui.InputArea.InputListener;
 
 public class GUI implements Console {	
 	private JFrame m_frame;
@@ -201,7 +201,7 @@ public class GUI implements Console {
 	public static void main(String[] args) {
 		GUI g = new GUI();
 		g.setVisible(true);
-		InsteonInterpreter i = new InsteonInterpreter(g);
-		i.run();
+		InsteonTerminal i = new InsteonTerminal();
+		i.run(g);
 	}
 }

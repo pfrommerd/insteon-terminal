@@ -56,7 +56,7 @@ def connectToLegacyHub(adr, port):
 	console.connectToLegacyHub(adr, port)
 
 def connectToSerial(dev):
-	"""connectToSerial("/path/to/device") connects to specific serial port """
+	"""connectToSerial("/path/to/device") connects to specific serial port"""
 	console.connectToSerial(dev)
 
 def disconnect():
@@ -67,12 +67,19 @@ def disconnect():
 
 def writeMsg(msg):
 	console.writeMsg(msg)
-	
-def readMsg():
-	return console.readMsg()
 
 def addListener(listener):
-	console.addListener(listener)
+	"""Adds a MsgListener for incoming messages"""
+	console.addMsgListener(listener)
 
 def removeListener(listener):
-	console.removeListener(listener)
+	"""Removes a MsgListener"""
+	console.removeMsgListener(listener)
+
+def addPortListener(listener):
+	"""like addListener, but listener is an instance of PortListener and has the msgWritten function"""
+	console.addMsgListener(listener)
+
+def removePortListener(listener):
+	"""like removeListener, but listener is an instance of PortListener and has the msgWritten function"""
+	console.removeMsgListener(listener)

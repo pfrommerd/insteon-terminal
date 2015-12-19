@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.cmd;
+package us.pfrommer.insteon.cmd.console;
 
 
 public class History {

@@ -2,6 +2,7 @@
 #
 # Insteon Modem 2414U
 #
+
 import iofun
 import time
 import message

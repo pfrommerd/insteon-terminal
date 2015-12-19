@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.cmd.gui;
+package us.pfrommer.insteon.cmd.console.gui;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;

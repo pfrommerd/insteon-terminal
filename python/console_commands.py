@@ -14,7 +14,10 @@ from us.pfrommer.insteon.cmd.utils import Utils
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
 from us.pfrommer.insteon.cmd.msg import InsteonAddress
-from us.pfrommer.insteon.cmd.gui import PortTracker
+
+from org.slf4j import LoggerFactory
+from ch.qos.logback.classic import Logger
+from ch.qos.logback.classic import Level
 
 
 import all_devices
@@ -22,7 +25,6 @@ import struct
 import types
 
 # all io-based stuff
-
 
 import iofun
 
@@ -39,38 +41,78 @@ def outchars(msg = ""):
 	iofun.outchars(msg)
 
 def clear():
-	"""clears the console screen"""
+	"""clear() clears the console screen"""
 	iofun.clear()
 
 def reload():
-	"""reloads the .py files and resets the interpreter"""
+	"""reload() reloads the .py files and resets the interpreter"""
 	iofun.reload()
 	
 def reset():
-	"""Resets the interpreter (clear + reload)"""
+	"""reset() resets the interpreter (clear + reload)"""
 	iofun.reset()
 	
 def exit():
-	"""quits the application"""
+	"""exit() quits the application"""
 	iofun.exit()
 
 def quit():
-	"""quits the application"""
+	"""quit() quits the application"""
 	iofun.quit()
+
+# Change logging configuration
+
+def setLogLevel(level):
+	"""setLogLevel(level) changes the log level to level, where level is a string """
 	
+	logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
+	levels = {
+				'ERROR': Level.ERROR,
+				'WARN': Level.WARN,
+				'INFO': Level.INFO,
+				'DEBUG': Level.DEBUG,
+				'TRACE': Level.TRACE
+			  }
+	l = levels[level.upper()]
+	logger.setLevel(l)
+	
+	print("Log level set to " + level)
+
 # Basic connection functions	
 
 def connectToHub(adr, port, pollMillis, user, password):
 	"""connectToHub(adr, port, pollMillis, user, password) connects to a specific non-legacy hub """
-	iofun.connectToHub(adr, port, pollMillis, user, password)
+	print("Connecting")
+
+	try:
+		iofun.connectToHub(adr, port, pollMillis, user, password)
+		
+		print("Connected")
+	except IOException as e:
+		err(e.getMessage())
+
 	
 def connectToLegacyHub(adr, port):
 	"""connectToLegacyHub(adr, port) connects to a specific legacy hub"""
-	iofun.connectToLegacyHub(adr, port)
+	print("Connecting")
+
+	try:
+		iofun.connectToLegacyHub(adr, port)
+		
+		print("Connected")
+	except IOException as e:
+		err(e.getMessage())
 
 def connectToSerial(dev):
 	"""connectToSerial("/path/to/device") connects to specific serial port """
-	iofun.connectToSerial(dev)
+	print("Connecting")
+
+	try:
+		iofun.connectToSerial(dev)
+		
+		print("Connected")
+	except IOException as e:
+		err(e.getMessage())
 
 def disconnect():
 	"""disconnects from serial port or hub"""
@@ -81,9 +123,6 @@ def disconnect():
 def writeMsg(msg):
 	iofun.writeMsg(msg)
 	
-def readMsg():
-	return iofun.readMsg()
-
 def addListener(listener):
 	iofun.addListener(listener)
 
@@ -103,13 +142,6 @@ def listDevices():
 #
 # start serial port tracker
 #
-
-def trackPort():
-	"""start serial port tracker(monitor) that shows all incoming/outgoing bytes"""
-	if insteon.isConnected() :
-		tracker = PortTracker(insteon.getPort())
-	else:
-		err("Not connected!")
 
 def help(obj = None):
 	"""help(object) prints out help for object, e.g. help(modem)"""

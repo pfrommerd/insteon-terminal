@@ -5,7 +5,12 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class IOPort {
+	private static final Logger logger = LoggerFactory.getLogger(IOPort.class);
+	
 	enum ReplyType {
 		GOT_ACK,
 		WAITING_FOR_ACK,
@@ -126,6 +131,7 @@ public class IOPort {
 				// must call processData() until we get a null pointer back
 				for (Msg m = m_msgReader.processData(); m != null;
 						m = m_msgReader.processData()) {
+						logger.debug("Msg received: {}", m);
 						toAllListeners(m);
 						notifyWriter(m);
 				}
@@ -249,6 +255,8 @@ public class IOPort {
 		}
 		@SuppressWarnings("unchecked")
 		private void notifyListenersWrite(Msg msg) {
+			logger.debug("Msg written: {}", msg);
+			
 			// When we deliver the message, the recipient
 			// may in turn call removeListener() or addListener(),
 			// thereby corrupting the very same collection that we are iterating
@@ -257,6 +265,7 @@ public class IOPort {
 			synchronized(m_listeners) {
 				tempList= (HashSet<PortListener>) m_listeners.clone();
 			}
+			
 			for (PortListener l : tempList) {
 				l.msgWritten(msg); // deliver msg to listener
 			}

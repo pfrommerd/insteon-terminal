@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.cmd.gui;
+package us.pfrommer.insteon.cmd.console.gui;
 
 import java.awt.Font;
 import java.awt.event.ActionEvent;
@@ -23,7 +23,7 @@ import javax.swing.text.DocumentFilter;
 import javax.swing.text.PlainDocument;
 import javax.swing.text.SimpleAttributeSet;
 
-import us.pfrommer.insteon.cmd.History;
+import us.pfrommer.insteon.cmd.console.History;
 
 public class InputArea extends JTextField {
 	private static final long serialVersionUID = 1L;

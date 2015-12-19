@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.cmd.terminal;
+package us.pfrommer.insteon.cmd.console.terminal;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -6,9 +6,9 @@ import java.io.PrintStream;
 import java.io.Reader;
 import java.util.Scanner;
 
-import us.pfrommer.insteon.cmd.Console;
-import us.pfrommer.insteon.cmd.ConsoleListener;
-import us.pfrommer.insteon.cmd.InsteonInterpreter;
+import us.pfrommer.insteon.cmd.InsteonTerminal;
+import us.pfrommer.insteon.cmd.console.Console;
+import us.pfrommer.insteon.cmd.console.ConsoleListener;
 
 public class Terminal implements Console {
 	private Scanner m_scanner = new Scanner(System.in);

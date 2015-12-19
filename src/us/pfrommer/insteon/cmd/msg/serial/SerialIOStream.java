@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.cmd.serial;
+package us.pfrommer.insteon.cmd.msg.serial;
 
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
