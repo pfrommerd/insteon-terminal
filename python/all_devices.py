@@ -5,7 +5,7 @@
 
 import iofun
 
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
+from us.pfrommer.insteon.msg import InsteonAddress
 
 devNameMap = {}
 devAddressMap = {}

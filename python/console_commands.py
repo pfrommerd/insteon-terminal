@@ -5,15 +5,11 @@
 
 from java.lang import System
 from threading import Timer
-from us.pfrommer.insteon.cmd.hub import HubStream
-from us.pfrommer.insteon.cmd.hub import LegacyHubStream
-from us.pfrommer.insteon.cmd.serial import SerialIOStream
 
-from us.pfrommer.insteon.cmd.msg import IOPort
-from us.pfrommer.insteon.cmd.utils import Utils
-from us.pfrommer.insteon.cmd.msg import Msg
-from us.pfrommer.insteon.cmd.msg import MsgListener
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
+from us.pfrommer.insteon.utils import Utils
+from us.pfrommer.insteon.msg import Msg
+from us.pfrommer.insteon.msg import MsgListener
+from us.pfrommer.insteon.msg import InsteonAddress
 
 from org.slf4j import LoggerFactory
 from ch.qos.logback.classic import Logger

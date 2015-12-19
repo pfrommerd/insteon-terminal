@@ -8,7 +8,7 @@
 
     <property name="libs.dir"            value="lib"/>
 
-    <property name="main.class" value="us.pfrommer.insteon.cmd.Main"/>
+    <property name="main.class" value="us.pfrommer.insteon.terminal.Main"/>
 
     <path id="master-classpath">
       <fileset dir="${libs.dir}">

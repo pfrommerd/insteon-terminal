@@ -3,8 +3,8 @@
 # base class for all devices
 #
 
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
-from us.pfrommer.insteon.cmd.msg import Msg
+from us.pfrommer.insteon.msg import InsteonAddress
+from us.pfrommer.insteon.msg import Msg
 
 from linkdb import DB
 from dbbuilder import DBBuilder

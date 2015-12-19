@@ -4,9 +4,9 @@
 #
 
 from threading import Timer
-from us.pfrommer.insteon.cmd.msg import Msg
-from us.pfrommer.insteon.cmd.msg import MsgListener
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
+from us.pfrommer.insteon.msg import Msg
+from us.pfrommer.insteon.msg import MsgListener
+from us.pfrommer.insteon.msg import InsteonAddress
 
 from device import Device
 from linkdb import DB
