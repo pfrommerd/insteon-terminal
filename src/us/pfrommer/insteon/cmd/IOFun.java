@@ -54,7 +54,8 @@ public class IOFun implements PortListener {
 		try {
 			m_terminal.init();
 		} catch (Exception e) {
-			err().println("Failed to reset terminal: " + e.getMessage());
+			err().println("Failed to reset terminal");
+			e.printStackTrace(err());
 		}
 
 		out().println("Terminal reset!");

@@ -95,6 +95,7 @@ public class InsteonTerminal {
 			out().println("Terminal ready!");
 		} catch (Exception e) {
 			out().println("Failed to initialize python interpreter: " + e.getMessage());
+			e.printStackTrace(err());
 		}
 
 		logger.info("Terminal started");
@@ -131,7 +132,7 @@ public class InsteonTerminal {
 				try {
 					m_interpreter.exec(line);
 				} catch (Exception e) {
-					e.printStackTrace();
+					e.printStackTrace(err());
 				}
 			}
 		}
