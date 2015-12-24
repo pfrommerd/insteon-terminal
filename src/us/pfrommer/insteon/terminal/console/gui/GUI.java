@@ -114,11 +114,6 @@ public class GUI implements Console {
 		
 		pane.setBorder(null);
 		pane.getVerticalScrollBar().setUnitIncrement(16);
-		pane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {  
-	        public void adjustmentValueChanged(AdjustmentEvent e) {  
-	            e.getAdjustable().setValue(e.getAdjustable().getMaximum());  
-	        }
-	    });
 		
 		pane.getViewport().add(m_output);
 		

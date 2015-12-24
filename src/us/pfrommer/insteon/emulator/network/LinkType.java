@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.emulator.device;
+package us.pfrommer.insteon.emulator.network;
 
 public enum LinkType {
 	CONTROLLER,

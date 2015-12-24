@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.emulator;
+package us.pfrommer.insteon.emulator.network.modem;
 
 import us.pfrommer.insteon.msg.Msg;
 

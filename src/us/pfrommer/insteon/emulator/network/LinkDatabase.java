@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.emulator.device;
+package us.pfrommer.insteon.emulator.network;
 
 import java.util.ArrayList;
 import java.util.Iterator;

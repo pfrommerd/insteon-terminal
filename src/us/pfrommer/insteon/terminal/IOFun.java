@@ -7,8 +7,9 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import us.pfrommer.insteon.emulator.EmulatorStream;
-import us.pfrommer.insteon.emulator.ModemEmulator;
+import us.pfrommer.insteon.emulator.network.InsteonNetwork;
+import us.pfrommer.insteon.emulator.network.modem.ModemSE;
+import us.pfrommer.insteon.emulator.network.modem.ModemSEStream;
 import us.pfrommer.insteon.msg.IOPort;
 import us.pfrommer.insteon.msg.Msg;
 import us.pfrommer.insteon.msg.MsgListener;
@@ -98,9 +99,12 @@ public class IOFun implements PortListener {
 		updatePort(new IOPort(new SerialIOStream(port)));
 	}
 	
-	public ModemEmulator connectToEmulator() throws IOException {
-		ModemEmulator m = new ModemEmulator();
-		updatePort(new IOPort(new EmulatorStream(m)));
+	public ModemSE connectToEmulator() throws IOException {
+		InsteonNetwork n = new InsteonNetwork();
+		ModemSE m = new ModemSE();
+		n.addDevice(m);
+		
+		updatePort(new IOPort(new ModemSEStream(m)));
 		return m;
 	}
 

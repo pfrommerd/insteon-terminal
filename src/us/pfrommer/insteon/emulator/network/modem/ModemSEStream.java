@@ -1,4 +1,4 @@
-package us.pfrommer.insteon.emulator;
+package us.pfrommer.insteon.emulator.network.modem;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,8 +10,8 @@ import us.pfrommer.insteon.msg.Msg.Direction;
 import us.pfrommer.insteon.msg.MsgReader;
 import us.pfrommer.insteon.utils.ByteArrayIO;
 
-public class EmulatorStream implements IOStream, ModemListener {
-	private ModemEmulator m_modem;
+public class ModemSEStream implements IOStream, ModemListener {
+	private ModemSE m_modem;
 	
 	//Input and out are switched
 	
@@ -20,7 +20,7 @@ public class EmulatorStream implements IOStream, ModemListener {
 	private ModemOutputStream m_out = new ModemOutputStream();
 	private ModemInputStream m_in = new ModemInputStream();
 	
-	public EmulatorStream(ModemEmulator m) {
+	public ModemSEStream(ModemSE m) {
 		m_modem = m;
 		m.addListener(this);
 	}
