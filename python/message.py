@@ -5,9 +5,8 @@
 # creates a send standard message Msg
 # if group is -1, the address will be used, otherwise the group will be used
 #
-from us.pfrommer.insteon.cmd.msg import Msg
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
-import commands
+from us.pfrommer.insteon.msg import Msg
+from us.pfrommer.insteon.msg import InsteonAddress
 
 def createStdMsg(adr, flags, cmd1, cmd2, group):
 	msg = Msg.s_makeMessage("SendStandardMessage")

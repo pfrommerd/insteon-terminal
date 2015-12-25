@@ -2,6 +2,7 @@
 #
 # Insteon Modem 2414U
 #
+
 import iofun
 import time
 import message
@@ -13,9 +14,9 @@ from querier import MsgHandler
 
 from dbbuilder import ModemDBBuilder
 
-from us.pfrommer.insteon.cmd.msg import Msg
-from us.pfrommer.insteon.cmd.msg import MsgListener
-from us.pfrommer.insteon.cmd.msg import InsteonAddress
+from us.pfrommer.insteon.msg import Msg
+from us.pfrommer.insteon.msg import MsgListener
+from us.pfrommer.insteon.msg import InsteonAddress
 
 def out(msg = ""):
 	iofun.out(msg)
@@ -130,6 +131,9 @@ class Modem2413U(Device):
 	def linkAsController(self, otherDevice, group):
 		"""linkAsController(otherDevice, group)
 		puts modem in link mode to control device "otherDevice" on group "group" """
+		if isinstance(otherDevice, Device):
+			otherDevice = otherDevice.address
+
 		addr = InsteonAddress(otherDevice)
 		self.querier = Querier(addr)
 		self.querier.setMsgHandler(DefaultMsgHandler("link as controller"))
@@ -166,6 +170,9 @@ class Modem2413U(Device):
 	def unlinkAsController(self, otherDevice, group):
 		"""unlinkAsController(otherDevice, group)
 		puts modem in unlink mode to unlink as controller from device "otherDevice" on group "group" """
+		if isinstance(otherDevice, Device):
+			otherDevice = otherDevice.address
+
 		addr = InsteonAddress(otherDevice)
 		self.querier = Querier(addr)
 		self.querier.setMsgHandler(DefaultMsgHandler("unlink as controller"))
@@ -249,7 +256,7 @@ class Modem2413U(Device):
 		self.dbbuilder.saveDB(filename)
 	def loadDB(self, filename):
 		"""loadDB(filename)
-		restore modem database from file "filename" """
+		load modem database from file "filename" (note: this will not change the actual modem db) """
 		self.dbbuilder.loadDB(filename)
 		self.dbbuilder.dumpDB()
 	def nukeDB(self):

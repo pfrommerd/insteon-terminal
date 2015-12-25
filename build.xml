@@ -8,9 +8,7 @@
 
     <property name="libs.dir"            value="lib"/>
 
-    <property name="terminal-main.class" value="us.pfrommer.insteon.cmd.terminal.Terminal"/>
-    <property name="gui-main.class"      value="us.pfrommer.insteon.cmd.gui.GUI"/>
-    <property name="jline-main.class"    value="us.pfrommer.insteon.cmd.terminal.JLineTerminal"/>
+    <property name="main.class" value="us.pfrommer.insteon.terminal.Main"/>
 
     <path id="master-classpath">
       <fileset dir="${libs.dir}">
@@ -49,43 +47,22 @@
       </javac>
     </target>
 
-    <target name="jar-gui" depends="compile">
+    <target name="jar" depends="compile">
       <mkdir dir="${jars.dir}"/>
-      <jar destfile="${jars.dir}/insteon-terminal-gui.jar" basedir="${bin.dir}">
+      <jar destfile="${jars.dir}/insteon-terminal.jar" basedir="${bin.dir}">
 	<manifest>
-          <attribute name="Main-Class" value="${gui-main.class}"/>
+          <attribute name="Main-Class" value="${main.class}"/>
         </manifest>
       </jar>
     </target>
 
-    <target name="jar-console" depends="compile">
-      <mkdir dir="${jars.dir}"/>
-      <jar destfile="${jars.dir}/insteon-terminal-console.jar" basedir="${bin.dir}">
-	<manifest>
-          <attribute name="Main-Class" value="${jline-main.class}"/>
-        </manifest>
-      </jar>
-    </target>
-
-    <target name="jar" depends="compile, jar-gui, jar-console">
-    </target>
 
     <target name="run">
-      <java classname="${gui-main.class}" fork="true">
+      <java classname="${main.class}" fork="true">
 	<classpath>
 	  <path location="${bin.dir}"/>
 	  <path refid="master-classpath"/>
 	</classpath>
       </java>
     </target>
-
-    <target name="run-console">
-      <java classname="${jline-main.class}" fork="true">
-	<classpath>
-	  <path location="${bin.dir}"/>
-	  <path refid="master-classpath"/>
-	</classpath>
-      </java>
-    </target>
-
 </project>
