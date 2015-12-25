@@ -5,6 +5,7 @@
 
 import iofun
 import message
+import time
 
 from us.pfrommer.insteon.cmd.msg import Msg
 from us.pfrommer.insteon.cmd.msg import MsgListener
