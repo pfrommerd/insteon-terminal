@@ -550,36 +550,33 @@ replace "23.9b.65" with the address of your modem.
 - link modem as a controller via set buttons: first press long on the modem, then press long on the keypad
 - establish connections so modem gets notified of button and switch toggles:
 
+        modem.addResponder("30.0d.9f", 0x01)
+        modem.addResponder("30.0d.9f", 0x03)
+        modem.addResponder("30.0d.9f", 0x04)
+        modem.addResponder("30.0d.9f", 0x05)
+        modem.addResponder("30.0d.9f", 0x06)
 
-    modem.addResponder("30.0d.9f", 0x01)
-    modem.addResponder("30.0d.9f", 0x03)
-    modem.addResponder("30.0d.9f", 0x04)
-    modem.addResponder("30.0d.9f", 0x05)
-    modem.addResponder("30.0d.9f", 0x06)
-
-
-    keypad.addControllerForButton("23.9b.65", 1)
-    keypad.addControllerForButton("23.9b.65", 3)
-    keypad.addControllerForButton("23.9b.65", 4)
-    keypad.addControllerForButton("23.9b.65", 5)
-    keypad.addControllerForButton("23.9b.65", 6)
+        keypad.addControllerForButton("23.9b.65", 1)
+        keypad.addControllerForButton("23.9b.65", 3)
+        keypad.addControllerForButton("23.9b.65", 4)
+        keypad.addControllerForButton("23.9b.65", 5)
+        keypad.addControllerForButton("23.9b.65", 6)
 
 
 - pick some group numbers that are not used anywhere else,
   (in this case we picked 0xf3, 0xf4, 0xf5, 0xf6, replace with your group numbers) and link the
   modem as controller, the keypad buttons as responders:
 
+        keypad.addResponderForButton("23.9b.65", 0xf3, 3)
+        keypad.addResponderForButton("23.9b.65", 0xf4, 4)
+        keypad.addResponderForButton("23.9b.65", 0xf5, 5)
+        keypad.addResponderForButton("23.9b.65", 0xf6, 6)
 
-    keypad.addResponderForButton("23.9b.65", 0xf3, 3)
-    keypad.addResponderForButton("23.9b.65", 0xf4, 4)
-    keypad.addResponderForButton("23.9b.65", 0xf5, 5)
-    keypad.addResponderForButton("23.9b.65", 0xf6, 6)
 
-
-    modem.addController("30.0d.9f", 0xf3)
-    modem.addController("30.0d.9f", 0xf4)
-    modem.addController("30.0d.9f", 0xf5)
-    modem.addController("30.0d.9f", 0xf6)
+        modem.addController("30.0d.9f", 0xf3)
+        modem.addController("30.0d.9f", 0xf4)
+        modem.addController("30.0d.9f", 0xf5)
+        modem.addController("30.0d.9f", 0xf6)
 
 - verify that your databases look correct:
 
