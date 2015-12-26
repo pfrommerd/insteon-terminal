@@ -46,6 +46,20 @@ class Light(Device):
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x11, level, -1))
 
+	def rampRateOn(self, level=0xFF, rate = 0x1f):
+		"""rampRateOn(level, rate)
+		switch on to given light level (0-255) at given rate (0-31)"""
+		cmd2 = (level & 0xf0) | ((rate & 0x1f) >> 1);
+		iofun.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x2e, cmd2, -1))
+
+	def rampRateOff(self, rate = 0x1f):
+		"""rampRateOn(rate)
+		switch off at rate (0-31)"""
+		cmd2 = (rate & 0x1f) >> 1
+		iofun.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x2f, cmd2, -1))
+
 	def off(self):
 		"""off()
 		switch off"""

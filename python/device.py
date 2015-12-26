@@ -99,10 +99,24 @@ class AddressReplacer(DBBuilderListener):
 	dev = None
 	def __init__(self, dev, oldAddr, newAddr):
 		self.dev = dev
-		self.oldAddr = oldAddr
-		self.newAddr = newAddr
+		self.oldAddr = InsteonAddress(oldAddr)
+		self.newAddr = InsteonAddress(newAddr)
 	def databaseComplete(self, db):
 		iofun.out("database complete, replacing...")
+		mask = 0x02;
+		searchRec = {"offset" : 0, "addr": self.oldAddr, "type" : (1<<1),
+					 "group" : 0, "data" : []}
+		recs = db.findRecord(searchRec, mask, True, False, False, True);
+		for rec in recs:
+			db.dumpRecord(rec, "replacing: ");
+			self.dev.setRecord(rec["offset"], self.newAddr, rec["group"],
+							   rec["type"], rec["data"])
+			time.sleep(1) # wait for one second
+		if not recs:
+			iofun.out("no matching records found, nothing to replace!")
+		return
+
+
 	def databaseIncomplete(self, db):
 		iofun.out("database incomplete, retrying!")
 		self.dev.dbbuilder.setListener(self)
