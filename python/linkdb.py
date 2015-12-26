@@ -10,6 +10,7 @@ import iofun
 from us.pfrommer.insteon.msg import InsteonAddress
 
 from all_devices import getDevByAddr
+from us.pfrommer.insteon.cmd.msg import InsteonAddress
 
 debug = False
 #

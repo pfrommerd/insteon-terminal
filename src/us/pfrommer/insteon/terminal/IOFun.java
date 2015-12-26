@@ -7,6 +7,9 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import us.pfrommer.insteon.emulator.network.InsteonNetwork;
+import us.pfrommer.insteon.emulator.network.modem.ModemSE;
+import us.pfrommer.insteon.emulator.network.modem.ModemSEStream;
 import us.pfrommer.insteon.msg.IOPort;
 import us.pfrommer.insteon.msg.Msg;
 import us.pfrommer.insteon.msg.MsgListener;
@@ -50,6 +53,10 @@ public class IOFun implements PortListener {
 		} catch (Exception e) {
 			err().println("Failed to close connection: " + e.getMessage());
 		}
+		
+		//Clear the listeners to prevent python listeners from hanging around
+		m_msgListeners.clear();
+		m_portListeners.clear();
 
 		try {
 			m_terminal.init();
@@ -90,6 +97,15 @@ public class IOFun implements PortListener {
 
 	public void connectToSerial(String port) throws IOException {
 		updatePort(new IOPort(new SerialIOStream(port)));
+	}
+	
+	public ModemSE connectToEmulator() throws IOException {
+		InsteonNetwork n = new InsteonNetwork();
+		ModemSE m = new ModemSE();
+		n.addDevice(m);
+		
+		updatePort(new IOPort(new ModemSEStream(m)));
+		return m;
 	}
 
 	public void disconnect() throws IOException {

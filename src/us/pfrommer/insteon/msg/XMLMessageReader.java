@@ -103,8 +103,8 @@ public class XMLMessageReader {
 				"Actual msg length " + offset + " differs from given msg length " + length + "!");
 		}
 		if (length == 0) length = offset;
-		
-		return new Pair<String, Msg>(name, s_createMsg(fieldMap, length, hlength, direction));
+				
+		return new Pair<String, Msg>(name, s_createMsg(name, fieldMap, length, hlength, direction));
 	}
 	
 	private static int s_readHeaderElement(Element header, LinkedHashMap<Field, Object> fields)
@@ -141,8 +141,10 @@ public class XMLMessageReader {
 		return pair;
 	}
 	
-	private static Msg s_createMsg(HashMap<Field, Object> values, int length, int headerLength, Msg.Direction dir) throws FieldException {
+	private static Msg s_createMsg(String name, HashMap<Field, Object> values, int length, int headerLength, Msg.Direction dir) throws FieldException {
 		Msg msg = new Msg(headerLength, new byte[length], length, dir);
+		msg.getDefinition().setName(name);
+		
 		for (Entry<Field,Object> e : values.entrySet()) {
 			Field f = e.getKey();
 			f.set(msg.getData(), e.getValue());

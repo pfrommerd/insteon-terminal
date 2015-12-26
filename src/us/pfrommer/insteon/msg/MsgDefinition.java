@@ -13,6 +13,7 @@ import java.util.HashMap;
 
 public class MsgDefinition {
 	private HashMap<String, Field>	m_fields = new HashMap<String, Field>();
+	private String m_name = null;
 	
 	MsgDefinition() {
 	}
@@ -21,17 +22,23 @@ public class MsgDefinition {
 	 * @param m the definition to copy
 	 */
 	MsgDefinition(MsgDefinition m) {
+		m_name 		= m.m_name;
 		m_fields    = new HashMap<String, Field>(m.m_fields);
 	}
 	
 	public HashMap<String, Field> getFields() { return m_fields; }
-
+	public String getName() { return m_name; }
+	
 	public boolean containsField(String name) {
 		return m_fields.containsKey(name);
 	}
 
 	public void addField(Field field) {
 		m_fields.put(field.getName(), field);
+	}
+	
+	public void setName(String name) {
+		m_name = name;
 	}
 
 	/**

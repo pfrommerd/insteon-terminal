@@ -42,6 +42,8 @@ public class OutputArea extends JTextPane {
 		} catch (BadLocationException e) {
 			e.printStackTrace();
 		}
+		
+		setCaretPosition(getDocument().getLength());
 	}
 	
 	public class ConsolePrintStream extends PrintStream {

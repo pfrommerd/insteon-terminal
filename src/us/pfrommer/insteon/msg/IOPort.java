@@ -118,7 +118,7 @@ public class IOPort {
 			int len = -1;
 			try	{
 				while (m_keepRunning && (len = m_stream.in().read(buffer, 0, m_readSize)) > -1) {
-					m_msgReader.addData(buffer, len);
+					m_msgReader.addData(buffer, 0, len);
 					processMessages();
 				}
 			} catch (IOException e)	{

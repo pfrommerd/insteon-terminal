@@ -47,7 +47,7 @@ public enum MsgType {
 		}
 	}
 
-	private int getByteValue() { return m_byteValue; }
+	public int getByteValue() { return m_byteValue; }
 
 	public static MsgType s_fromValue(byte b) throws IllegalArgumentException {
 		Integer i = new Integer((b & 0xe0));

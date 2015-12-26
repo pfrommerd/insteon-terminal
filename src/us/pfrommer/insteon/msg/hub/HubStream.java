@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import us.pfrommer.insteon.InsteonHub;
 import us.pfrommer.insteon.msg.IOStream;
 
 public class HubStream implements IOStream {

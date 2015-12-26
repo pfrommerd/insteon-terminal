@@ -3,8 +3,14 @@ package us.pfrommer.insteon.terminal;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 import org.python.core.Py;
+import org.python.core.PyFunction;
+import org.python.core.PyStringMap;
 import org.python.util.PythonInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +100,7 @@ public class InsteonTerminal {
 			init();
 			out().println("Terminal ready!");
 		} catch (Exception e) {
-			out().println("Failed to initialize python interpreter: " + e.getMessage());
+			out().println("Failed to initialize python interpreter: ");
 			e.printStackTrace(err());
 		}
 
@@ -125,8 +131,32 @@ public class InsteonTerminal {
 		} else if (line.equals("reset")) {
 			out().println("Use reset()");
 		} else if (line.equals("?")) {
-			//TODO: Fix
-			out().println("STUB: This functionality has been temporarily removed");
+			//Print out a list of all the functions
+			out().println("----All available functions---");
+			
+			List<PyFunction> funcs = new ArrayList<PyFunction>();
+			
+			PyStringMap dict = (PyStringMap) m_interpreter.getLocals();
+			for (Object o : dict.values()) {
+				if (o instanceof PyFunction) {
+					PyFunction f = (PyFunction) o;
+					funcs.add(f);
+				}
+			}
+			//Order them alphabetically
+			Collections.sort(funcs, new Comparator<PyFunction>() {
+				@Override
+				public int compare(PyFunction f1, PyFunction f2) {
+					return f1.__name__.compareTo(f2.__name__);
+				}
+			});
+			
+			for (PyFunction f : funcs) {
+				String doc =  f.__doc__.toString().trim();
+				if (doc.equals("None")) doc = "No doc";
+				
+				out().println(f.__name__ + "() - " + doc);
+			}
 		} else {
 			if (m_interpreter != null) {
 				try {

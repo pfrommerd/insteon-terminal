@@ -60,10 +60,16 @@ public class Msg {
 	
 	// has the structure of all known messages
 	private static final HashMap<String, Msg> s_msgMap = new HashMap<String, Msg>();
-	// maps between command number and the length of the header
-	private static final HashMap<Integer, Integer> s_headerMap = new HashMap<Integer, Integer>();
+	
+	// maps between command number and the length of the header for messages to host
+	private static final HashMap<Integer, Integer> s_headerReplyMap = new HashMap<Integer, Integer>();
 	// has templates for all message from modem to host
 	private static final HashMap<Integer, Msg> s_replyMap = new HashMap<Integer, Msg>();
+
+	// maps between command number and the length of the header for messages to host
+	private static final HashMap<Integer, Integer> s_headerSendMap = new HashMap<Integer, Integer>();
+	// has templates for all message from host to modem
+	private static final HashMap<Integer, Msg> s_sendMap = new HashMap<Integer, Msg>();
 	
 	private int				m_headerLength	= -1;
 	private byte[]			m_data			= null;
@@ -372,7 +378,7 @@ public class Msg {
 	 * @param isExtended whether it is an extended message or not
 	 * @return message, or null if the Msg cannot be created 
 	 */
-	public static Msg s_createMessage(byte[] m_buf, int msgLen, boolean isExtended) {
+	public static Msg s_createReplyMessage(byte[] m_buf, int msgLen, boolean isExtended) {
 		if (m_buf == null || m_buf.length < 2) {
 				return null;
 		}
@@ -389,28 +395,81 @@ public class Msg {
 		msg.setDefinition(template.getDefinition());
 		return (msg);
 	}
+	
 	/**
-	 * Finds the header length from the insteon command in the received message
+	 * Factory method to create Msg from raw byte stream received from the
+	 * serial port.
+	 * @param m_buf the raw received bytes
+	 * @param msgLen length of received buffer
+	 * @param isExtended whether it is an extended message or not
+	 * @return message, or null if the Msg cannot be created 
+	 */
+	public static Msg s_createSendMessage(byte[] m_buf, int msgLen, boolean isExtended) {
+		if (m_buf == null || m_buf.length < 2) {
+				return null;
+		}
+		Msg template = s_sendMap.get(s_cmdToKey(m_buf[1], isExtended));
+		if (template == null) {
+			return null; // cannot find lookup map
+		}
+		if (msgLen != template.getLength()) {
+			logger.error("expected msg {} len {}, got {}",
+					template.getCommandNumber(), template.getLength(), msgLen);
+			return null;
+		}
+		Msg msg = new Msg(template.getHeaderLength(), m_buf, msgLen, Direction.TO_MODEM);
+		msg.setDefinition(template.getDefinition());
+		return (msg);
+	}
+	
+	/**
+	 * Finds the header length from the insteon command in the reply message
 	 * @param cmd the insteon command received in the message
 	 * @return the length of the header to expect
 	 */
-	public static int s_getHeaderLength(byte cmd) {
-		Integer len = s_headerMap.get(new Integer(cmd));
+	public static int s_getReplyHeaderLength(byte cmd) {
+		Integer len = s_headerReplyMap.get(new Integer(cmd));
 		if (len == null) return (-1); // not found
 		return len;
 	}
+
+	/**
+	 * Finds the header length from the insteon command in the sent message
+	 * @param cmd the insteon command sent in the message
+	 * @return the length of the header to expect
+	 */
+	public static int s_getSendHeaderLength(byte cmd) {
+		Integer len = s_headerSendMap.get(new Integer(cmd));
+		if (len == null) return (-1); // not found
+		return len;
+	}
+
 	/**
 	 * Tries to determine the length of a received Insteon message.
 	 * @param b Insteon message command received
 	 * @param isExtended flag indicating if it is an extended message
 	 * @return message length, or -1 if length cannot be determined 
 	 */
-	public static int s_getMessageLength(byte b, boolean isExtended) {
+	public static int s_getReplyMessageLength(byte b, boolean isExtended) {
 		int key = s_cmdToKey(b, isExtended);
 		Msg msg = s_replyMap.get(key);
 		if (msg == null) return -1;
 		return msg.getLength();
 	}
+
+	/**
+	 * Tries to determine the length of a sent Insteon message.
+	 * @param b Insteon message command received
+	 * @param isExtended flag indicating if it is an extended message
+	 * @return message length, or -1 if length cannot be determined 
+	 */
+	public static int s_getSendMessageLength(byte b, boolean isExtended) {
+		int key = s_cmdToKey(b, isExtended);
+		Msg msg = s_sendMap.get(key);
+		if (msg == null) return -1;
+		return msg.getLength();
+	}
+
 	/**
 	 * From bytes received thus far, tries to determine if an Insteon
 	 * message is extended or standard.
@@ -446,9 +505,13 @@ public class Msg {
 	private static void s_buildHeaderMap() {
 		for (Msg m : s_msgMap.values()) {
 			if (m.getDirection() == Direction.FROM_MODEM) { 
-				s_headerMap.put(new Integer(m.getCommandNumber()), m.getHeaderLength());
+				s_headerReplyMap.put(new Integer(m.getCommandNumber()), m.getHeaderLength());
 			}
-		}
+
+			if (m.getDirection() == Direction.TO_MODEM) { 
+				s_headerSendMap.put(new Integer(m.getCommandNumber()), m.getHeaderLength());
+			}
+}
 	}
 	private static void s_buildLengthMap() {
 		for (Msg m : s_msgMap.values()) {
@@ -456,6 +519,11 @@ public class Msg {
 				Integer key = new Integer(s_cmdToKey(m.getCommandNumber(),
 						m.isExtended()));
 				s_replyMap.put(key,	m);
+			}
+			if (m.getDirection() == Direction.TO_MODEM) { 
+				Integer key = new Integer(s_cmdToKey(m.getCommandNumber(),
+						m.isExtended()));
+				s_sendMap.put(key,	m);
 			}
 		}
 	}
