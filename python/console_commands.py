@@ -61,20 +61,9 @@ def quit():
 # Change logging configuration
 
 def setLogLevel(level):
-	"""setLogLevel(level) changes the log level to level, where level is a string """
+	"""setLogLevel(level) changes the log level to level, where level is a string  (ERROR, WARN, INFO, DEBUG, and TRACE)"""
 	
-	logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
-	levels = {
-				'ERROR': Level.ERROR,
-				'WARN': Level.WARN,
-				'INFO': Level.INFO,
-				'DEBUG': Level.DEBUG,
-				'TRACE': Level.TRACE
-			  }
-	l = levels[level.upper()]
-	logger.setLevel(l)
-	
-	print("Log level set to " + level)
+	iofun.setLogLevel(level)
 
 # Basic connection functions	
 

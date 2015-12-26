@@ -144,6 +144,9 @@ class Modem2413U(Device):
 	def linkAsResponder(self, otherDevice, group):
 		"""linkAsResponder(otherDevice, group)
 		puts modem in link mode to respond to device "otherDevice" on group "group" """
+		if isinstance(otherDevice, Device):
+			otherDevice = otherDevice.address
+
 		addr = InsteonAddress(otherDevice)
 		self.querier = Querier(addr)
 		self.querier.setMsgHandler(DefaultMsgHandler("start linking"))
@@ -154,6 +157,9 @@ class Modem2413U(Device):
 	def linkAsEither(self, otherDevice, group):
 		"""linkAsEither(otherDevice, group)
 		puts modem in link mode to link as controller or responder to device "otherDevice" on group "group" """
+		if isinstance(otherDevice, Device):
+			otherDevice = otherDevice.address
+		
 		addr = InsteonAddress(otherDevice)
 		self.querier = Querier(addr)
 		self.querier.setMsgHandler(
@@ -162,6 +168,11 @@ class Modem2413U(Device):
 		msg.setByte("LinkCode", 0x03)
 		msg.setByte("ALLLinkGroup", group)
 		self.querier.sendMsg(msg)
+		
+	def holdSet(self):
+		"""holdSet()
+		effectively calls linkAsEither() - puts the modem into linking mode under groupe 0x01"""
+		
 	def respondToUnlink(self, otherDevice, group):
 		"""respondToUnlink(otherDevice, group)
 		make modem respond to unlink message from other device"""
@@ -270,3 +281,4 @@ class Modem2413U(Device):
 		restore modem database from file "filename" """
 		self.loadDB(filename)
 		self.dbbuilder.restoreDB(self, filename)
+

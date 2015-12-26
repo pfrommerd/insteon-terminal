@@ -87,3 +87,19 @@ def addPortListener(listener):
 def removePortListener(listener):
 	"""like removeListener, but listener is an instance of PortListener and has the msgWritten function"""
 	console.removeMsgListener(listener)
+	
+# Misc. commands
+
+def setLogLevel(level):
+	"""setLogLevel(level) changes the log level to level, where level is a string (ERROR, WARN, INFO, DEBUG, and TRACE) """
+	
+	logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
+	levels = {
+				'ERROR': Level.ERROR,
+				'WARN': Level.WARN,
+				'INFO': Level.INFO,
+				'DEBUG': Level.DEBUG,
+				'TRACE': Level.TRACE
+			  }
+	l = levels[level.upper()]
+	logger.setLevel(l)
