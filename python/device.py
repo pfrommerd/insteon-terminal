@@ -93,6 +93,35 @@ class LinkRecordRemover(DBBuilderListener):
 		iofun.out("database incomplete, reload() and retry!")
 
 
+class AddressReplacer(DBBuilderListener):
+	oldAddr = None
+	newAddr = None
+	dev = None
+	def __init__(self, dev, oldAddr, newAddr):
+		self.dev = dev
+		self.oldAddr = InsteonAddress(oldAddr)
+		self.newAddr = InsteonAddress(newAddr)
+	def databaseComplete(self, db):
+		iofun.out("database complete, replacing...")
+		mask = 0x02;
+		searchRec = {"offset" : 0, "addr": self.oldAddr, "type" : (1<<1),
+					 "group" : 0, "data" : []}
+		recs = db.findRecord(searchRec, mask, True, False, False, True);
+		for rec in recs:
+			db.dumpRecord(rec, "replacing: ");
+			self.dev.setRecord(rec["offset"], self.newAddr, rec["group"],
+							   rec["type"], rec["data"])
+			time.sleep(1) # wait for one second
+		if not recs:
+			iofun.out("no matching records found, nothing to replace!")
+		return
+
+
+	def databaseIncomplete(self, db):
+		iofun.out("database incomplete, retrying!")
+		self.dev.dbbuilder.setListener(self)
+		self.dev.getdb()
+
 class LinkRecordAdder(DBBuilderListener):
 	group = None
 	data  = [0x03, 0x1f, 0xef]
@@ -344,6 +373,12 @@ class Device:
 		"""removeDevice(addr):
 		removes all links to device with address "addr" from device database"""
 		self.modifyDB(DeviceRemover(self, addr))
+	def replaceDevice(self, oldAddr, newAddr):
+		"""replaceDevice(oldAddr, newAddr):
+		replaces all linkdb occurrences of oldAddr with newAddr """
+		self.dbbuilder.setListener(AddressReplacer(self, oldAddr, newAddr))
+		# after db download is complete, listener will perform action
+		self.getdb()
 	def removeLastRecord(self):
 		"""removeLastRecord()
 		removes the last device in the link database"""
