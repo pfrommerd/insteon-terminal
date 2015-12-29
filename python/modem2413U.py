@@ -128,40 +128,27 @@ class Modem2413U(Device):
 		iofun.writeMsg(msg)
 		iofun.out("sent msg: " + msg.toString())
 
-	def linkAsController(self, otherDevice, group):
-		"""linkAsController(otherDevice, group)
-		puts modem in link mode to control device "otherDevice" on group "group" """
-		if isinstance(otherDevice, Device):
-			otherDevice = otherDevice.address
-
-		addr = InsteonAddress(otherDevice)
-		self.querier = Querier(addr)
+	def linkAsController(self, group):
+		"""linkAsController(group)
+		puts modem in link mode on group "group" """
 		self.querier.setMsgHandler(DefaultMsgHandler("link as controller"))
 		msg = Msg.s_makeMessage("StartALLLinking")
 		msg.setByte("LinkCode", 0x01)
 		msg.setByte("ALLLinkGroup", group)
 		self.querier.sendMsg(msg)
-	def linkAsResponder(self, otherDevice, group):
-		"""linkAsResponder(otherDevice, group)
-		puts modem in link mode to respond to device "otherDevice" on group "group" """
-		if isinstance(otherDevice, Device):
-			otherDevice = otherDevice.address
-
-		addr = InsteonAddress(otherDevice)
-		self.querier = Querier(addr)
+		
+	def linkAsResponder(self, group):
+		"""linkAsResponder(group)
+		puts modem in link mode on group "group" """
 		self.querier.setMsgHandler(DefaultMsgHandler("start linking"))
 		msg = Msg.s_makeMessage("StartALLLinking")
 		msg.setByte("LinkCode", 0x00)
 		msg.setByte("ALLLinkGroup", group)
 		self.querier.sendMsg(msg)
-	def linkAsEither(self, otherDevice, group):
-		"""linkAsEither(otherDevice, group)
-		puts modem in link mode to link as controller or responder to device "otherDevice" on group "group" """
-		if isinstance(otherDevice, Device):
-			otherDevice = otherDevice.address
 		
-		addr = InsteonAddress(otherDevice)
-		self.querier = Querier(addr)
+	def linkAsEither(self, group):
+		"""linkAsEither(group)
+		puts modem in link mode to link as controller or responder on group "group" """
 		self.querier.setMsgHandler(
 			DefaultMsgHandler("link/unlink as controller or responder"))
 		msg = Msg.s_makeMessage("StartALLLinking")
@@ -169,68 +156,69 @@ class Modem2413U(Device):
 		msg.setByte("ALLLinkGroup", group)
 		self.querier.sendMsg(msg)
 		
-	def holdSet(self):
-		"""holdSet()
-		effectively calls linkAsEither() - puts the modem into linking mode under groupe 0x01"""
-		
-	def respondToUnlink(self, otherDevice, group):
-		"""respondToUnlink(otherDevice, group)
-		make modem respond to unlink message from other device"""
+	def respondToUnlink(self, group):
+		"""respondToUnlink(group)
+		make modem respond to unlink message"""
 		# could not get 0xFF to unlink
-		self.linkAsEither(otherDevice, group)
-	def unlinkAsController(self, otherDevice, group):
-		"""unlinkAsController(otherDevice, group)
-		puts modem in unlink mode to unlink as controller from device "otherDevice" on group "group" """
-		if isinstance(otherDevice, Device):
-			otherDevice = otherDevice.address
+		self.linkAsEither(group)
 
-		addr = InsteonAddress(otherDevice)
-		self.querier = Querier(addr)
+	def unlinkAsController(self, group):
+		"""unlinkAsController(group)
+		puts modem in unlink mode to unlink as controller on group "group" """
 		self.querier.setMsgHandler(DefaultMsgHandler("unlink as controller"))
 		msg = Msg.s_makeMessage("StartALLLinking")
 		msg.setByte("LinkCode", 0xFF)
 		msg.setByte("ALLLinkGroup", group)
 		self.querier.sendMsg(msg)
+		
 	def cancelLinking(self):
 		"""cancelLinking()
 		takes modem out of linking or unlinking mode"""
-		self.querier = Querier(InsteonAddress("00.00.00"))
 		self.querier.setMsgHandler(DefaultMsgHandler("cancel linking"))
 		msg = Msg.s_makeMessage("CancelALLLinking")
 		self.querier.sendMsg(msg)
+		
 	def addController(self, addr, group):
 		"""addController(addr, group):
 		adds device with address "addr" to modem link database as controller for group "group" """
 		self.modifyRecord(addr, group, 0x40, 0xa2, [0,0,group], "addController")
+		
 	def addResponder(self, addr, group):
 		"""addResponder(addr, group):
 		adds device with address "addr" to modem link database as responder to group "group" """
 		self.modifyRecord(addr, group, 0x41, 0xa2, [0,0,group], "addResponder")
+		
 	def addSoftwareResponder(self, addr):
 		"""addSoftwareResponder(addr):
 		adds device with address "addr" to modem link database as software responder"""
 		self.modifyRecord(addr, 0xef, 0x41, 0xa2, [0,0,0xef],
 						  "addSoftwareController")
+		
 	def removeResponderOrController(self, addr, group):
 		"""removeResponderOrController(addr, group)
 		removes device with address "addr" and group "group" from modem link database"""
 		self.__deleteFirstRecord(addr, group, "removeResponderOrController")
+		
 	def removeResponder(self, addr, group):
 		"""removeResponder(addr, group)
 		could not be implemented for the modem. Use removeResponderOrController() instead!"""
 		iofun.out("removeResponder(addr, group) could not be implemented" +
 				  " for the modem. Use removeResponderOrController() instead!")
+		
 	def removeController(self, addr, group):
 		"""removeController(addr, group)
 		could not be implemented for the modem. Use removeResponderOrController() instead!"""
 		iofun.out("removeController(addr, group) could not be implemented" +
 				  " for the modem. Use removeResponderOrController() instead!")
+		
 	def removeDevice(self, addr):
 		"""removeDevice(addr):
 		removes all links to device with address "addr" from modem database"""
 		self.__modifyModemDB(DeviceRemover(self, addr))
+		
 	def __deleteFirstRecord(self, addr, group, text = "delete record"):
 		self.modifyRecord(addr, group, 0x80, 0x00, [0,0,0], text)
+		
 	def modifyFirstOrAdd(self, addr, group, recordFlags, data):
 		if (recordFlags & (1 << 6)): # controller
 			self.modifyRecord(addr, group, 0x40, recordFlags,
@@ -238,17 +226,21 @@ class Modem2413U(Device):
 		else:
 			self.modifyRecord(addr, group, 0x41, recordFlags,
 							  data, "modify first or add")
+			
 	def modifyFirstControllerOrAdd(self, addr, group, data):
 		self.modifyRecord(addr, group, 0x40, 0xe2, data,
 						  "modify first ctrl found or add")
+		
 	def modifyFirstResponderOrAdd(self, addr, group, data):
 		self.modifyRecord(addr, group, 0x41, 0xa2, data,
 						  "modify first resp found or add")
+		
 	def modifyRecord(self, addr, group, controlCode, recordFlags, data, txt):
 		msg = self.__makeModMsg(addr, group, controlCode, recordFlags, data, txt)
 		self.querier = Querier(self.address)
 		self.querier.setMsgHandler(DefaultMsgHandler(txt))
 		self.querier.sendMsg(msg)
+		
 	def __makeModMsg(self, addr, group, controlCode, recordFlags, data, txt):
 		msg = Msg.s_makeMessage("ManageALLLinkRecord");
 		msg.setByte("controlCode", controlCode); # mod. first ctrl found or add
@@ -259,23 +251,27 @@ class Modem2413U(Device):
 		msg.setByte("linkData2", data[1] & 0xFF)
 		msg.setByte("linkData3", data[2] & 0xFF)
 		return msg;
+	
 	def saveDB(self, filename):
 		"""saveDB(filename)
 		save modem database to file "filename" """
 		self.dbbuilder.start()
 		self.dbbuilder.wait()
 		self.dbbuilder.saveDB(filename)
+		
 	def loadDB(self, filename):
 		"""loadDB(filename)
 		load modem database from file "filename" (note: this will not change the actual modem db) """
 		self.dbbuilder.loadDB(filename)
 		self.dbbuilder.dumpDB()
+		
 	def nukeDB(self):
 		"""nukeDB()
 		delete complete modem database! """
 		self.dbbuilder.start()
 		self.dbbuilder.wait()
 		self.dbbuilder.nukeDB(self)
+		
 	def restoreDB(self, filename):
 		"""restoreDB(filename)
 		restore modem database from file "filename" """
