@@ -4,6 +4,7 @@ from thermostat2441TH import *
 from modem2413U import *
 from switch2477S import *
 from dimmer2477D import *
+from ledBulb2672 import *
 
 #
 # if you are using a hub, replace login and password below with your
@@ -49,5 +50,6 @@ def connectToMySerial():
 # modem       = Modem2413U("test_modem", "23.9b.65")
 # closetLight = Switch2477S("closetLight", "25.65.d6")
 # dimmer      = Dimmer2477D("dining_room_dinner", "20.ab.26")
+# ledBulb = LEDBulb2672("ledBulb", "21.EB.DD");
 
 
