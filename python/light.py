@@ -54,7 +54,7 @@ class Light(Device):
 			InsteonAddress(self.getAddress()), 0x0F, 0x2e, cmd2, -1))
 
 	def rampRateOff(self, rate = 0x1f):
-		"""rampRateOn(rate)
+		"""rampRateOff(rate)
 		switch off at rate (0-31)"""
 		cmd2 = (rate & 0x1f) >> 1
 		iofun.writeMsg(message.createStdMsg(
