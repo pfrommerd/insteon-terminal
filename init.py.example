@@ -14,14 +14,12 @@ from dimmer2477D import *
 def connectToMyHub():
     """connects to my insteon hub modem at pre-defined address"""
     connectToHub("insteonhub", 25105, 1000, "MyHubLogin", "MyHubPassword")
-    out("connected")
 
 #If you are using a legacy hub (pre-2014 hub)
 
 def connectToMyLegacyHub():
     """connects to my insteon hub modem at pre-defined address"""
     connectToLegacyHub("insteonhub", 9761) # syntax is address, port (generally 9761)
-    out("connected")
     
 
 def connectToMySerial():

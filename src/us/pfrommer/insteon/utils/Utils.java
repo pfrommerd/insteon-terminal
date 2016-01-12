@@ -44,14 +44,14 @@ public class Utils {
 	}
 
 	public static String toHex(byte[] b) {
-		return toHex(b, b.length);
+		return toHex(b, 0, b.length);
 	}
 	
-	public static String toHex(byte[] b, int len) {
-		return toHex(b, len, "");
+	public static String toHex(byte[] b, int off, int len) {
+		return toHex(b, off, len, "");
 	}
 
-	public static String toHex(byte[] b, int len, String separator) {
+	public static String toHex(byte[] b, int off, int len, String separator) {
 		StringBuilder result = new StringBuilder();
 		for (int i = 0; i < b.length && i < len; i++) {
 			result.append(toHex(b[i]));

@@ -1,5 +1,9 @@
 from java.lang import System
 
+from org.slf4j import LoggerFactory
+from ch.qos.logback.classic import Logger
+from ch.qos.logback.classic import Level
+
 #-------------------------------------------------------------------------------
 #
 # I/O functions

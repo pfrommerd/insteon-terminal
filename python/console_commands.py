@@ -13,11 +13,6 @@ from us.pfrommer.insteon.msg import InsteonAddress
 
 from java.io import IOException
 
-from org.slf4j import LoggerFactory
-from ch.qos.logback.classic import Logger
-from ch.qos.logback.classic import Level
-
-
 import all_devices
 import struct
 import types
