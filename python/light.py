@@ -46,19 +46,43 @@ class Light(Device):
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x11, level, -1))
 
-	def rampRateOn(self, level=0xFF, rate = 0x1f):
-		"""rampRateOn(level, rate)
-		switch on to given light level (0-255) at given rate (0-31)"""
+	def setRampRateOn(self, level=0xFF, rate = 0x1f):
+		"""setRampRateOn(level, rate)
+		set future ramp rate and switch on to level (0-255) at rate (0-31)"""
 		cmd2 = (level & 0xf0) | ((rate & 0x1f) >> 1);
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x2e, cmd2, -1))
 
-	def rampRateOff(self, rate = 0x1f):
-		"""rampRateOff(rate)
-		switch off at rate (0-31)"""
+	def setRampRateOff(self, rate = 0x1f):
+		"""setRampRateOff(rate)
+		set future ramp rate and switch off at rate (0-31)"""
 		cmd2 = (rate & 0x1f) >> 1
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x2f, cmd2, -1))
+
+	def fastOn(self, level):
+		"""fastOn(level)
+		switch immediately to level"""
+		iofun.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x12, level, -1))
+
+	def fastOff(self):
+		"""fastOff()
+		switch off immediately"""
+		iofun.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x14, 0, -1))
+
+	def instantOn(self, level):
+		"""instantOn(level)
+		switch on instantly to level"""
+		iofun.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x21, level, -1))
+
+	def instantOff(self):
+		"""instantOff()
+		switch off instantly"""
+		iofun.writeMsg(message.createStdMsg(
+			InsteonAddress(self.getAddress()), 0x0F, 0x21, 0, -1))
 
 	def off(self):
 		"""off()

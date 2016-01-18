@@ -4,6 +4,7 @@
 #
 
 import iofun
+import message
 from linkdb import *
 
 from querier import Querier
@@ -29,3 +30,4 @@ class LEDBulb2672(Dimmer):
 	"""==============  Insteon LED Bulb 2672 ==============="""
 	def __init__(self, name, addr):
 		Dimmer.__init__(self, name, addr)
+
