@@ -53,7 +53,7 @@ public class MsgReader {
 		System.arraycopy(data, off, m_buf, m_end, len);
 		m_end += len;
 		// copy the incoming data to the end of the buffer
-		logger.trace("read buffer: len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
+		logger.trace("read buffer: len {} data: {}", len, Utils.toHex(data, off, len));
 	}
 	
 	/**
@@ -71,7 +71,7 @@ public class MsgReader {
 			m_end += 1;
 
 			// copy the incoming data to the end of the buffer
-			logger.trace("read buffer: len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
+			logger.trace("read buffer: len {} data: {}", 1, Utils.toHex(b));
 		}
 	}
 	
@@ -83,6 +83,7 @@ public class MsgReader {
 	 * @throws IOException if data was received with unknown command codes
 	 */
 	public Msg processData() throws IOException {
+		logger.trace("processing data: len {} data: {}", m_end, Utils.toHex(m_buf, 0, m_end));
 		// handle the case where we get a pure nack
 		if (m_end > 0 && m_buf[0] == 0x15) {
 			logger.trace("got pure nack!");
@@ -148,7 +149,7 @@ public class MsgReader {
 			}
 			removeFromBuffer(msgLen);
 		}
-		logger.trace("keeping buffer len {} data: {}", m_end, Utils.toHex(m_buf, m_end));
+		logger.trace("keeping buffer len {} data: {}", m_end, Utils.toHex(m_buf, 0, m_end));
 		return msg;
 	}
 	

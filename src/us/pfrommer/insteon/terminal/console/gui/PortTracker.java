@@ -53,14 +53,14 @@ public class PortTracker extends JFrame  implements PortListener {
 	@Override
 	public void msgWritten(Msg msg) {
 		byte[]  bytes = msg.getData();
-		m_area.append("OUT: " + Utils.toHex(bytes, bytes.length, " ") + "\n");
+		m_area.append("OUT: " + Utils.toHex(bytes, 0, bytes.length, " ") + "\n");
 		m_area.setCaretPosition(m_area.getDocument().getLength());
 	}
 
 	@Override
 	public void msgReceived(Msg msg) {
 		byte[] bytes = msg.getData();
-		m_area.append("IN: " + Utils.toHex(bytes, bytes.length, " ") + "\n");
+		m_area.append("IN: " + Utils.toHex(bytes, 0, bytes.length, " ") + "\n");
 		m_area.setCaretPosition(m_area.getDocument().getLength());
 	}
 }
