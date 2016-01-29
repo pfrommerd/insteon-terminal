@@ -12,6 +12,10 @@ BE FOREWARNED: you can directly manipulate your modem's link database, and IF YO
 Google groups mailing list:
 <https://groups.google.com/forum/#!forum/insteon-terminal>
 
+### Note for users updating from pre-December 19, 2015 versions:
+
+After some refactoring in the core terminal code, I realized I had made a mistake when designing the initial python-java integration. I fixed the issue, which broke the init.py "import" statements. The init.py.example has been updated with the correct syntax (which should not include "python." before the module), but any existing init.py's will need to be modified to remove the "python." at the start of all the imports. Sorry for the inconveniance.
+
 # Getting started
 All instructions are for Ubuntu 14.04
 
