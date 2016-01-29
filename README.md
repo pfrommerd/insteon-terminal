@@ -40,7 +40,7 @@ All instructions are for Ubuntu 14.04
 
     ./insteon-terminal
 
-(Alternatively you can run ./insteon-terminal -gui (previously -g) to start it in GUI mode)
+To force the terminal to run in console mode, use the -nw flag. If you are running in a graphics-less environment, the terminal will automatically run in console mode.
 
 Getting the serial terminal to work under java / rxtx can be tricky. Make sure you have the correct port name configured in init.py and that you have read/write permissions to the port (usually this involves adding yourself to the plugdev group and logging out/back in for the changes to take effect).
 
@@ -49,6 +49,14 @@ Getting the serial terminal to work under java / rxtx can be tricky. Make sure y
     Insteon Terminal
     Python interpreter initialized...
     >>>       
+
+## Updating the terminal
+
+To update the terminal, run:
+
+    git pull
+    ant clean
+    ./insteon-terminal
 
 
 #First steps
