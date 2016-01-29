@@ -50,7 +50,7 @@ Getting the serial terminal to work under java / rxtx can be tricky. Make sure y
     Python interpreter initialized...
     >>>       
 
-## Updating the terminal
+### Updating
 
 To update the terminal, run:
 
