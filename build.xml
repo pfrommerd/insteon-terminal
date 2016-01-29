@@ -42,7 +42,8 @@
         <fileset dir="${resources.dir}" includes="**"/>  
       </copy>
 
-      <javac srcdir="${src.dir}" destdir="${bin.dir}" includeantruntime="false">
+      <javac srcdir="${src.dir}" destdir="${bin.dir}"
+	     includeantruntime="false">
 	<classpath refid="master-classpath"/>
       </javac>
     </target>

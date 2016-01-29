@@ -1,8 +1,6 @@
 package us.pfrommer.insteon.emulator.network.modem;
 
-import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,10 +21,7 @@ public class ModemSE extends Device {
 
 	private Set<ModemListener> m_listeners = Collections.newSetFromMap(new ConcurrentHashMap<ModemListener, Boolean>());
 	
-	private ConcurrentHashMap<String, ModemHandler> m_handlers = new ConcurrentHashMap<String, ModemHandler>();
-
-	private HashMap<InsteonAddress, Device> m_devices = new HashMap<InsteonAddress, Device>();
-	
+	private ConcurrentHashMap<String, ModemHandler> m_handlers = new ConcurrentHashMap<String, ModemHandler>();	
 	
 	public ModemSE() {
 		//Make up an address, devcat, subcat, and version
@@ -197,9 +192,9 @@ public class ModemSE extends Device {
 				if (db.size() > 0) {
 					LinkRecord record = db.get(0);
 					
-					byte flag = (byte) (0b10000010 & 0xFF);
+					byte flag = (byte) (0x82 & 0xFF); // 10000010
 					if (record.getType() == LinkType.CONTROLLER)
-						flag |= 0b01000000;
+						flag |= 0x40; // 01000000
 					
 					Msg response = Msg.s_makeMessage("ALLLinkRecordResponse");
 					response.setByte("RecordFlags", flag);
@@ -233,9 +228,9 @@ public class ModemSE extends Device {
 				if (db.size() - db.counter() > 0) {
 					LinkRecord record = db.get(0);
 					
-					byte flag = (byte) (0b10000010 & 0xFF);
+					byte flag = (byte) (0x82 & 0xFF); // 1000001
 					if (record.getType() == LinkType.CONTROLLER)
-						flag |= 0b01000000;
+						flag |= 0x40; // 01000000
 					
 					Msg response = Msg.s_makeMessage("ALLLinkRecordResponse");
 					response.setByte("RecordFlags", flag);
