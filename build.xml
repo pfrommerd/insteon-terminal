@@ -5,6 +5,9 @@
     <property name="python.dir"          value="python"/>
 
     <property name="jars.dir"            value="build/jars"/>
+    <property name="install-build.dir"   value="build/install"/>
+
+    <property name="install.dir" value="user/share/insteon-terminal"/>
 
     <property name="libs.dir"            value="lib"/>
 
@@ -57,7 +60,6 @@
       </jar>
     </target>
 
-
     <target name="run">
       <java classname="${main.class}" fork="true">
 	<classpath>
@@ -66,4 +68,19 @@
 	</classpath>
       </java>
     </target>
+
+    <!-- Targets for packaging/installing -->
+    <target name="build-install" depends="jar">
+      <mkdir dir="${build-install.dir}/${install.dir}"/>
+      
+    </target>
+
+
+    <target name="deb">
+      
+    </target>
+
+    <!-- Targets for installing -->
+
+    
 </project>

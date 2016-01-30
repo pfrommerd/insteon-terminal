@@ -1,13 +1,11 @@
 package us.pfrommer.insteon.terminal.console.terminal;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Reader;
 
 import jline.ConsoleReader;
 import jline.Terminal;
-import us.pfrommer.insteon.terminal.InsteonTerminal;
 import us.pfrommer.insteon.terminal.console.Console;
 import us.pfrommer.insteon.terminal.console.ConsoleListener;
 
@@ -24,7 +22,7 @@ public class JLineTerminal extends Reader implements Console {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		try {
+		/*try {
 			File historyFile = new File(System.getProperty("user.home"),
 					".insteon-terminal/history.txt");
 			
@@ -36,7 +34,7 @@ public class JLineTerminal extends Reader implements Console {
 			m_reader.getHistory().setHistoryFile(historyFile);
 		} catch(IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 	}
 	
 	@Override

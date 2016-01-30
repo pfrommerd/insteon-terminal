@@ -4,8 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
-import java.awt.event.AdjustmentEvent;
-import java.awt.event.AdjustmentListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
@@ -22,7 +20,6 @@ import javax.swing.JScrollPane;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 
-import us.pfrommer.insteon.terminal.InsteonTerminal;
 import us.pfrommer.insteon.terminal.console.Console;
 import us.pfrommer.insteon.terminal.console.ConsoleListener;
 import us.pfrommer.insteon.terminal.console.History;
@@ -198,12 +195,5 @@ public class GUI implements Console {
 	@Override
 	public void reset() {
 		clear();
-	}
-	
-	public static void main(String[] args) {
-		GUI g = new GUI();
-		g.setVisible(true);
-		InsteonTerminal i = new InsteonTerminal();
-		i.run(g);
 	}
 }

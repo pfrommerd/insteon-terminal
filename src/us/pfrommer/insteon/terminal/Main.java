@@ -13,6 +13,7 @@ import us.pfrommer.insteon.terminal.console.gui.FancyGUI;
 import us.pfrommer.insteon.terminal.console.gui.GUI;
 import us.pfrommer.insteon.terminal.console.terminal.JLineTerminal;
 import us.pfrommer.insteon.terminal.console.terminal.Terminal;
+import us.pfrommer.insteon.utils.ResourceLocator.ClasspathResourceLocator;
 
 public class Main {
 	public static void main(String[] args) {
@@ -62,10 +63,16 @@ public class Main {
 					c = new JLineTerminal();
 				}
 			}
-
+			
+			// Read config from classpath
+			Configurator configurator = new Configurator();
+			configurator.loadConfig(new ClasspathResourceLocator());
+			
 			//RUN!
 			
 			InsteonTerminal interpreter = new InsteonTerminal();
+			configurator.configure(interpreter);
+			
 			interpreter.run(c);
 			
 		} catch (Exception e) {

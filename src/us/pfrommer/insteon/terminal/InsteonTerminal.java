@@ -24,6 +24,8 @@ public class InsteonTerminal {
 	private Console m_console = null;
 	private IOFun m_iofun = null;
 	
+	public List<String> m_searchPaths = new ArrayList<String>();
+	
 	public InsteonTerminal() {}
 	
 	public PythonInterpreter 	getInterpreter() { return m_interpreter; }
@@ -36,8 +38,13 @@ public class InsteonTerminal {
 	
 	//Interpreter functions
 
+
+	// Locations to search for init.py and any insteonplm-related modules
+	public void addModuleSearchPath(String path) {
+		m_searchPaths.add(path);
+	}
 	
-	//TODO: Make throw a python exception
+	//TODO: Make throw just a python stack trace for python errors
 	public void init() throws Exception {
 		logger.info("Setting up interpreter...");
 		
@@ -60,8 +67,10 @@ public class InsteonTerminal {
 			//Remove all existing modules so we can reload them
 			m_interpreter.exec("sys.modules.clear()");
 
-			m_interpreter.exec("sys.path.append('.')");
-			m_interpreter.exec("sys.path.append('python')");
+			for (String path : m_searchPaths) {
+				logger.debug("Appending {} to python module path", path);
+				m_interpreter.exec("sys.path.append('" + path + "')");				
+			}
 
 			//Import commands
 			
