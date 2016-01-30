@@ -12,6 +12,10 @@ BE FOREWARNED: you can directly manipulate your modem's link database, and IF YO
 Google groups mailing list:
 <https://groups.google.com/forum/#!forum/insteon-terminal>
 
+### Note for users updating from pre-December 19, 2015 versions:
+
+After some refactoring in the core terminal code, I realized I had made a mistake when designing the initial python-java integration. I fixed the issue, which broke the init.py "import" statements. The init.py.example has been updated with the correct syntax (which should not include "python." before the module), but any existing init.py's will need to be modified to remove the "python." at the start of all the imports. Sorry for the inconveniance.
+
 # Getting started
 All instructions are for Ubuntu 14.04
 
@@ -36,7 +40,7 @@ All instructions are for Ubuntu 14.04
 
     ./insteon-terminal
 
-(Alternatively you can run ./insteon-terminal -gui (previously -g) to start it in GUI mode)
+To force the terminal to run in console mode, use the -nw flag. If you are running in a graphics-less environment, the terminal will automatically run in console mode.
 
 Getting the serial terminal to work under java / rxtx can be tricky. Make sure you have the correct port name configured in init.py and that you have read/write permissions to the port (usually this involves adding yourself to the plugdev group and logging out/back in for the changes to take effect).
 
@@ -45,6 +49,14 @@ Getting the serial terminal to work under java / rxtx can be tricky. Make sure y
     Insteon Terminal
     Python interpreter initialized...
     >>>       
+
+### Updating
+
+To update the terminal, run:
+
+    git pull
+    ant clean
+    ./insteon-terminal
 
 
 #First steps
