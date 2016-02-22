@@ -87,6 +87,7 @@ class LightDBRecordFormatter(RecordFormatter):
 class DB():
 	records = {}
 	recordFormatter = None
+	topOfDatabase = 0x0fff 
 	def __init__(self):
 		self.records = {}
 		self.recordFormatter = DefaultRecordFormatter()
@@ -149,6 +150,8 @@ class DB():
 		mask = 0xc2 # mask unused bits, but match all other bits
 		return self.findRecord(rec, mask, matchAddress,
 							   matchGroup, matchData) != None
+	def setTopOfDatabase(self, customDelimiter):
+		self.topOfDatabase = customDelimiter
 	def isSane(self):
 		records = self.getRecordsAsArray()
 		if len(records) == 0:
@@ -156,7 +159,7 @@ class DB():
 			return False
 		rec = records[0]
 		lastVal = rec["offset"];
-		if lastVal != 0x0fff:
+		if lastVal != self.topOfDatabase
 #			out("lastval = " + format(lastVal, 'x'))
 			return False
 		lastVal = lastVal + 8
