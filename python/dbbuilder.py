@@ -83,6 +83,7 @@ class ThermostatDBBuilder(DBBuilder):
 	def __init__(self, addr, db):
 		self.addr = addr
 		self.db = db
+		self.db.setTopOfDatabase(0x1fff)
 	def msgReceived(self, msg):
 		self.restartTimer()
 		if msg.isPureNack():
