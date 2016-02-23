@@ -159,9 +159,9 @@ class DB():
 			return False
 		rec = records[0]
 		lastVal = rec["offset"];
-		if lastVal != self.topOfDatabase
-#			out("lastval = " + format(lastVal, 'x'))
+		if lastVal != self.topOfDatabase:
 			return False
+			
 		lastVal = lastVal + 8
 		for rec in records:
 			off = rec["offset"]
