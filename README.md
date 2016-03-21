@@ -205,11 +205,17 @@ Voila, the modem is now also a responder to the device:
 
 So far the list of supported devices is fairly short:
 
+- EZRain
+- FanLinc (somewhat)
+- IOLinc2450 (a little)
+- KeypadLinc 2487S
+- LED bulb 2672
+- Modem 2413U/Hub pre-2014/Hub 2014
+- Motion sensors
 - SwitchLinc Switch 2477S
 - SwitchLinc Dimmer 2477D
-- KeypadLinc 2487S
 - Thermostat 2441TH
-- Modem 2413U/Hub pre-2014/Hub 2014
+- Thermostat 2441V
 
 But many of the devices work very similarly. You can easily add your own device by creating a new file in the python directory. Just pick a device that looks similar, copy/rename its .py file, and import it in init.py. If you are looking for code snippets, the most complex device so far is the thermostat, see below
 

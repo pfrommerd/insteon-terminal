@@ -46,12 +46,6 @@ class FanLinc(Device):
 		self.querier.setMsgHandler(DefaultMsgHandler("ping"))
 		self.querier.querysd(0x0F, 0x01);
 
-	def enterLinkingMode(self):
-		"""enterLinkingMode()
-		causes the device to enter linking mode"""
-		self.querier.setMsgHandler(DefaultMsgHandler("linking mode"))
-		self.querier.querysd(0x09, 0x01);
-
 #
 # The fanlinc device has lots of other features, none of it implemented
 # yet. This is where *you* come in...

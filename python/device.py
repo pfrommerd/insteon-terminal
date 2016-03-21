@@ -391,3 +391,8 @@ class Device:
 		"""setOnLevelResponder(addr, group, level, ramprate = 28, button = 1)
 		sets (on level, ramp rate, button) for controller with "addr" and group "group" """
 		self.modifyDB(OnLevelModifier(self, addr, group, level, ramprate, button, False))
+	def enterLinkingMode(self):
+		"""enterLinkingMode()
+		causes the device to enter linking mode"""
+		self.querier.setMsgHandler(MsgHandler("linking mode"))
+		self.querier.querysd(0x09, 0x01);
