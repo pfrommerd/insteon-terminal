@@ -80,10 +80,10 @@ class DBBuilder(MsgListener):
 		out("MUST IMPLEMENT msgReceived() method!!!")
 
 class ThermostatDBBuilder(DBBuilder):
-	def __init__(self, addr, db):
+	def __init__(self, addr, db, topOfDatabase):
 		self.addr = addr
 		self.db = db
-		self.db.setTopOfDatabase(0x1fff)
+		self.db.setTopOfDatabase(topOfDatabase)
 	def msgReceived(self, msg):
 		self.restartTimer()
 		if msg.isPureNack():
