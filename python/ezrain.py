@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 #
-# Insteon ezRain V1 #5010A
+# Insteon EZRain V1 #5010A
 #
 
 import iofun
@@ -69,8 +69,8 @@ class DefaultMsgHandler(MsgHandler):
 		iofun.out(time.strftime("%H:%M:%S") + ": " + self.label + " got msg: " + msg.toString())
 		return 1
 
-class ezRainStatusMsgHandler(MsgHandler):
-    def __init__(self, n="ezRainStatusMsgHandler"):
+class EZRainStatusMsgHandler(MsgHandler):
+    def __init__(self, n="EZRainStatusMsgHandler"):
         self.name = n
     def processMsg(self, msg):
         out(time.strftime("%H:%M:%S") + ": " + self.name + " got: " + msg.toString())
@@ -86,7 +86,7 @@ class ezRainStatusMsgHandler(MsgHandler):
              running = status & RUNNING_MASK
              pump    = status & PUMP_MASK
              on      = status & ON_MASK
-             out("ezRain response status(0x" + format(status, '02x')+")");
+             out("EZRain response status(0x" + format(status, '02x')+")");
              out("\tactive valve             = " + format(valves,  'd'))
              out("\tactive program           = " + format(program, 'd'))
              out("%s%s" % ("\tprogram sequence running = ", (running == RUNNING_MASK)))
@@ -124,8 +124,8 @@ class productKeyResponseMsgHandler(MsgHandler):
             out("message is not extended")
             return 0
 
-class ezRain(Device):
-	"""==============  ezRain  ==============="""
+class EZRain(Device):
+	"""==============  EZRain  ==============="""
 	def __init__(self, name, addr):
 		Device.__init__(self, name, addr)
 		self.dbbuilder = GenericDBBuilder(addr, self.db)
@@ -146,8 +146,8 @@ class ezRain(Device):
 
 	def getPKey(self):
 		"""getPKey
-		get the ezRain Product Key
-        The ezRain is supposed to reply with an extended length Product Key 
+		get the EZRain Product Key
+        The EZRain is supposed to reply with an extended length Product Key 
         Response message but it does not work. I just get an ACK. 
         According to http://www.madreporite.com/insteon/commands.htm, a Product
         Key Response has cmd1 = 0x03, cmd2 = 0x00 and the data looks like this:
@@ -169,16 +169,16 @@ class ezRain(Device):
         bit  6:   is V8 configured for pump control
         bit  7:   a valve is ON.
         """
-		self.querier.setMsgHandler(ezRainStatusMsgHandler())
+		self.querier.setMsgHandler(EZRainStatusMsgHandler())
 		self.querier.querysd(VALVE_ON, valve)
 
 	def setValveOff(self,valve):
 		"""setValveOff(<valve number>)
         Turns the given valve off and sets it to be the active valve.
-        ezRain responds with an ACK message with cmd2 containing a status word.
+        EZRain responds with an ACK message with cmd2 containing a status word.
         See setValveOn() doc for the meaning of the status word.
         """
-		self.querier.setMsgHandler(ezRainStatusMsgHandler())
+		self.querier.setMsgHandler(EZRainStatusMsgHandler())
 		self.querier.querysd(VALVE_OFF, valve)
 
 	def skipFwd(self):
@@ -198,10 +198,10 @@ class ezRain(Device):
 	def getValveStatus(self):
 		"""getValveStatus()
         Get the status word.
-        ezRain responds with an ACK message with cmd2 containing a status word.
+        EZRain responds with an ACK message with cmd2 containing a status word.
         See setValveOn() doc for the meaning of the status word.
         """
-		self.querier.setMsgHandler(ezRainStatusMsgHandler())
+		self.querier.setMsgHandler(EZRainStatusMsgHandler())
 		self.querier.querysd(CONTROL, GET_STATUS)
 
 	def enablePump(self):
@@ -246,7 +246,7 @@ class ezRain(Device):
 		"""getTimersRequest(<program number>)
         Get the information about the timers. 
         prog can be 0-3 with 0 being the default.
-        ezRain is supposed to respond with an extended message containing the 
+        EZRain is supposed to respond with an extended message containing the 
         current valve timer bank info.
         Doesn't work. Never get a response
         """
