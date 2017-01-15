@@ -352,7 +352,7 @@ class Device:
 #   link database management
 #
 	def addController(self, addr, group, data = None):
-		"""addController(addr, group, data)
+		"""addController(addr, group[, data])
 		add device with "addr" as controller for group "group", with link data "data" """
 		data = data if data else [00, 00, group];
 		self.modifyDB(LinkRecordAdder(self, addr, group, data, True))
@@ -361,7 +361,7 @@ class Device:
 		remove device with "addr" as controller for group "group", with link data "data" """
 		self.modifyDB(LinkRecordRemover(self, addr, group, True))
 	def addResponder(self, addr, group, data = None):
-		"""addResponder(addr, group, data)
+		"""addResponder(addr, group[, data])
 		add device with "addr" as responder for group "group", with link data "data" """
 		data = data if data else [00, 00, group];
 		self.modifyDB(LinkRecordAdder(self, addr, group, data, False))
