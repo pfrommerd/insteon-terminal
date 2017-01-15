@@ -23,6 +23,12 @@ All instructions are for Ubuntu 14.04
 
     sudo apt-get install ant default-jdk librxtx-java
 
+   Note: if you are using Oracle's java version and have it installed under e.g. /usr/lib/jvm/java-8-oracle/, link the serial port library as follows (the last part of the path may vary depending on your hardware). This step is not necessary *only* if you use openjdk.
+
+    cd /usr/lib/jvm/java-8/-oracle/jre/lib/amd64
+    ln -s /usr/lib/jni/librxtxSerial.so .
+
+
 2) clone the repository:
 
     git clone https://github.com/vastsuperking/insteon-terminal.git
@@ -349,7 +355,6 @@ That's it, modem and thermostat are linked up.
 
 ## KeypadLinc 2487S
 
-
 The buttons on the Keypadlinc devices have device internal numbers that need to be provided during configuration. Moreover, when pressed each button emits a broadcast message with a different group #. For the 2487S the assignment looks like this:
 
 
@@ -630,3 +635,97 @@ replace "23.9b.65" with the address of your modem.
         ----- end ------------
 
   
+## Smoke Bridge 2982-222
+
+In the following example, the smoke bridge has address 3e.e2.c4, the modem has 23.9b.65, and my init.py has an entry like this:
+
+    smokebridge = SmokeBridge("smokebridge", "3e.e2.c4")
+
+Before anything else, do the basic linking between modem and smoke bridge via set buttons: first long press on the modem, then on the smoke bridge (double beep indicates success). Afterwards, this is how your databases should look like (ignore the values in "data"):
+
+    >>> smokebridge.getdb()
+    ...
+    0fff modem                     23.9B.65  RESP  10100010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   0
+    ...
+    >>> modem.getdb()
+    ...
+    0000 smokebridge               3E.E2.C4  CTRL  11100010 group: 01 data: 10 0a 43
+    ...
+
+Now let's hook up the modem such that it listens to the smoke bridge group messages:
+
+    >>> modem.addResponder("3e.e2.c4", 0x01, [0, 0, 0]);
+    >>> modem.addResponder("3e.e2.c4", 0x02, [0, 0, 0]);
+    >>> modem.addResponder("3e.e2.c4", 0x03, [0, 0, 0]);
+    >>> modem.addResponder("3e.e2.c4", 0x04, [0, 0, 0]);
+    >>> modem.addResponder("3e.e2.c4", 0x05, [0, 0, 0]);
+    >>> modem.addResponder("3e.e2.c4", 0x06, [0, 0, 0]);
+    >>> modem.addResponder("3e.e2.c4", 0x07, [0, 0, 0]);
+
+If all went well, you should have a modem database that looks like this ("data" values are ignored, order is unimportant):
+
+    >>> modem.getdb()
+    0000 smokebridge                    3E.E2.C4  CTRL  11100010 group: 01 data: 10 0a 43
+    0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 01 data: 00 00 00
+    0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 02 data: 00 00 00
+    0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 03 data: 00 00 00
+    0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 04 data: 00 00 00
+    0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 05 data: 00 00 00
+    0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 06 data: 00 00 00
+    0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 07 data: 00 00 00
+
+Now let's tell the smoke bridge that it controls the modem (not sure the [3,31, xxx] data fields are important, just mirroring what houselinc did):
+
+    >>> smokebridge.addController("23.9b.65", 0x01, [3, 31, 1])
+    >>> smokebridge.addController("23.9b.65", 0x02, [3, 31, 2])
+    >>> smokebridge.addController("23.9b.65", 0x03, [3, 31, 3])
+    >>> smokebridge.addController("23.9b.65", 0x04, [3, 31, 4])
+    >>> smokebridge.addController("23.9b.65", 0x05, [3, 31, 5])
+    >>> smokebridge.addController("23.9b.65", 0x06, [3, 31, 6])
+    >>> smokebridge.addController("23.9b.65", 0x07, [3, 31, 7])
+
+This is what the resulting database should look like:
+
+    >>> smokebridge.getdb()
+    0fff test_modem                     23.9B.65  RESP  10100010 group: 01 ON LVL: 255 RMPRT:  28 BUTTON:   0
+    0ff7 test_modem                     23.9B.65  CTRL  11100010 group: 01 ON LVL:   3 RMPRT:  31 BUTTON:   1
+    0fef test_modem                     23.9B.65  CTRL  11100010 group: 02 ON LVL:   3 RMPRT:  31 BUTTON:   2
+    0fe7 test_modem                     23.9B.65  CTRL  11100010 group: 03 ON LVL:   3 RMPRT:  31 BUTTON:   3
+    0fdf test_modem                     23.9B.65  CTRL  11100010 group: 04 ON LVL:   3 RMPRT:  31 BUTTON:   4
+    0fd7 test_modem                     23.9B.65  CTRL  11100010 group: 05 ON LVL:   3 RMPRT:  31 BUTTON:   5
+    0fcf test_modem                     23.9B.65  CTRL  11100010 group: 06 ON LVL:   3 RMPRT:  31 BUTTON:   6
+    0fc7 test_modem                     23.9B.65  CTRL  11100010 group: 07 ON LVL:   3 RMPRT:  31 BUTTON:   7
+    0fbf 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
+
+Now one little test if everything works fine. Put the modem into "watch" mode:
+
+    modem.startWatch()
+       
+And short-press the set button on the modem. You should get a bunch of messages like this:
+
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:00.00.01|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x11|command2:0x80|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:23.9B.65|messageFlags:0x41=ALL_LINK_CLEANUP:1:0|command1:0x11|command2:0x01|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:11.01.01|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x06|command2:0x00|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:00.00.02|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x11|command2:0x40|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:23.9B.65|messageFlags:0x41=ALL_LINK_CLEANUP:1:0|command1:0x11|command2:0x02|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:11.01.02|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x06|command2:0x00|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:00.00.06|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x11|command2:0x10|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:23.9B.65|messageFlags:0x41=ALL_LINK_CLEANUP:1:0|command1:0x11|command2:0x06|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:11.01.06|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x06|command2:0x00|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:00.00.07|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x11|command2:0x08|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:23.9B.65|messageFlags:0x41=ALL_LINK_CLEANUP:1:0|command1:0x11|command2:0x07|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:11.01.07|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x06|command2:0x00|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:00.00.05|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x11|command2:0x00|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:23.9B.65|messageFlags:0x41=ALL_LINK_CLEANUP:1:0|command1:0x11|command2:0x05|
+    modem got msg: IN:Cmd:0x50|fromAddress:3E.E2.C4|toAddress:11.01.05|messageFlags:0xCB=ALL_LINK_BROADCAST:3:2|command1:0x06|command2:0x00|
+
+You can see that the bridge sends broadcasts to the groups 0x01, 0x02, 0x06, 0x07, 0x05 (in that order). From the developer notes, this maps to the following conditions:
+
+- smoke:         0x01
+- CO:            0x02
+- test:          0x03
+- unknown:       0x04
+- clear:         0x05
+- low battery:   0x06
+- error:         0x07
+

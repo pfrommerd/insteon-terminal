@@ -391,8 +391,19 @@ class Device:
 		"""setOnLevelResponder(addr, group, level, ramprate = 28, button = 1)
 		sets (on level, ramp rate, button) for controller with "addr" and group "group" """
 		self.modifyDB(OnLevelModifier(self, addr, group, level, ramprate, button, False))
-	def enterLinkingMode(self):
-		"""enterLinkingMode()
+	def enterLinkingMode(self, group):
+		"""enterLinkingMode(group)
 		causes the device to enter linking mode"""
-		self.querier.setMsgHandler(MsgHandler("linking mode"))
-		self.querier.querysd(0x09, 0x01);
+		self.querier.setMsgHandler(MsgHandler("enter linking mode"))
+		self.querier.querysd(0x09, group);
+	def exitLinkingMode(self):
+		"""exitLinkingMode()
+		causes the device to exit linking mode"""
+		self.querier.setMsgHandler(MsgHandler("exit linking mode"))
+		self.querier.querysd(0x08, 0x01);
+	def enterUnlinkingMode(self, group):
+		"""enterUnlinkingMode(group)
+		causes the device to enter unlinking mode"""
+		self.querier.setMsgHandler(MsgHandler("enter unlinking mode"))
+		self.querier.querysd(0x0A, group);
+
