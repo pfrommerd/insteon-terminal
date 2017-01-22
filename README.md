@@ -661,6 +661,7 @@ Now let's hook up the modem such that it listens to the smoke bridge group messa
     >>> modem.addResponder("3e.e2.c4", 0x05, [0, 0, 0]);
     >>> modem.addResponder("3e.e2.c4", 0x06, [0, 0, 0]);
     >>> modem.addResponder("3e.e2.c4", 0x07, [0, 0, 0]);
+    >>> modem.addResponder("3e.e2.c4", 0x0a, [0, 0, 0]);
 
 If all went well, you should have a modem database that looks like this ("data" values are ignored, order is unimportant):
 
@@ -673,6 +674,7 @@ If all went well, you should have a modem database that looks like this ("data" 
     0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 05 data: 00 00 00
     0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 06 data: 00 00 00
     0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 07 data: 00 00 00
+    0000 smokebridge                    3E.E2.C4  RESP  10100010 group: 0a data: 00 00 00
 
 Now let's tell the smoke bridge that it controls the modem (not sure the [3,31, xxx] data fields are important, just mirroring what houselinc did):
 
@@ -683,6 +685,7 @@ Now let's tell the smoke bridge that it controls the modem (not sure the [3,31, 
     >>> smokebridge.addController("23.9b.65", 0x05, [3, 31, 5])
     >>> smokebridge.addController("23.9b.65", 0x06, [3, 31, 6])
     >>> smokebridge.addController("23.9b.65", 0x07, [3, 31, 7])
+    >>> smokebridge.addController("23.9b.65", 0x0a, [3, 31, 0x0a])
 
 This is what the resulting database should look like:
 
@@ -695,6 +698,7 @@ This is what the resulting database should look like:
     0fd7 test_modem                     23.9B.65  CTRL  11100010 group: 05 ON LVL:   3 RMPRT:  31 BUTTON:   5
     0fcf test_modem                     23.9B.65  CTRL  11100010 group: 06 ON LVL:   3 RMPRT:  31 BUTTON:   6
     0fc7 test_modem                     23.9B.65  CTRL  11100010 group: 07 ON LVL:   3 RMPRT:  31 BUTTON:   7
+    0fbf test_modem                     23.9B.65  CTRL  11100010 group: 0a ON LVL:   3 RMPRT:  31 BUTTON:  10
     0fbf 00.00.00                       00.00.00 (RESP) 00000000 group: 00 ON LVL:   0 RMPRT:   0 BUTTON:   0
 
 Now one little test if everything works fine. Put the modem into "watch" mode:
@@ -728,4 +732,4 @@ You can see that the bridge sends broadcasts to the groups 0x01, 0x02, 0x06, 0x0
 - clear:         0x05
 - low battery:   0x06
 - error:         0x07
-
+- heartbeat:     0x0A
