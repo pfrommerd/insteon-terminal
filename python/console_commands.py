@@ -96,19 +96,6 @@ def connectToSerial(dev):
 	except IOException as e:
 		err(e.getMessage())
 
-def connectToEmulator():
-	"""connectToEmulator() connects to an emulator and returns the emulator"""
-	print("Connecting")
-
-	try:
-		emu = iofun.connectToEmulator()
-		
-		print("Connected")
-		return emu
-	except IOException as e:
-		err(e.getMessage())
-		return None
-
 def disconnect():
 	"""disconnects from serial port or hub"""
 	iofun.disconnect()
