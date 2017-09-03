@@ -4,6 +4,8 @@ build
 *~
 *.class
 
+nrjavaserial.jar
+
 init.py
-/backup.db
+backup.db
 insteon-terminal.log
