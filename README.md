@@ -23,11 +23,6 @@ All instructions are for Ubuntu 14.04
 
     sudo apt-get install ant default-jdk
 
-   Note: Older versions of this tool use rxtx/nrjavaserial. As of 11/22/2017 the serial backend now uses the JSerialComm library. If you are using the older, rxtx version you need to link the serial port libraries if are using Oracle's java version and have it installed under e.g. /usr/lib/jvm/java-8-oracle/. Link the serial port library as follows (the last part of the path may vary depending on your hardware). This step is not necessary *only* if you use openjdk.
-
-    cd /usr/lib/jvm/java-8/-oracle/jre/lib/amd64
-    ln -s /usr/lib/jni/librxtxSerial.so .
-
 2) clone the repository:
 
     git clone https://github.com/vastsuperking/insteon-terminal.git
