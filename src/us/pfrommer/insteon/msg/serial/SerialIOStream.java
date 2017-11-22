@@ -32,9 +32,15 @@ public class SerialIOStream implements IOStream {
             m_port.setComPortParameters(m_speed, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
             m_port.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
             m_port.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
-            m_port.openPort();
-            m_in = m_port.getInputStream();
-            m_out = m_port.getOutputStream();
+            if (m_port.openPort()) {
+                m_in = m_port.getInputStream();
+                m_out = m_port.getOutputStream();
+            } else {
+                m_port = null;
+                throw new IOException("IO Error, could not open port: " + m_devName);
+            }
+        } catch(IOException e) {
+            throw e;
         } catch (Exception e) {
             throw new IOException(e);
         }
