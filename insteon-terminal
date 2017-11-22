@@ -1,7 +1,7 @@
 #!/bin/bash
 
 jar_file=build/jars/insteon-terminal.jar
-path="${jar_file}:lib/*:lib/hub/*:lib/logger/*"
+path="${jar_file}"
 
 if [ ! -f $jar_file ];
 then
