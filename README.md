@@ -31,7 +31,7 @@ All instructions are for Ubuntu 14.04
 
 2) clone the repository:
 
-    git clone https://github.com/vastsuperking/insteon-terminal.git
+    git clone https://github.com/pfrommerd/insteon-terminal.git
 
 3) create your custom init.py
 
