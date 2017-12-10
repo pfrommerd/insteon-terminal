@@ -19,15 +19,9 @@ After some refactoring in the core terminal code, I realized I had made a mistak
 # Getting started
 All instructions are for Ubuntu 14.04
 
-1) install ant, java jdk, and the java rxtx library:
+1) install ant, java jdk
 
-    sudo apt-get install ant default-jdk librxtx-java
-
-   Note: if you are using Oracle's java version and have it installed under e.g. /usr/lib/jvm/java-8-oracle/, link the serial port library as follows (the last part of the path may vary depending on your hardware). This step is not necessary *only* if you use openjdk.
-
-    cd /usr/lib/jvm/java-8/-oracle/jre/lib/amd64
-    ln -s /usr/lib/jni/librxtxSerial.so .
-
+    sudo apt-get install ant default-jdk
 
 2) clone the repository:
 

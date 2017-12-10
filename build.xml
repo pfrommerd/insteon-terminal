@@ -7,24 +7,12 @@
     <property name="jars.dir"            value="build/jars"/>
     <property name="install-build.dir"   value="build/install"/>
 
-    <property name="install.dir" value="user/share/insteon-terminal"/>
-
     <property name="libs.dir"            value="lib"/>
 
     <property name="main.class" value="us.pfrommer.insteon.terminal.Main"/>
 
     <path id="master-classpath">
-      <fileset dir="${libs.dir}">
-	<include name="*.jar"/>
-      </fileset>
-
-      <fileset dir="${libs.dir}/hub">
-	<include name="*.jar"/>
-      </fileset>
-
-      <fileset dir="${libs.dir}/logger">
-	<include name="*.jar"/>
-      </fileset>
+        <fileset dir="${libs.dir}" includes="**/*.jar"/>
     </path>
 
     <!-- Targets -->
@@ -33,8 +21,8 @@
     <target name="clean">
       <delete dir="${bin.dir}"/>
       <delete>
-	<fileset dir="${python.dir}" includes="**/*.class"/>
-	<fileset dir="${jars.dir}" includes="**/*.jar"/>
+    	<fileset dir="${python.dir}" includes="**/*.class"/>
+    	<fileset dir="${jars.dir}" includes="**/*.jar"/>
       </delete>
     </target>
 
@@ -54,7 +42,8 @@
     <target name="jar" depends="compile">
       <mkdir dir="${jars.dir}"/>
       <jar destfile="${jars.dir}/insteon-terminal.jar" basedir="${bin.dir}">
-	<manifest>
+        <zipgroupfileset dir="${libs.dir}" includes="**/*.jar"/>
+    	<manifest>
           <attribute name="Main-Class" value="${main.class}"/>
         </manifest>
       </jar>
@@ -68,19 +57,4 @@
 	</classpath>
       </java>
     </target>
-
-    <!-- Targets for packaging/installing -->
-    <target name="build-install" depends="jar">
-      <mkdir dir="${build-install.dir}/${install.dir}"/>
-      
-    </target>
-
-
-    <target name="deb">
-      
-    </target>
-
-    <!-- Targets for installing -->
-
-    
 </project>

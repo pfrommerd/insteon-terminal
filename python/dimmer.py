@@ -4,6 +4,7 @@
 #
 import iofun
 import message
+from querier import MsgHandler
 
 from us.pfrommer.insteon.msg import InsteonAddress
 from light import Light
@@ -22,6 +23,18 @@ class Dimmer(Light):
 		switch light off fast"""
 		iofun.writeMsg(message.createStdMsg(
 			InsteonAddress(self.getAddress()), 0x0F, 0x14, 0x00, -1))
+
+        def setButtonOnLevel(self, level=0xFF, button=0x01):
+		"""setButtonOnLevel(level=0xFF, button=0x01)
+		sets the on level for a button to the specified level (between 0x00 and 0xFF) """
+		self.querier.setMsgHandler(MsgHandler("set button on level"))
+		self.querier.queryext(0x2E, 0x00, [button, 0x06, level])
+
+        def setButtonRampRate(self, rate=0x1f, button=0x01):
+		"""setButtonRampRate(rate=0x1F, button=0x01)
+		sets the on level for a button to the specified level (between 0x00 and 0xFF) """
+		self.querier.setMsgHandler(MsgHandler("set button ramp rate"))
+		self.querier.queryext(0x2E, 0x00, [button, 0x05, rate])
 
 	def incrementalBright(self):
 		"""incrementalBright()
