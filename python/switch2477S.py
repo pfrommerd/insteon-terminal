@@ -47,4 +47,3 @@ class Switch2477S(Switch):
 		remotely holds the set button for 3 seconds"""
 		self.querier.setMsgHandler(DefaultMsgHandler("remotely held set button"))
 		self.querier.querysd(0x10, 0x00)
-		

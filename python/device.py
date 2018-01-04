@@ -396,6 +396,11 @@ class Device:
 		causes the device to enter linking mode"""
 		self.querier.setMsgHandler(MsgHandler("enter linking mode"))
 		self.querier.querysd(0x09, group);
+	def enterLinkingModeExtended(self, group):
+		"""enterLinkingModeExtended(group)
+		causes the device to enter linking mode (for i2CS devices)"""
+		self.querier.setMsgHandler(MsgHandler("enter linking mode extended"))
+		self.querier.queryext(0x09, group, []);
 	def exitLinkingMode(self):
 		"""exitLinkingMode()
 		causes the device to exit linking mode"""
