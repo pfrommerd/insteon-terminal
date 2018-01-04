@@ -30,7 +30,7 @@ public class SerialIOStream implements IOStream {
 		try {
             m_port = SerialPort.getCommPort(m_devName);
             m_port.setComPortParameters(m_speed, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
-            m_port.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
+            m_port.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 100, 0);
             m_port.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
             if (m_port.openPort()) {
                 m_in = m_port.getInputStream();
