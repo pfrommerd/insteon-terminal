@@ -197,6 +197,10 @@ public class Msg {
 	public boolean isAckOfDirect() {
 		return isOfType(MsgType.ACK_OF_DIRECT);
 	}
+  
+	public boolean isNackOfDirect() {
+		return isOfType(MsgType.NACK_OF_DIRECT);
+	}
 	
 	public boolean isX10() {
 		try {

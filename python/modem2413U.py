@@ -95,6 +95,13 @@ class Modem2413U(Device):
 		self.dbbuilder.wait()
 		self.dbbuilder.dumpDB()
 		out("Modem Link DB complete")
+	def readdb(self):
+		"""readdb()
+		download the modem database and return it"""
+		self.dbbuilder.start()
+		self.dbbuilder.wait()
+		out("Modem Link DB complete!")
+		return self.dbbuilder.getdb()
 	def startWatch(self):
 		"""startWatch()
 		modem will print all incoming messages on terminal"""
