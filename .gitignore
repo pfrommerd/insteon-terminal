@@ -1,10 +1,5 @@
-bin
-build
-
 *~
-*.class
-
-nrjavaserial.jar
+*.pyc
 
 init.py
 backup.db

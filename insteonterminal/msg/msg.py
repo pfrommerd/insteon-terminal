@@ -24,12 +24,39 @@ class MsgType(Enum):
     ALL_LINK_CLEANUP_NACK = 0xe0
     INVALID = 0xff
 
+def buffer_get_field(buf, field):
+    if field[1] == DataType.BYTE:
+        return struct.unpack('c', data[field[0]:field[0]+1])[0]
+    elif field[1] == DataType.INT:
+        return struct.unpack('i', data[field[0]:field[0]+4])[0]
+    elif field[1] == DataType.FLOAT:
+        return struct.unpack('f', data[field[0]:field[0]+4])[0]
+    elif field[1] == DataType.ADDRESS:
+        return (struct.unpack('c', data[field[0]:field[0]+1])[0],
+                struct.unpack('c', data[field[0]+1:field[0]+2])[0],
+                struct.unpack('c', data[field[0]+2:field[0]+3])[0])
+    else:
+        return None
+
+def buffer_set_field(buf, field, value):
+    if field[1] == DataType.BYTE:
+        buf[field[0]] = struct.pack('c',value)
+    elif field[1] == DataType.INT:
+        buf[field[0]:field[0]+4] = struct.pack('i', value)
+    elif field[1] == DataType.FLOAT:
+        buf[field[0]:field[0]+4] = struct.pack('f', value)
+    elif field[1] == DataType.ADDRESS:
+        buf[field[0]] = struct.pack('c', value[0])[0]
+        buf[field[0] + 1] = struct.pack('c', value[1])[0]
+        buf[field[0] + 2] = struct.pack('c', value[2])[0]
+
 class MsgDef:
     name = ""
+    length = 0
     fields_map = {}
     fields_list = []
-    length = 0
     header_length = 0
+    header_filters = {}
 
     def __init__(self, name=''):
         self.name = name
@@ -73,31 +100,6 @@ class Msg:
     def command_code(self):
         return -1 if len(data) < 2 else data[1]
 
-    def get_field(self, field):
-        if field[1] == DataType.BYTE:
-            return struct.unpack('c', data[field[0]:field[0]+1])[0]
-        elif field[1] == DataType.INT:
-            return struct.unpack('i', data[field[0]:field[0]+4])[0]
-        elif field[1] == DataType.FLOAT:
-            return struct.unpack('f', data[field[0]:field[0]+4])[0]
-        elif field[1] == DataType.ADDRESS:
-            return (struct.unpack('c', data[field[0]:field[0]+1])[0],
-                    struct.unpack('c', data[field[0]+1:field[0]+2])[0],
-                    struct.unpack('c', data[field[0]+2:field[0]+3])[0])
-        else:
-            return None
-
-    def set_field(self, field, value):
-        if field[1] == DataType.BYTE:
-            self.data[field[0]] = struct.pack('c',value)
-        elif field[1] == DataType.INT:
-            self.data[field[0]:field[0]+4] = struct.pack('i', value)
-        elif field[1] == DataType.FLOAT:
-            self.data[field[0]:field[0]+4] = struct.pack('f', value)
-        elif field[1] == DataType.ADDRESS:
-            self.data[field[0]] = struct.pack('c', value[0])[0]
-            self.data[field[0] + 1] = struct.pack('c', value[1])[0]
-            self.data[field[0] + 2] = struct.pack('c', value[2])[0]
 
     def get(self, field_name):
         if field in self.definition.fields_map:
