@@ -2,9 +2,9 @@ from enum import Enum
 import struct
 
 class Direction(Enum):
-    TO_MODEM = 'to_modem'
-    FROM_MODEM = 'from_modem'
-    INVALID = 'invalid'
+    TO_MODEM = 'TO_MODEM'
+    FROM_MODEM = 'FROM_MODEM'
+    INVALID = 'INVALID'
 
 class DataType(Enum):
     BYTE = 1
@@ -52,24 +52,24 @@ def buffer_set_field(buf, field, value):
 
 class MsgDef:
     name = ""
+    header_length = 0
     length = 0
+    # The filter format is (offset, type, name, default_val)
     fields_map = {}
     fields_list = []
-    header_length = 0
-    header_filters = {}
 
     def __init__(self, name=''):
         self.name = name
 
-    def append_field(self, data_type, name):
+    def append_field(self, data_type, name, default_value): # Changes the length
         offset = self.length
 
         field_len = data_type.value
         self.length = self.length + field_len
 
         # Add to the map
-        self.fields_map[name] = (offset, data_type, name)
-        self.fields_list.append( (offset, data_type, name) )
+        self.fields_map[name] = (offset, data_type, name, default_value)
+        self.fields_list.append( (offset, data_type, name, default_value) )
 
     def contains_field(self, name):
         return name in self.fields_map
@@ -77,44 +77,23 @@ class MsgDef:
     def get_field(self, name):
         return self.fields_map[name]
 
-class Msg:
-    data = bytearray()
-    direction = Direction.TO_MODEM
-    definition = MsgDef()
-    quiet_time = 0 # The time of no-IO that this message requires
+    def deserialize(self, buf):
+        m = {}
+        for f in fields_list:
+            val = buffer_get_field(buf, f)
+            m[f[2]] = val
 
-    # Msg can either be a definition or a msg to copy from
-    def __init__(self, msg, direction=Direction.TO_MODEM): 
-        if isinstance(msg, Msg):
-            # Copy constructor
-            self.data[:] = msg.data
-            self.direction = msg.direction
-            self.definition = msg.definition
-            self.quiet_time = msg.quiet_time
-        elif isinstance(msg, MsgDef):
-            self.definition = msg
-            self.direction = direction
-            self.data = bytearray(msg.length)
+    def serialize(self, msg):
+        buf = bytearray(self.length)
+        for f in fields_list:
+            val = msg[f[2]] if f[2] in msg else f[3]
+            if val is not None:
+                buffer_set_field(buf, f, val)
 
-    @property
-    def command_code(self):
-        return -1 if len(data) < 2 else data[1]
+class MsgStreamEncoder:
+    pass
 
+class MsgStreamDecoder:
+    buf = bytearray()
+    pass
 
-    def get(self, field_name):
-        if field in self.definition.fields_map:
-            return self.get_field(self.definitions.fields_map[field])
-        else:
-            return None
-
-    def __len__(self):
-        return len(self.data)
-
-    def __repr__(self):
-        s = 'OUT:' if self.direction == Direction.TO_MODEM else 'IN:'
-        for f in self.definition.fields_list:
-            if f.name == 'messageFlags':
-                s = s + f[2] + ':' + self.get(f.name)
-            else:
-                s = s + f[2] + ':' + self.get(f.name)
-            s = s + '|'
