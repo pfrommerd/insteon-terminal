@@ -1,6 +1,6 @@
 from xml.dom import minidom
 
-from .msg import MsgDef, Direction
+from .msg import MsgDef, Direction, DataType
 
 
 def read_xml(filename):
@@ -21,10 +21,10 @@ def process_xmltree(xmldoc):
 # Returns a message
 def process_msgdef_elem(elem):
     msg_name = elem.attributes['name'].value
-    msg_length = elem.attributes['length'].value
+    msg_length = int(elem.attributes['length'].value)
     msg_direction = Direction.FROM_MODEM if elem.attributes['direction'].value == 'FROM_MODEM' else Direction.TO_MODEM
 
-    msg_def = MsgDef(msg_name)
+    msg_def = MsgDef(msg_name, msg_direction)
 
     headers = elem.getElementsByTagName('header')
     if len(headers) > 1:
@@ -40,9 +40,30 @@ def process_msgdef_elem(elem):
             lambda x: isinstance(x,minidom.Element) and x.tagName != 'header',
             elem.childNodes):
         process_field_elem(n, msg_def)
+
+    if msg_length != msg_def.length:
+        raise ValueError('Msg length and configured length not the same: {} vs {}'.format(msg_length,msg_def.length))
         
     return (elem.attributes['name'].value, msg_def)
 
 def process_field_elem(field_elem, msgdef):
-    pass
-
+    typename = field_elem.tagName
+    type_ = None
+    name = None
+    value = None
+    if 'name' in field_elem.attributes:
+        name = field_elem.attributes['name']
+    if field_elem.firstChild and field_elem.firstChild.nodeValue:
+        value = bytes.fromhex(field_elem.firstChild.nodeValue[2:])[0]
+    if typename == "byte":
+        type_ = DataType.BYTE
+    elif typename == "int":
+        type_ = DataType.INT
+    elif typename == "float":
+        type_ = DataType.FLOAT
+    elif typename == "address":
+        type_ = DataType.ADDRESS
+    else:
+        type_ = DataType.INVALID
+    
+    msgdef.append_field(type_, name, value)

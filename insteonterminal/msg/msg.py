@@ -54,12 +54,14 @@ class MsgDef:
     name = ""
     header_length = 0
     length = 0
+    direction = Direction.FROM_MODEM
     # The filter format is (offset, type, name, default_val)
     fields_map = {}
     fields_list = []
 
-    def __init__(self, name=''):
+    def __init__(self, name='', direction=Direction.TO_MODEM):
         self.name = name
+        self.direction = direction
 
     def append_field(self, data_type, name, default_value): # Changes the length
         offset = self.length
@@ -68,7 +70,8 @@ class MsgDef:
         self.length = self.length + field_len
 
         # Add to the map
-        self.fields_map[name] = (offset, data_type, name, default_value)
+        if name:
+            self.fields_map[name] = (offset, data_type, name, default_value)
         self.fields_list.append( (offset, data_type, name, default_value) )
 
     def contains_field(self, name):
@@ -86,9 +89,19 @@ class MsgDef:
     def serialize(self, msg):
         buf = bytearray(self.length)
         for f in fields_list:
-            val = msg[f[2]] if f[2] in msg else f[3]
+            val = msg[f[2]] if f[2] is not None and f[2] in msg else f[3]
             if val is not None:
                 buffer_set_field(buf, f, val)
+
+    def __str__(self):
+        s = self.direction.value
+        for f in fields_list:
+            if f[2]:
+                if f[3]:
+                    s += f[2] + ':' + f[3] + '|'
+                else:
+                    s += f[2] + '|'
+        return s
 
 class MsgStreamEncoder:
     pass
