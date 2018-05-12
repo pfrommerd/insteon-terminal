@@ -14,7 +14,7 @@ def process_xmltree(xmldoc):
     elems = xmldoc.getElementsByTagName('msg')
     for m in elems:
         d = process_msgdef_elem(m)
-        results[d[0]] = d[1]
+        results[d.name] = d
 
     return results
 
@@ -44,17 +44,21 @@ def process_msgdef_elem(elem):
     if msg_length != msg_def.length:
         raise ValueError('Msg length and configured length not the same: {} vs {}'.format(msg_length,msg_def.length))
         
-    return (elem.attributes['name'].value, msg_def)
+    return msg_def
 
 def process_field_elem(field_elem, msgdef):
     typename = field_elem.tagName
     type_ = None
     name = None
     value = None
+    filter_ = None
+
     if 'name' in field_elem.attributes:
-        name = field_elem.attributes['name']
+        name = field_elem.attributes['name'].value
+
     if field_elem.firstChild and field_elem.firstChild.nodeValue:
         value = bytes.fromhex(field_elem.firstChild.nodeValue[2:])[0]
+
     if typename == "byte":
         type_ = DataType.BYTE
     elif typename == "int":
@@ -65,5 +69,16 @@ def process_field_elem(field_elem, msgdef):
         type_ = DataType.ADDRESS
     else:
         type_ = DataType.INVALID
+
+    if 'filter' in field_elem.attributes:
+        filter_type = field_elem.attributes['filter'].value
+        if filter_type == 'equals_default':
+            filter_ = lambda x: x == value
+        elif filter_type.startswith('bitset'):
+            bit = int(filter_type.split(':')[1])
+            filter_ = lambda x: x & (1 << bit) > 0
+        elif filter_type.startswith('bitunset'):
+            bit = int(filter_type.split(':')[1])
+            filter_ = lambda x: x & (1 << bit) == 0
     
-    msgdef.append_field(type_, name, value)
+    msgdef.append_field(type_, name, value, filter_)
