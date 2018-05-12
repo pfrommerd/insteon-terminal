@@ -4,9 +4,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import traceback
 
-from insteonterminal.msg.msg import Direction,DataType,MsgDef,MsgStreamDecoder,MsgStreamEncoder
+from insteon.msg.msg import Direction,DataType,MsgDef,MsgStreamDecoder,MsgStreamEncoder
 
-import insteonterminal.msg.xmlmsgreader as xmlreader
+import insteon.msg.xmlmsgreader as xmlreader
 
 definitions = xmlreader.read_xml(os.path.join(os.path.dirname(__file__),'../res/msg_definitions.xml'))
 

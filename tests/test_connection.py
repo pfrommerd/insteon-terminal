@@ -6,10 +6,10 @@ import serial
 import time
 import threading
 
-from insteonterminal.msg.port import *
-from insteonterminal.msg.msg import *
+from insteon.msg.port import *
+from insteon.msg.msg import *
 
-import insteonterminal.msg.xmlmsgreader as xmlreader
+import insteon.msg.xmlmsgreader as xmlreader
 
 definitions = xmlreader.read_xml(os.path.join(os.path.dirname(__file__),'../res/msg_definitions.xml'))
 
@@ -17,17 +17,14 @@ conn = serial.Serial('/dev/ttyUSB0', 19200, timeout=0.1, parity=serial.PARITY_NO
 
 
 port = Port(conn, definitions)
-port.add_read_listener(print)
-port.add_write_listener(print)
+port.add_read_listener(lambda x: print('Read: {}'.format(x)))
+port.add_write_listener(lambda x: print('Wrote: {}'.format(x)))
 
 msg = definitions['CancelALLLinking'].create()
-
-time.sleep(0.1)
 
 acked = threading.Event()
 port.write(msg,ack_reply_event=acked)
 acked.wait()
-
-time.sleep(10)
+print('Reply: {}'.format(acked.msg))
 
 port.detach()

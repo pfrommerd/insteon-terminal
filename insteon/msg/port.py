@@ -5,7 +5,7 @@ import copy
 
 import time
 
-import insteonterminal.msg.msg as message
+from . import msg as message
 
 # Takes a connection object that has read(), write(), flush(), and close() methods
 class Port:
@@ -50,18 +50,20 @@ class Port:
 
     def detach(self):
         if self._reader:
-            self._reader.join()
+            r = self._reader
             self._reader = None
+            r.join()
         if self._writer:
-            self._writer.join()
+            w = self._writer
             self._writer = None
+            w.join()
         self._conn = None
 
     def add_read_listener(self, handler):
         with self._read_listeners_lock:
             self._read_listeners.append(handler)
 
-    def remove_read_handler(self, handler):
+    def remove_read_listener(self, handler):
         with self._read_listeners_lock:
             self._read_listeners.remove(handler)
 
@@ -78,7 +80,7 @@ class Port:
 
     def _read_thread(self):
         decoder = message.MsgStreamDecoder(self._definitions)
-        while self._conn:
+        while self._reader:
             try:
                 buf = self._conn.read(1024) # Read as much as possible
                 if len(buf) < 1:
@@ -107,16 +109,23 @@ class Port:
 
                     # Notify the any_reply waiters so the
                     # write thread does the resend
+
+                    # Hack in the msg to the any_reply event
+                    self._written_message[4].msg = msg
                     self._written_message[4].set()
             else:
                 # Notify the any_reply waiters, so that the
                 # write thread can move on to the next message
                 with self._written_message_lock:
+                    # Hack in the message to the any_reply event
+                    self._written_message[4].msg = msg
                     self._written_message[4].set()
 
                 # Notify anyone waiting on the ack reply waiters
                 with self._ack_reply_waiters_lock:
                     if msg['type'] in self._ack_reply_waiters:
+                        # Hack in the message to the ack_reply event
+                        self._ack_reply_waiters[msg['type']].msg = msg
                         self._ack_reply_waiters[msg['type']].set()
             
             # Notify listeners
@@ -129,7 +138,7 @@ class Port:
 
     def _write_thread(self):
         encoder = message.MsgStreamEncoder(self._definitions)
-        while self._conn:
+        while self._writer:
             try:
                 queue_item = self._write_queue.get(timeout=0.1)
             except queue.Empty:
@@ -173,6 +182,9 @@ class Port:
 
                 # Trigger the write event
                 if write_event:
+                    # Hack in the message into
+                    # the write event
+                    write_event.msg = msg
                     write_event.set()
 
                 # Notify the listeners of the write
