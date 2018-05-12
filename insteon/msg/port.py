@@ -80,7 +80,7 @@ class Port:
 
     def _read_thread(self):
         decoder = message.MsgStreamDecoder(self._definitions)
-        while self._reader:
+        while self._reader or threading.current_thread().override_kill:
             try:
                 buf = self._conn.read(1024) # Read as much as possible
                 if len(buf) < 1:
@@ -138,7 +138,7 @@ class Port:
 
     def _write_thread(self):
         encoder = message.MsgStreamEncoder(self._definitions)
-        while self._writer:
+        while self._writer or threading.current_thread().override_kill:
             try:
                 queue_item = self._write_queue.get(timeout=0.1)
             except queue.Empty:
