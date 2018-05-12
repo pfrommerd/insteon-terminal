@@ -9,12 +9,18 @@ class Commands:
     def help():
         print('Welcome to the Insteon Terminal')
 
+    def quit():
+        term.unload_modules()
+        term.kill_background_threads()
+
+        sys.exit(0)
+
     def load_config(filename):
         term.load_file(filename)
 
     def reload():
-        term.kill_background_threads()
         term.unload_modules()
+        term.kill_background_threads()
         # Now setup again
         term.setup_locals()
         term.load_sys_config()
@@ -59,9 +65,8 @@ class InsteonTerminal:
             if module.startswith('insteon.') and module != 'insteon.terminal':
                 del sys.modules[module]
 
-
     def interact(self):
-        self._shell.interact(banner="Welcome to the Insteon Terminal!")
+        self._shell.interact(banner="Welcome to the Insteon Terminal!", exitmsg='')
 
 if __name__=="__main__":
     term = InsteonTerminal()

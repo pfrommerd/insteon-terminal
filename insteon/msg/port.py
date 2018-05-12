@@ -7,10 +7,12 @@ import time
 
 from . import msg as message
 
+from .. import util as util
+
 # Takes a connection object that has read(), write(), flush(), and close() methods
 class Port:
     def __init__(self, conn=None, definitions={}):
-        self._definitions = definitions
+        self.defs = definitions
 
         self._ack_reply_waiters_lock = threading.RLock()
         self._ack_reply_waiters = {} # A map of message type to waiter events (usually for replies)
@@ -35,6 +37,8 @@ class Port:
         if conn:
             self.attach(conn)
 
+    def __del__(self):
+        self.detach()
 
     def attach(self, conn):
         if self._conn:
@@ -43,7 +47,9 @@ class Port:
         # Start threads
         self._conn = conn
         self._reader = threading.Thread(target=self._read_thread)
+        self._reader.override_kill = False
         self._writer = threading.Thread(target=self._write_thread)
+        self._writer.override_kill = False
 
         self._reader.start()
         self._writer.start()
@@ -75,12 +81,12 @@ class Port:
         with self._write_listeners_lock:
             self._write_listeners.remove(handler)
 
-    def write(self, msg, priority=0, write_event=None, ack_reply_event=None, any_reply_event=None):
+    def write(self, msg, write_event=None, ack_reply_event=None, any_reply_event=None, priority=0):
         self._write_queue.put( (priority, msg, write_event, ack_reply_event, any_reply_event) )
 
     def _read_thread(self):
-        decoder = message.MsgStreamDecoder(self._definitions)
-        while self._reader or threading.current_thread().override_kill:
+        decoder = message.MsgStreamDecoder(self.defs)
+        while self._reader and not threading.current_thread().override_kill:
             try:
                 buf = self._conn.read(1024) # Read as much as possible
                 if len(buf) < 1:
@@ -95,6 +101,7 @@ class Port:
             except Exception as e:
                 print('Error reading!')
                 print(traceback.format_exc())
+                continue
 
             # Only notify the reply waiters if this isn't a pure nack
             # if it is a pure nack we need to request a resend and
@@ -137,8 +144,8 @@ class Port:
                 l(msg)
 
     def _write_thread(self):
-        encoder = message.MsgStreamEncoder(self._definitions)
-        while self._writer or threading.current_thread().override_kill:
+        encoder = message.MsgStreamEncoder(self.defs)
+        while self._writer and not threading.current_thread().override_kill:
             try:
                 queue_item = self._write_queue.get(timeout=0.1)
             except queue.Empty:
@@ -153,12 +160,12 @@ class Port:
                 # Put the reply event into the map
                 # TODO: Reply type should be a passable parameter (if None no reply is expected)
                 ack_reply_type = msg['type'] + 'Reply'
-                if ack_reply_type in self._definitions and queue_item[3]:
+                if ack_reply_type in self.defs and queue_item[3]:
                     ack_reply_event = queue_item[3]
                     with self._ack_reply_waiters_lock:
                         self._ack_reply_waiters[ack_reply_type] = ack_reply_event
 
-                any_reply_event = queue_item[4] if queue_item[4] else threading.Event()
+                any_reply_event = queue_item[4] if queue_item[4] else util.Event()
                 queue_item = (queue_item[0], queue_item[1],
                                 queue_item[2], queue_item[3],
                                 any_reply_event) # We need this definitely to be called by the reader
@@ -179,6 +186,7 @@ class Port:
                     # TODO: Make logging
                     print('Error writing message!')
                     print(traceback.format_exc())
+                    continue
 
                 # Trigger the write event
                 if write_event:
