@@ -1,6 +1,8 @@
 from enum import Enum
 import struct
 
+import insteon.util as util
+
 class Direction(Enum):
     TO_MODEM = 'TO_MODEM'
     FROM_MODEM = 'FROM_MODEM'
@@ -48,32 +50,69 @@ class AckType(Enum):
             return None
         return AckType(msg['ACK/NACK'])
 
+class Field:
+    def __init__(self, offset, type, name=None, default_value=None, filter=None):
+        self.offset = offset
+        self.type = type
+        self.name = name
+        self.default_value = default_value
+        self.filter = filter
 
-def buffer_get_field(buf, field):
-    if field[1] == DataType.BYTE:
-        return int.from_bytes(buf[field[0]:field[0]+1], byteorder='big')
-    elif field[1] == DataType.INT:
-        return int.from_bytes(buf[field[0]:field[0]+4], byteorder='big')
-    elif field[1] == DataType.FLOAT:
-        return struct.unpack('f', buf[field[0]:field[0]+4])[0]
-    elif field[1] == DataType.ADDRESS:
-        return (int.from_bytes(buf[field[0]:field[0]+1], byteorder='big'),
-                int.from_bytes(buf[field[0]:field[0]+1], byteorder='big'),
-                int.from_bytes(buf[field[0]:field[0]+1], byteorder='big'))
-    else:
-        return None
+    def get(self, buf):
+        o = self.offset
+        if self.type == DataType.BYTE:
+            return int.from_bytes(buf[o:o+1], byteorder='big')
+        elif self.type == DataType.INT:
+            return int.from_bytes(buf[o:o+4], byteorder='big')
+        elif self.type == DataType.FLOAT:
+            return struct.unpack('f', buf[o:o+4])[0]
+        elif self.type == DataType.ADDRESS:
+            return (int.from_bytes(buf[o:o+1], byteorder='big'),
+                    int.from_bytes(buf[o+1:o+2], byteorder='big'),
+                    int.from_bytes(buf[o+2:o+3], byteorder='big'))
+        else:
+            return None
 
-def buffer_set_field(buf, field, value):
-    if field[1] == DataType.BYTE:
-        buf[field[0]] = value.to_bytes(1, byteorder='big')[0]
-    elif field[1] == DataType.INT:
-        buf[field[0]:field[0]+4] = value.to_bytes(4, byteorder='big')
-    elif field[1] == DataType.FLOAT:
-        buf[field[0]:field[0]+4] = struct.pack('f', value)
-    elif field[1] == DataType.ADDRESS:
-        buf[field[0]] = value[0].to_bytes(1, byteorder='big')[0]
-        buf[field[0] + 1] = value[1].to_bytes(1, byteorder='big')[0]
-        buf[field[0] + 2] = value[2].to_bytes(1, byteorder='big')[0]
+    def set(self, buf, val):
+        o = self.offset
+        if self.type == DataType.BYTE:
+            buf[o] = val.to_bytes(1, byteorder='big')[0]
+        elif self.type == DataType.INT:
+            buf[o:o+4] = val.to_bytes(4, byteorder='big')
+        elif self.type == DataType.FLOAT:
+            buf[o:o+4] = struct.pack('f', val)
+        elif self.type == DataType.ADDRESS:
+            buf[o:o+1] = val[0].to_bytes(1, byteorder='big')
+            buf[o+1:o+2] = val[1].to_bytes(1, byteorder='big')
+            buf[o+2:o+3] = val[2].to_bytes(1, byteorder='big')
+
+    def get_msg(self, d):
+        if self.name in d:
+            return d[self.name]
+        else:
+            return self.default_value
+
+    def set_msg(self, msg, val):
+        msg[self.name] = val
+
+    def format(self, msg={}):
+        val = self.default_value
+
+        if msg and self.name and self.name in msg:
+            val = msg[self.name]
+
+        if val:
+            valstr = str(val)
+            if self.type == DataType.ADDRESS:
+                valstr = util.format_addr(val)
+            elif self.type == DataType.BYTE:
+                valstr = hex(val)
+        else:
+            valstr = '???'
+
+        return self.name + ':' + valstr
+
+
 
 # A field is composed of (offset, type, name, default_value, filter-for header fields)
 class MsgDef:
@@ -85,16 +124,17 @@ class MsgDef:
         self.fields_list = []
         self.fields_map = {}
 
-    def append_field(self, data_type, name, default_value, filter=None): # Changes the length
+    def append_field(self, data_type, name=None, default_value=None, filter=None): # Changes the length
         offset = self.length
 
         field_len = data_type.value
-        self.length = self.length + field_len
+        self.length = self.length + field_len # Extend the length
 
+        field = Field(offset, data_type, name, default_value, filter)
         # Add to the map
         if name:
-            self.fields_map[name] = (offset, data_type, name, default_value, filter)
-        self.fields_list.append( (offset, data_type, name, default_value, filter) )
+            self.fields_map[name] = field
+        self.fields_list.append(field)
 
     def contains_field(self, name):
         return name in self.fields_map
@@ -104,10 +144,10 @@ class MsgDef:
 
     def header_matches(self, buf):
         check_len = min(self.header_length, len(buf))
-        for f in filter(lambda x: x[0] + x[1].value <= check_len and x[4], self.fields_list):
+        for f in filter(lambda x: x.offset + x.type.value <= check_len and x.filter, self.fields_list):
             # Check the filter
-            val = buffer_get_field(buf, f)
-            if not f[4](val):
+            val = f.get(buf)
+            if not (f.filter)(val):
                 return False
         return True
 
@@ -116,9 +156,8 @@ class MsgDef:
         m['type'] = self.name
 
         for f in self.fields_list:
-            if f[2]:
-                m[f[2]] = f[3]
-
+            if f.name:
+                m[f.name] = f.default_value
         return m
 
     def deserialize(self, buf):
@@ -127,42 +166,31 @@ class MsgDef:
         m['type'] = self.name
 
         for f in self.fields_list:
-            if f[2]:
-                val = buffer_get_field(buf, f)
-                m[f[2]] = val
+            if f.name:
+                val = f.get(buf)
+                m[f.name] = val
         return m
 
     def serialize(self, msg):
         # Assume the 'type' field has already been set
         buf = bytearray(self.length)
         for f in self.fields_list:
-            val = msg[f[2]] if f[2] is not None and f[2] in msg else f[3]
+            val = msg[f.name] if f.name is not None and f.name in msg else f.default_value
             if val is not None:
-                buffer_set_field(buf, f, val)
+                f.set(buf, val)
         return bytes(buf)
 
     def format_msg(self, msg):
-        s = self.direction.value + '(' + self.name + '):'
-        for f in self.fields_list:
-            if f[2]:
-                val = f[3] if f[3] else (msg[f[2]] if f[2] in msg else None)
-                if val:
-                    s = s + f[2] + ':' + str(val) + '|'
-                else:
-                    s = s + f[2] + ':???|'
-        return s
+        sep = ('<','>') if self.direction == Direction.TO_MODEM else ('[',']')
+        fields_str = '|'.join(map(lambda x: x.format(msg),
+            filter(lambda x: x.name is not None, self.fields_list)))
+        return sep[0] + self.name + sep[1] + ':' + fields_str
 
     def __str__(self):
-        sep = '<' if self.direction == Direction.TO_MODEM else '['
-        sep2 = '>' if self.direction == Direction.TO_MODEM else ']'
-        s = sep + self.name + sep2 + ':'
-        for f in self.fields_list:
-            if f[2]:
-                if f[3]:
-                    s = s + f[2] + ':' + str(f[3]) + '|'
-                else:
-                    s = s + f[2] + '|'
-        return s
+        sep = ('<','>') if self.direction == Direction.TO_MODEM else ('[',']')
+        fields_str = '|'.join(map(lambda x: x.format(),
+            filter(lambda x: x.name is not None, self.fields_list)))
+        return sep[0] + self.name + sep[1] + ':' + fields_str
 
 class MsgStreamEncoder:
     def __init__(self, defs = {}):

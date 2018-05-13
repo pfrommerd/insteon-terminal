@@ -6,6 +6,8 @@ import threading
 import importlib
 
 class Commands:
+    _reload_hooks = []
+
     def help():
         print('Welcome to the Insteon Terminal')
 
@@ -18,7 +20,15 @@ class Commands:
     def load_config(filename):
         term.load_file(filename)
 
+    def add_reload_hook(hook):
+        Commands._reload_hooks.append(hook)
+
     def reload():
+        # Execute and then reset the reload hooks
+        for h in Commands._reload_hooks:
+            h()
+        Commands._reload_hooks.clear()
+
         term.unload_modules()
         term.kill_background_threads()
         # Now setup again

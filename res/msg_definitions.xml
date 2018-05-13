@@ -354,7 +354,7 @@
             <byte filter="equals_default" name="Cmd">0x6d</byte>
         </header>
     </msg>
-    <msg name="LEDOnReply" length="3" direction="TO_MODEM">
+    <msg name="LEDOnReply" length="3" direction="FROM_MODEM">
         <header length="2">
             <byte filter="equals_default">0x02</byte>
             <byte filter="equals_default" name="Cmd">0x6d</byte>
@@ -367,7 +367,7 @@
             <byte filter="equals_default" name="Cmd">0x6e</byte>
         </header>
     </msg>
-    <msg name="LEDOffReply" length="3" direction="TO_MODEM">
+    <msg name="LEDOffReply" length="3" direction="FROM_MODEM">
         <header length="2">
             <byte filter="equals_default">0x02</byte>
             <byte filter="equals_default" name="Cmd">0x6e</byte>
