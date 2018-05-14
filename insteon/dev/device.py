@@ -44,6 +44,7 @@ class Device:
         self.name = name
         self.addr = addr
 
+        # Prevent circular import
         self.linkdb_cache = linkdb.LinkDB()
 
         self._modem = modem if modem else Device.s_default_modem
@@ -67,7 +68,19 @@ class Device:
         # giving up
         ack_reply.wait(1)
 
+    # Linkdb stuff
+    def print_linkdb_cache(self, formatter=None):
+        formatter = formatter if formatter else linkdb.DefaultRecordFormatter(self._registry)
+
+        if not self.linkdb_cache.is_populated:
+            print('LinkDB cache empty! Call update_linkdb_cache()?')
+            return
+
+        print(self.linkdb_cache.last_updated.strftime('Retrieved: %b %d %Y %I:%M%p'))
+        for rec in self.linkdb_cache.records:
+            print(formatter(rec))
+
+    # To be overridden by implementing devices
     @port_operator
     def update_linkdb_cache(self, port):
-        pass
-
+        return False # Whether we succeeded

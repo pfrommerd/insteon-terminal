@@ -53,9 +53,6 @@ class Channel:
         else:
             self._filter = filter
 
-
-
-
     # Waits until there is at least one element in the queue
     # but doesn't take it
     def wait(self, timeout=None):
@@ -108,5 +105,11 @@ class Channel:
     def __call__(self, *args):
         self.send(*args)
 
+
+def parse_addr(addr):
+    parts = addr.split('\\.')
+    return (int(parts[0],16), int(parts[1],16), int(parts[2],16))
+
 def format_addr(addr):
-    return hex(addr[0]) + '.' + hex(addr[1]) + '.' + hex(addr[2])
+    return format(addr[0], 'x') + '.' + format(addr[1], 'x') + '.' + format(addr[2], 'x')
+
