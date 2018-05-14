@@ -27,13 +27,25 @@ class WriteRequest:
         self.ack_reply_channel = ack_reply_channel if ack_reply_channel else \
                 util.Channel(lambda x: x['type'] == ack_msg_name, 1)
 
-        if not self.ack_reply_channel.has_filter:
+        if not self.ack_reply_channel.has_filter or self.ack_reply_channel.has_activated:
+            # No filter or if we are reusing a channel
+            self.ack_reply_channel.reset_num_sent()
             self.ack_reply_channel.set_filter(lambda x: x['type'] == ack_msg_name)
 
         self.custom_channels = custom_channels # Will be added with write() call
 
-    def __cmp__(self, other):
-        return cmp(self.priority, other.priority)
+    def __gt__(self, other):
+        return self.priority > other.priority
+    def __lt__(self, other):
+        return self.priority < other.priority
+    def __ge__(self, other):
+        return self.priority >= other.priority
+    def __le__(self, other):
+        return self.priority <= other.priority
+    def __eq__(self, other):
+        return self.priority == other.priority
+    def __nq__(self, other):
+        return self.priority != other.priority
 
 # Takes a connection object that has read(), write(), flush(), and close() methods
 class Port:
@@ -122,12 +134,12 @@ class Port:
     # Utility debug functions.....
 
     def start_watching(self):
-        self.add_read_listener(self._read_watcher)
-        self.add_write_listener(self._write_watcher)
+        self.notify_on_read(self._read_watcher)
+        self.notify_on_write(self._write_watcher)
     
     def stop_watching(self):
-        self.remove_read_listener(self._read_watcher)
-        self._remove_write_listener(self._write_watcher)
+        self.unregister_on_read(self._read_watcher)
+        self.unregister_on_write(self._write_watcher)
 
     # Now the actual IO logic
 
@@ -145,12 +157,19 @@ class Port:
 
     def _read_thread(self):
         decoder = message.MsgStreamDecoder(self.defs)
+        buf = bytes()
         while self._reader and not threading.current_thread().override_kill:
             try:
+                #if len(buf) > 0:
+                #    print('reading...')
+
                 buf = self._conn.read(1) # Read a byte
-                if len(buf) < 1:
-                    continue
+                #if len(buf) < 1:
+                #    continue
+
                 # TODO: Logging of raw data!
+                #print('read {}'.format(buf))
+
                 # Feed into decoder
                 msg = decoder.decode(buf)
                 if not msg:
@@ -195,14 +214,10 @@ class Port:
 
             # Setup the filters...
             if first_reply_channel:
-                first_reply_channel.set_queuesize(1)
                 first_reply_channel.set_filter(lambda msg: True) # Let everything in
 
             # Our channels
-            any_reply_channel.set_queuesize(1)
             any_reply_channel.set_filter(lambda msg: True) # Let everything in
-
-            nack_reply_channel.set_queuesize(1)
             nack_reply_channel.set_filter(lambda msg: msg['type'] == 'PureNACK')
 
             # Including the write channel
@@ -214,11 +229,12 @@ class Port:
             # while we write
             with self._read_listeners_lock:
                 # Add the channels
+                self.notify_on_read(any_reply_channel)
+                self.notify_on_read(nack_reply_channel)
+
                 self.notify_on_read(first_reply_channel)
                 self.notify_on_read(ack_reply_channel)
 
-                self.notify_on_read(any_reply_channel)
-                self.notify_on_read(nack_reply_channel)
 
                 self.notify_on_write(write_channel)
 
@@ -254,14 +270,14 @@ class Port:
                     self._read_listeners_lock.release()
 
                     resend = False
-                    for mi in range(4): # Look at the next 4 messages or 1 second, max
-                        if any_reply_channel.wait(0.25): # Wait 250ms for something to arrive
+                    for mi in range(6): # Look at the next 6 messages or 0.6 second, max
+                        if any_reply_channel.wait(0.1): # Wait 100ms for something to arrive
                             # Check if what came was an ack or nack
-                            if ack_reply_channel.active():
+                            if ack_reply_channel.has_activated:
                                 # Woo, we are done, no resend
                                 break
-                            elif nack_reply_channel.active():
-                                # Resend!
+                            elif nack_reply_channel.has_activated:
+                                # Resend on a nack
                                 any_reply_channel.clear()
                                 nack_reply_channel.clear()
                                 resend = True
@@ -269,6 +285,12 @@ class Port:
                             else:
                                 # Other message type...wait again
                                 any_reply_channel.clear()
+
+                    if not ack_reply_channel.has_activated and not resend:
+                        # Resend due to no ack!
+                        any_reply_channel.clear()
+                        nack_reply_channel.clear()
+                        resend = True
 
                     # Re-acquire so the with block doesn't get confused
                     self._read_listeners_lock.acquire() 

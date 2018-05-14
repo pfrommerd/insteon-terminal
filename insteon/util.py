@@ -1,14 +1,40 @@
 from time import time as _time
 import queue
+import threading
 
 class Channel:
     def __init__(self, filter=None, maxqueue=0):
         self._queue = queue.Queue(maxqueue)
+
+        self._counter = 0 # Number of messages queued
+        self._counter_lock = threading.Lock()
+
         self._filter = filter
 
     @property
     def has_filter(self):
         return self._filter is not None
+
+    @property
+    def active(self):
+        return not self._queue.empty()
+
+    @property
+    def has_activated(self):
+        return self.num_sent > 0
+
+    @property
+    def num_sent(self):
+        with self._counter_lock:
+            return self._counter
+
+    def reset_num_sent(self):
+        with self._counter_lock:
+            self._counter = 0
+
+    def clear(self):
+        with self._queue.mutex:
+            self._queue.queue.clear()
 
     def set_queuesize(self, newsize):
         # oops, just for get about the current
@@ -28,12 +54,6 @@ class Channel:
             self._filter = filter
 
 
-    def active(self):
-        return not self._queue.empty()
-
-    def clear(self):
-        with self._queue.mutex:
-            self._queue.queue.clear()
 
 
     # Waits until there is at least one element in the queue
@@ -58,7 +78,6 @@ class Channel:
                 return self._queue._qsize()
 
     def recv(self, timeout=None):
-#        print('receiving... {}'.format(self))
         try:
             if timeout is None:
                 return self._queue.get()
@@ -80,7 +99,9 @@ class Channel:
 
         try:
             if not self._filter or self._filter(*args):
-                self._queue.put(arg)
+                with self._counter_lock:
+                    self._counter = self._counter + 1
+                    self._queue.put(arg)
         except queue.Full:
             return # Drop...
 

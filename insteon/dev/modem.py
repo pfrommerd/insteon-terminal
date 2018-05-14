@@ -39,8 +39,8 @@ class Modem(Device):
                         custom_channels=[done_channel, record_channel])
 
         success = False
-        while reply_channel.wait(2): # Wait at most 2 seconds for some reply
-            if done_channel.active(): # If the reply says we are done, exit
+        while reply_channel.recv(5): # Wait at most 5 seconds for some reply
+            if done_channel.has_activated: # If the reply says we are done, exit
                 success = True
                 break
             # Wait another 2 seconds for the record
@@ -48,10 +48,9 @@ class Modem(Device):
             if not msg:
                 success = False
                 break
-            print(msg)
-
             # Request the next one
-            port.write(port.defs['GetNextALLLinkRecord'].create(), ack_reply_channel=reply_channel)
+            port.write(port.defs['GetNextALLLinkRecord'].create(),
+                        ack_reply_channel=reply_channel)
 
         port.unregister_on_read(done_channel)
         port.unregister_on_read(record_channel)

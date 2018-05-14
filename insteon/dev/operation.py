@@ -22,7 +22,7 @@ def operator(func, operand_type, operand_resolver):
         # that just needs the operand
         def call_internal(operand):
             a = tuple([args[0], operand] + list(args[1:]))
-            func(*a)
+            return func(*a)
 
         # Otherwise try to resolve the operand
         operand = operand_resolver(*args)
