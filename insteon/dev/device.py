@@ -1,4 +1,4 @@
-from .operation import port_operator
+from ..util import port_resolver
 
 from . import linkdb as linkdb
 
@@ -45,17 +45,17 @@ class Device:
         self.addr = addr
 
         # Prevent circular import
-        self.linkdb_cache = linkdb.LinkDB()
-
         self._modem = modem if modem else Device.s_default_modem
         self._registry = registry if registry else Device.s_default_registry
         
+        self.dbcache = linkdb.LinkDB(formatter=linkdb.DefaultRecordFormatter())
+
         # Add to registry
         self._registry.register(self)
 
 
-    @port_operator
-    def send_cmd(self, port, cmd1, cmd2):
+    @port_resolver('port')
+    def send_cmd(self, cmd1, cmd2, port=None):
         msg = port.defs['SendStandardMessage'].create()
         msg['toAddress'] = self.addr
         msg['command1'] = cmd1
@@ -68,19 +68,11 @@ class Device:
         # giving up
         ack_reply.wait(1)
 
-    # Linkdb stuff
-    def print_linkdb_cache(self, formatter=None):
-        formatter = formatter if formatter else linkdb.DefaultRecordFormatter(self._registry)
-
-        if not self.linkdb_cache.is_populated:
-            print('LinkDB cache empty! Call update_linkdb_cache()?')
-            return
-
-        print(self.linkdb_cache.last_updated.strftime('Retrieved: %b %d %Y %I:%M%p'))
-        for rec in self.linkdb_cache.records:
-            print(formatter(rec))
-
     # To be overridden by implementing devices
-    @port_operator
-    def update_linkdb_cache(self, port):
-        return False # Whether we succeeded
+    @port_resolver('port')
+    def update_dbcache(self, targetdb=None, port=None):
+        print('Warning: stub!')
+
+    @port_resolver('port')
+    def flash_dbcache(self, srcdb=None, port=None):
+        print('Warning: stub!')

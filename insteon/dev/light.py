@@ -1,14 +1,14 @@
 from .device import Device
-from .operation import port_operator
+from ..util import port_resolver
 
 class Light(Device):
     def __init__(self, name=None, addr=None, modem=None, registry=None):
         super().__init__(name, addr, modem, registry)
 
-    @port_operator
-    def set_on(self, port):
-        self.send_cmd(port, 0x12, 0xFF)
+    @port_resolver('port')
+    def set_on(self, port=None):
+        self.send_cmd(0x12, 0xFF, port=port)
 
-    @port_operator
-    def set_off(self, port):
-        self.send_cmd(port, 0x13, 0x00)
+    @port_resolver('port')
+    def set_off(self, port=None):
+        self.send_cmd(0x13, 0x00, port=port)

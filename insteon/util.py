@@ -1,6 +1,7 @@
 from time import time as _time
 import queue
 import threading
+import inspect
 
 class Channel:
     def __init__(self, filter=None, maxqueue=0):
@@ -105,11 +106,73 @@ class Channel:
     def __call__(self, *args):
         self.send(*args)
 
+# Now the resolver
+# utility
+def resolver(param_name, res):
+    # The actual function that gets
+    # called on decorate
+    def decorate(func):
+        # Get the original function signature
+        # to find the argument number that
+        # we need to bind to
+        sig = inspect.signature(func)
+        if not param_name in sig.parameters:
+            # Help!
+            raise ValueError('Binding param not found!')
+        param_idx = list(sig.parameters).index(param_name)
 
-def parse_addr(addr):
-    parts = addr.split('\\.')
-    return (int(parts[0],16), int(parts[1],16), int(parts[2],16))
+        # The actual function that
+        # is executed on method invocation
+        def exec_func(*args, **kwargs):
+            # Check if the argument has been manually supplied
+            if param_name in kwargs or len(args) > param_idx:
+                return func(*args, **kwargs)
 
-def format_addr(addr):
-    return format(addr[0], 'x') + '.' + format(addr[1], 'x') + '.' + format(addr[2], 'x')
+            # A partially-bound function
+            # that just needs the operand
+            def call_internal(param):
+                kwargs[param_name] = param
+                return func(*args, **kwargs)
 
+            # Otherwise try to resolve the parameter 
+            param = res(args, kwargs)
+            if param is not None:
+                return call_internal(param)
+            else:
+                # Return a partially-bound function
+                return call_internal
+
+        # return the method that gets called
+        return exec_func
+    # return the actual decorator
+    return decorate
+
+def port_resolver(param_name):
+    def resolve_port(args, kwargs):
+        if hasattr(args[0], '_modem') and args[0]._modem:
+            return args[0]._modem.port
+        else:
+            return None
+
+    return resolver(param_name, resolve_port)
+
+
+def modem_resolver(param_name):
+    def resolve_modem(args, kwargs):
+        if hasattr(args[0], '_modem'):
+            return args[0]._modem
+        else:
+            return None
+
+    return resolver(param_name, resolve_modem)
+
+def registry_resolver(param_name):
+    def resolve_registry(args, kwargs):
+        if hasattr(args[0], '_registry'):
+            return args[0]._registry
+        else:
+            return None
+
+    return resolver(param_name, resolve_registry)
+
+# Now error and logger-related stuff

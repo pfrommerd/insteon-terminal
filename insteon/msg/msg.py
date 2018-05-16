@@ -1,8 +1,6 @@
 from enum import Enum
 import struct
 
-import insteon.util as util
-
 class Direction(Enum):
     TO_MODEM = 'TO_MODEM'
     FROM_MODEM = 'FROM_MODEM'
@@ -104,7 +102,7 @@ class Field:
         if val:
             valstr = str(val)
             if self.type == DataType.ADDRESS:
-                valstr = util.format_addr(val)
+                valstr = format_addr(val)
             elif self.type == DataType.BYTE:
                 valstr = hex(val)
         else:
@@ -112,6 +110,14 @@ class Field:
 
         return self.name + ':' + valstr
 
+# Some generic address-related
+# utilities
+def parse_addr(addr):
+    parts = addr.split('\\.')
+    return (int(parts[0],16), int(parts[1],16), int(parts[2],16))
+
+def format_addr(addr):
+    return format(addr[0], 'x') + '.' + format(addr[1], 'x') + '.' + format(addr[2], 'x')
 
 
 # A field is composed of (offset, type, name, default_value, filter-for header fields)

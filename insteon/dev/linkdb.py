@@ -1,5 +1,4 @@
-from .. import util as util
-
+import insteon.msg.msg as msg
 
 import datetime
 import json
@@ -10,7 +9,7 @@ class DefaultRecordFormatter:
 
     def __call__(self, rec):
         off = rec['offset']
-        addr = util.format_addr(rec['address'])
+        addr = msg.format_addr(rec['address'])
         dev = self._registry.get_by_addr(rec['address']).name \
                 if self._registry and self._registry.get_by_addr(rec['address']) else addr
         group = rec['group']
@@ -26,18 +25,53 @@ class DefaultRecordFormatter:
         return '{:04x} {:30s} {:8s} {} {:08b} group: {:02x} data: {}'.format(
                 off,   dev,  addr, ctrl, flags,     group,       data_str)
 
+def offset_stripped(record):
+    copy = dict(record)
+    if 'offset' in copy:
+        del copy['offset']
+    return copy
+
+def offsets_stripped(records):
+    for rec in records:
+        yield offset_stripped(rec)
 
 class LinkDB:
-    def __init__(self, records=[]):
-        self.records = records
+    def __init__(self, records=None, formatter=None):
+        self.records = records if records else []
         self.last_updated = None # Not yet populated
 
     @property
     def is_populated(self):
         return self.last_updated is not None
 
+    @property
+    def end_offset(self):
+        last_off = 0x00
+        for r in self.records:
+            if r['offset'] > last_off:
+                last_off = r['offset'] + 0x08
+        return last_off
+
+    def print(self, formatter=None):
+        from .device import Device
+        formatter = formatter if formatter else DefaultRecordFormatter(Device.s_default_registry)
+
+        if not self.is_populated:
+            print('LinkDB cache not populated!')
+            return
+
+        print(self.last_updated.strftime('Retrieved: %b %d %Y %H:%M:%S'))
+        for rec in self.records:
+            print(formatter(rec))
 
     def add_record(self, rec, allow_duplicates=False):
+        # Make sure all the fields are nicely formatted
+        rec['offset'] = rec['offset'] if 'offset' in rec else self.end_offset
+        rec['address'] = rec['address'] if 'address' in rec else (0, 0, 0)
+        rec['group'] = rec['group'] if 'group' in rec else 0x00
+        rec['flags'] = rec['flags'] if 'flags' in rec else 0x02
+        rec['data'] = rec['data'] if 'offset' in rec else [0, 0, 0]
+
         if not allow_duplicates and rec in self.records:
             return
         else:
@@ -58,13 +92,13 @@ class LinkDB:
     def serialize(self):
         ser = {}
         if self.last_updated:
-            ser['timestamp'] = self.last_updated.strftime('%b %d %Y %I:%M%p')
+            ser['timestamp'] = self.last_updated.strftime('%b %d %Y %H:%M:%S')
         ser['records'] = self.records
         return ser
 
     def deserialize(self, ser):
         if 'timestamp' in ser:
-            self.last_updated = datetime.datetime.strptime(ser['timestamp'],'%b %d %Y %I:%M%p')
+            self.last_updated = datetime.datetime.strptime(ser['timestamp'],'%b %d %Y %H:%M:%S')
         if 'records' in ser:
             for r in ser['records']:
                 # Change the address type back to a tuple
