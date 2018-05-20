@@ -1,11 +1,8 @@
-bin
-build
-
 *~
-*.class
-
-nrjavaserial.jar
+*.pyc
 
 init.py
 backup.db
 insteon-terminal.log
+
+*.linkdb.bk
