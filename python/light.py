@@ -77,12 +77,6 @@ class Light(Device):
 		self.dbbuilder = GenericDBBuilder(addr, self.db)
 		self.db.setRecordFormatter(LightDBRecordFormatter())
 
-	def ping(self):
-		"""ping()
-		pings device"""
-		self.querier.setMsgHandler(DefaultMsgHandler("ping"))
-		self.querier.querysd(0x0F, 0x01);
- 
 	def on(self, level=0xFF):
 		"""on(level)
 		switch on to given light level"""
