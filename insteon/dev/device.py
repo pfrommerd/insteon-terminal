@@ -48,7 +48,7 @@ class Device:
         self._modem = modem if modem else Device.s_default_modem
         self._registry = registry if registry else Device.s_default_registry
         
-        self.dbcache = linkdb.LinkDB(formatter=linkdb.DefaultRecordFormatter())
+        self.dbcache = linkdb.LinkDB()
 
         # Add to registry
         self._registry.register(self)
@@ -71,8 +71,8 @@ class Device:
     # To be overridden by implementing devices
     @port_resolver('port')
     def update_dbcache(self, targetdb=None, port=None):
-        print('Warning: stub!')
+        logger.warning('STUB: update_dbcache()')
 
     @port_resolver('port')
     def flash_dbcache(self, srcdb=None, port=None):
-        print('Warning: stub!')
+        logger.warning('STUB: flash_dbcache()')

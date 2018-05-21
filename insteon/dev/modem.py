@@ -4,11 +4,13 @@ from . import linkdb as linkdb
 
 from insteon.msg.msg import MsgDef
 
-from ..util import port_resolver
+from ..util import port_resolver, InsteonError
 from .. import util as util
 
 import datetime
 
+import logbook
+logger = logbook.Logger(__name__)
 
 class Modem(Device):
     def __init__(self, port, name=None, registry=None):
@@ -41,19 +43,19 @@ class Modem(Device):
         port.write(port.defs['GetFirstALLLinkRecord'].create(), ack_reply_channel=reply_channel,
                         custom_channels=[done_channel, record_channel])
 
+        raise InsteonError('Test error!')
+
         records = []
-        success = False
 
         offset = 0x00 # Count manually
         while reply_channel.recv(5): # Wait at most 5 seconds for some reply
             if done_channel.has_activated: # If the reply says we are done, exit
-                success = True
                 break
             # Wait another 2 seconds for the record
             msg = record_channel.recv(2)
             if not msg:
-                success = False
-                break
+                logger.warning('No link data received after ack for modem DB query')
+                raise OSError('No link data after ack for modem DB query')
 
             # Turn the msg into a record
             rec = {}
@@ -70,6 +72,9 @@ class Modem(Device):
             # Request the next one
             port.write(port.defs['GetNextALLLinkRecord'].create(),
                         ack_reply_channel=reply_channel)
+        else:
+            logger.warning('No reply for modem DB query, stopping query...')
+            raise OSError('Did not get reply for modem DB query')
 
         port.unregister_on_read(done_channel)
         port.unregister_on_read(record_channel)
@@ -77,10 +82,9 @@ class Modem(Device):
         # If we were successful, update
         if not targetdb:
             targetdb = self.dbcache
-        if success:
-            targetdb.update(records)
 
-        return success
+        targetdb.update(records)
+
 
     @port_resolver('port')
     def flash_dbcache(self, srcdb=None, port=None):
@@ -113,7 +117,7 @@ class Modem(Device):
         # and delete
         for record in current_records:
             if not record in src_records:
-                print('deleting {}'.format(record))
+                logger.info('Deleting link record {}'.format(record))
                 msg = port.defs['ManageALLLinkRecord'].create()
                 msg['controlCode'] = 0x80 # Delete by search
                 msg['recordFlags'] = record['flags']
@@ -128,23 +132,25 @@ class Modem(Device):
                 port.write(msg, ack_reply_channel=ack_reply)
                 reply_msg = ack_reply.recv(2)
                 if reply_msg['ACK/NACK'] != 0x06:
+                    logger.warning('The modem couldn\'t find the record we wanted to delete!')
                     raise OSError('The modem couldn\'t find the record we wanted to delete!')
-                    return False
                 elif not reply_msg:
-                    print('No reply on delete sent!')
-                    return False
+                    logger.warning('No reply to delete message!')
+                    raise OSError('No reply to delete message')
 
         # Update the current records
-        if not self.update_dbcache(targetdb=currentdb, port=port):
-            print('Failed to get snapshot of db after removal!')
-            return False
+        with util.raise_warnings():
+            try:
+                self.update_dbcache(targetdb-currentdb, port=port)
+            except RuntimeWarning:
+                warn('Failed to get snapshot of db after removal!', RuntimeWarning)
 
         current_records = list(linkdb.offsets_stripped(currentdb.records))
 
         # Now go and ad any we need
         for record in src_records:
             if not record in current_records:
-                print('adding {}'.format(record))
+                logger.info('Adding link record {}'.format(record))
                 msg = port.defs['ManageALLLinkRecord'].create()
                 # Add resp. or controller
                 msg['controlCode'] = 0x40 if (record['flags'] & (1 << 6)) else 0x41
@@ -158,6 +164,5 @@ class Modem(Device):
                 ack_reply = util.Channel()
                 port.write(msg, ack_reply_channel=ack_reply)
                 if not ack_reply.wait(2):
-                    print('No reply on record add!')
+                    logger.warning('No reply on record add!')
                     return False
-        return True

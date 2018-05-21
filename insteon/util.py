@@ -175,4 +175,11 @@ def registry_resolver(param_name):
 
     return resolver(param_name, resolve_registry)
 
-# Now error and logger-related stuff
+# A custom insteon error type
+# that the terminal knows can just be printed out
+# this should be used for when messages are dropped
+# (i.e any unexpected behavior on the insteon network
+# or with the modem)
+class InsteonError(Exception):
+    pass
+

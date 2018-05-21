@@ -3,6 +3,11 @@ import insteon.msg.msg as msg
 import datetime
 import json
 
+import logbook
+logger = logbook.Logger(__name__)
+
+from warnings import warn
+
 class DefaultRecordFormatter:
     def __init__(self, registry=None):
         self._registry = registry
@@ -37,8 +42,11 @@ def offsets_stripped(records):
 
 class LinkDB:
     def __init__(self, records=None, formatter=None):
+        from .device import Device
+
         self.records = records if records else []
         self.last_updated = None # Not yet populated
+        self.formatter = formatter if formatter else DefaultRecordFormatter(Device.s_default_registry)
 
     @property
     def is_populated(self):
@@ -53,16 +61,16 @@ class LinkDB:
         return last_off
 
     def print(self, formatter=None):
-        from .device import Device
-        formatter = formatter if formatter else DefaultRecordFormatter(Device.s_default_registry)
+        formatter = formatter if formatter else self.formatter
 
         if not self.is_populated:
-            print('LinkDB cache not populated!')
+            logger.warning('LinkDB cache not populated!')
+            logger.warning('set_updated() must first be called for proper linkdb initialization (even if there are records in the DB)')
             return
 
-        print(self.last_updated.strftime('Retrieved: %b %d %Y %H:%M:%S'))
+        logger.info(self.last_updated.strftime('Retrieved: %b %d %Y %H:%M:%S'))
         for rec in self.records:
-            print(formatter(rec))
+            logger.info(formatter(rec))
 
     def add_record(self, rec, allow_duplicates=False):
         # Make sure all the fields are nicely formatted
