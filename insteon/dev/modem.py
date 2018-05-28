@@ -43,7 +43,10 @@ class Modem(Device):
         port.write(port.defs['GetFirstALLLinkRecord'].create(), ack_reply_channel=reply_channel,
                         custom_channels=[done_channel, record_channel])
 
-        raise InsteonError('Test error!')
+        try:
+            raise InsteonError('Test error!')
+        except Exception as e:
+            raise InsteonError('foo')
 
         records = []
 
@@ -55,7 +58,7 @@ class Modem(Device):
             msg = record_channel.recv(2)
             if not msg:
                 logger.warning('No link data received after ack for modem DB query')
-                raise OSError('No link data after ack for modem DB query')
+                raise InsteonError('No link data after ack for modem DB query')
 
             # Turn the msg into a record
             rec = {}

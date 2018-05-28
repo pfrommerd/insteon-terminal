@@ -8,6 +8,10 @@ import time
 from . import msg as message
 from .. import util as util
 
+import logbook
+
+logger = logbook.Logger(__name__)
+
 class WriteRequest:
     def __init__(self, msg, priority=1, prewrite_quiet_time=0, postwrite_quiet_time=0,
             write_channel=None, first_reply_channel=None,
@@ -72,8 +76,8 @@ class Port:
 
         # Setup the watchers, for optional use by the user
         # to print out to stdout the traffic through the port
-        self._read_watcher = lambda x: print('{}'.format(format_msg(x)))
-        self._write_watcher = lambda x: print('{}'.format(format_msg(x)))
+        self._read_watcher = lambda x: logger.debug('{}'.format(format_msg(x)))
+        self._write_watcher = lambda x: logger.debug('{}'.format(format_msg(x)))
 
         if conn:
             self.attach(conn)

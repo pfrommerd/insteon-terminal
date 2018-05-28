@@ -69,33 +69,6 @@ class InsteonTerminal:
                 func = getattr(Commands, attr)
                 self._shell.locals[attr] = func
 
-    def setup_logging(self):
-        import logbook
-        # Print to console handler
-        handler = logbook.StreamHandler(sys.stdout)
-
-        def format(record, handler):
-            if record.level == logbook.WARNING or \
-                record.level == logbook.ERROR or \
-                record.level == logbook.CRITICAL:
-                return record.level_name + ': ' + record.message
-            else:
-                return record.message
-
-        handler.formatter = format
-
-        handler.push_application()
-
-        # Redirect warnings calls to logbook
-        import logbook.compat
-        logbook.compat.redirect_warnings()
-
-        import warnings
-        # Always show warnings for the console
-        # so that when the user re-runs a command
-        # the warning shows twice
-        warnings.simplefilter('always')
-
     def load_sys_config(self):
         self.load_file('sys_init.py')
 
@@ -129,8 +102,6 @@ if __name__=="__main__":
     term = InsteonTerminal()
 
     # Happens only once
-    term.setup_logging()
-
     term.setup_locals()
     term.load_sys_config()
 
