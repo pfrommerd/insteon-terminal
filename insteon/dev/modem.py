@@ -2,8 +2,6 @@ from .device import Device
 
 from . import linkdb as linkdb
 
-from insteon.msg.msg import MsgDef
-
 from ..util import port_resolver, InsteonError
 from .. import util as util
 
@@ -42,11 +40,6 @@ class Modem(Device):
         # Now send the first message
         port.write(port.defs['GetFirstALLLinkRecord'].create(), ack_reply_channel=reply_channel,
                         custom_channels=[done_channel, record_channel])
-
-        try:
-            raise InsteonError('Test error!')
-        except Exception as e:
-            raise InsteonError('foo')
 
         records = []
 

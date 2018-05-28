@@ -131,11 +131,11 @@ del sys
 # Insteon-related setup
 
 # Now load the msg definitions for the user to use
-import insteon.msg.xmlmsgreader
+import insteon.io.xmlmsgreader
 
-definitions = insteon.msg.xmlmsgreader.read_xml('res/msg_definitions.xml')
+definitions = insteon.io.xmlmsgreader.read_xml('res/msg_definitions.xml')
 
-del insteon.msg.xmlmsgreader
+del insteon.io.xmlmsgreader
 
 print('........')
 load_config('init.py')

@@ -76,8 +76,8 @@ class Port:
 
         # Setup the watchers, for optional use by the user
         # to print out to stdout the traffic through the port
-        self._read_watcher = lambda x: logger.debug('{}'.format(format_msg(x)))
-        self._write_watcher = lambda x: logger.debug('{}'.format(format_msg(x)))
+        self._read_watcher = lambda x: print(format_msg(x))
+        self._write_watcher = lambda x: print(format_msg(x))
 
         if conn:
             self.attach(conn)

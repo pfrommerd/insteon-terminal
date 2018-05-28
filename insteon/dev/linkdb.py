@@ -1,4 +1,4 @@
-import insteon.msg.msg as msg
+import insteon.io.msg as msg
 
 import datetime
 import json
