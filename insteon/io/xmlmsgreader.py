@@ -2,6 +2,15 @@ from xml.dom import minidom
 
 from .msg import MsgDef, Direction, DataType
 
+def read_default_xml():
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore')
+        import pkg_resources
+        filepath = pkg_resources.resource_filename(__name__,'msg_definitions.xml')
+        if not filepath:
+            return None
+        return read_xml(filepath)
 
 def read_xml(filename):
     xmldoc = minidom.parse(filename)
