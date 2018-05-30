@@ -68,9 +68,9 @@ class LinkDB:
             logger.warning('set_updated() must first be called for proper linkdb initialization (even if there are records in the DB)')
             return
 
-        logger.info(self.last_updated.strftime('Retrieved: %b %d %Y %H:%M:%S'))
+        print(self.last_updated.strftime('Retrieved: %b %d %Y %H:%M:%S'))
         for rec in self.records:
-            logger.info(formatter(rec))
+            print(formatter(rec))
 
     def add_record(self, rec, allow_duplicates=False):
         # Make sure all the fields are nicely formatted

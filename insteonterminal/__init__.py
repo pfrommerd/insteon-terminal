@@ -4,6 +4,7 @@ import os
 import sys
 import threading
 import importlib
+import pickle
 
 class Commands:
     _reload_hooks = []
@@ -17,18 +18,8 @@ class Commands:
     def help(self):
         print('Welcome to the Insteon Terminal')
 
-    def quit(self):
-        for h in Commands._unload_hooks:
-            h()
-        self._unload_hooks.clear()
-
-        self._term.unload_modules()
-        self._term.kill_background_threads()
-
-        sys.exit(0)
-
-    def abort(self):
-        sys.exit(1)
+    def load_config(self, filename):
+        self._term.load_file(filename)
 
     def resolve_resource(self, filename):
         return self._term.resolve_resource(filename)
@@ -41,8 +32,6 @@ class Commands:
             return None
         return path
 
-    def load_config(self, filename):
-        self._term.load_file(filename)
 
     def add_unload_hook(self, hook):
         self._unload_hooks.append(hook)
@@ -65,13 +54,36 @@ class Commands:
             h()
         self._reload_hooks.clear()
 
-        self._term.setup_locals()
+        # Make sure the commands are
+        # in the locals again
+        self._term.setup_commands()
+        # Reload the system config
         self._term.load_sys_config()
+
+    def quit(self):
+        for h in Commands._unload_hooks:
+            h()
+        self._unload_hooks.clear()
+
+        self._term.unload_modules()
+        self._term.kill_background_threads()
+
+        sys.exit(0)
+
+    def abort(self):
+        sys.exit(1)
+
 
 # The actual shell which does the 
 # interpreting
+# overloads the raw_input to log that to a file
 class InsteonShell(code.InteractiveConsole):
-    pass
+    def write(self, line):
+        if hasattr(sys, 'interprethook') and sys.interprethook:
+            sys.interprethook(line)
+
+        result = super().write(line)
+        return result
 
 # The terminal also manages
 # some state variables
@@ -79,6 +91,10 @@ class InsteonTerminal:
     def __init__(self):
         self._shell = InsteonShell()
         self._commands = Commands(self)
+        self._protected_locals = []
+
+        # Setup the locals
+        self.setup_commands()
 
     def resolve_resource(self, filename):
         locations = [os.curdir, os.path.join(os.curdir, 'config'), os.path.expanduser('~/.config/insteon-terminal'), os.path.join(sys.prefix,'share/insteon-terminal')]
@@ -89,7 +105,8 @@ class InsteonTerminal:
                 return path
         return None
 
-    def setup_locals(self):
+
+    def setup_commands(self):
         self._shell.locals.clear()
 
         for attr in dir(Commands):
@@ -97,7 +114,7 @@ class InsteonTerminal:
                 # We have a function!
                 func = getattr(self._commands, attr)
                 self._shell.locals[attr] = func
-
+    
     def load_sys_config(self):
         confpath = self.resolve_resource('sys_init.py')
         if not confpath:

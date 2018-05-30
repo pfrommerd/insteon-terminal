@@ -62,14 +62,14 @@ del logbook
 del warnings
 
 # Overload print to make printed statements be logged
-# to a special "console" logger
+# to the "console" logger (which uses stdout, not print())
 
 def print(*objects, sep='', end='\n', file=sys.stdout, flush=False):
     import sys
     import logbook
 
     if file is not sys.stdout: # Don't print to the console
-        __builtins__.print(*objects, sep=sep, end=end, file=file, flush=flush)
+        __builtins__['print'](*objects, sep=sep, end=end, file=file, flush=flush)
 
     logger = logbook.Logger('console')
     msg = sep.join(map(str, objects)) + end
@@ -77,10 +77,26 @@ def print(*objects, sep='', end='\n', file=sys.stdout, flush=False):
         if len(m.strip()) > 0:
             logger.info(m)
 
+# We just stash this in sys,
+# the interpreter will call it on input
+# and on eval result
+
+# This will let us print out user input and any results
+# and not just program-generated messages
+def custom_interprethook(line):
+    logger = logbook.Logger('console')
+    def inject_noprint(r):
+        r.extra['noprint'] = True
+    with logbook.Processor(inject_noprint).applicationbound():
+        logger.info(line)
+
+sys.interprethook = custom_interprethook
+
+del custom_interprethook
+
 # Overload the exceptions handler to
 # make InsteonErrors pretty-printed
 # by default to the console
-
 
 def custom_excepthook(type, value, tb):
     import traceback
@@ -105,6 +121,11 @@ def custom_excepthook(type, value, tb):
                 exc = None
 
     exception_module = inspect.getmodulename(traceback.extract_tb(tb.tb_next)[-1][0])
+
+    # Handle syntax error differently
+    if isinstance(value, SyntaxError):
+        exception_module = inspect.getmodulename(value.filename)
+
     if not exception_module:
         exception_module = '<console>'
 
@@ -114,6 +135,11 @@ def custom_excepthook(type, value, tb):
     # tell the console handler no to print
     def inject_noprint(r):
         r.extra['noprint'] = isinstance(value, insteon.util.InsteonError)
+        # Add a special "(hidden)" before the printout
+        # if the full trace is hidden due to being an insteon error
+        if r.extra['noprint']:
+            r.message = ' (hidden) ' + r.message
+
     with logbook.Processor(inject_noprint).applicationbound():
         lines = traceback.format_exception(type, value, tb.tb_next)
         for l in lines:
@@ -141,4 +167,5 @@ print('........')
 
 # Load the init file (if it exists in the system)
 load_config(resolve_resource('init.py'))
+
 print('........')
