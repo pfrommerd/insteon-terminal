@@ -50,23 +50,9 @@ class Device:
         
         self.dbcache = linkdb.LinkDB()
 
-        # Add to registry
-        self._registry.register(self)
-
-
-    @port_resolver('port')
-    def send_cmd(self, cmd1, cmd2, port=None):
-        msg = port.defs['SendStandardMessage'].create()
-        msg['toAddress'] = self.addr
-        msg['command1'] = cmd1
-        msg['command2'] = cmd2
-
-        # Write the message
-        ack_reply = util.Channel()
-        port.write(msg, ack_reply_channel=ack_reply)
-        # Wait for the ack for a second before
-        # giving up
-        ack_reply.wait(1)
+        # Add to registry only if name and addr is set
+        if name and addr:
+            self._registry.register(self)
 
     # To be overridden by implementing devices
     @port_resolver('port')

@@ -2,6 +2,7 @@ import threading
 import traceback
 import queue
 import copy
+import weakref
 
 import time
 
@@ -15,7 +16,7 @@ logger = logbook.Logger(__name__)
 class WriteRequest:
     def __init__(self, msg, priority=1, prewrite_quiet_time=0, postwrite_quiet_time=0,
             write_channel=None, first_reply_channel=None,
-            ack_reply_channel=None, custom_channels=[]):
+            ack_reply_channel=None, custom_channels=[], weakref_customs=True):
         self.msg = msg
         self.priority = priority
 
@@ -37,6 +38,7 @@ class WriteRequest:
             self.ack_reply_channel.set_filter(lambda x: x['type'] == ack_msg_name)
 
         self.custom_channels = custom_channels # Will be added with write() call
+        self.weakref_customs = weakref_customs
 
     def __gt__(self, other):
         return self.priority > other.priority
@@ -146,15 +148,17 @@ class Port:
         self.unregister_on_write(self._write_watcher)
 
     # Now the actual IO logic
-
+    # note that the custom_channels
+    # added as weak references, so they won't stay
+    # around if the channel goes out of scope by the original caller
     def write(self, msg, priority=1, prewrite_quiet_time=0, postwrite_quiet_time = 0,
             write_channel=None, first_reply_channel=None,
-            ack_reply_channel=None, custom_channels={}):
+            ack_reply_channel=None, custom_channels={}, weakref_customs=True):
 
         self.write_request( WriteRequest(msg, priority,
             prewrite_quiet_time, postwrite_quiet_time,
             write_channel, first_reply_channel,
-            ack_reply_channel, custom_channels) )
+            ack_reply_channel, custom_channels, weakref_customs) )
 
     def write_request(self, request):
         self._write_queue.put(request)
@@ -188,7 +192,14 @@ class Port:
             # Notify listeners
             with self._read_listeners_lock:
                 listeners = list(self._read_listeners)
-                for l in listeners:
+                for lr in listeners:
+                    if isinstance(lr, weakref.ref):
+                        l = lr()
+                        if not l:
+                            self._read_listeners.remove(lr)
+                            continue
+                    else:
+                        l = lr
                     l(msg)
 
     def _write_thread(self):
@@ -243,9 +254,13 @@ class Port:
                 self.notify_on_write(write_channel)
 
                 # Will be removed by hand by the person who
-                # queued the write...
+                # queued the write if weakref_customs is False
+                # otherwise will be automatically removed
                 for channel in request.custom_channels:
-                    self.notify_on_read(channel)
+                    if request.weakref_customs:
+                        self.notify_on_read(weakref.ref(channel))
+                    else:
+                        self.notify_on_read(channel)
 
                 for i in range(5): # Maximum of 5 resends...
 
@@ -263,7 +278,14 @@ class Port:
                     # Notify the listeners of the write
                     with self._write_listeners_lock:
                         listeners = list(self._write_listeners)
-                        for l in listeners:
+                        for lr in listeners:
+                            if isinstance(lr, weakref.ref):
+                                l = lr()
+                                if not l:
+                                    self._write_listeners.remove(lr)
+                                    continue
+                            else:
+                                l = lr
                             l(msg)
 
                     # Remove the write channel the first time we write

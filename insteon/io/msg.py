@@ -99,12 +99,12 @@ class Field:
         if msg and self.name and self.name in msg:
             val = msg[self.name]
 
-        if val:
+        if val is not None:
             valstr = str(val)
             if self.type == DataType.ADDRESS:
                 valstr = format_addr(val)
             elif self.type == DataType.BYTE:
-                valstr = hex(val)
+                valstr = '0x{:02x}'.format(val)
         else:
             valstr = '???'
 
