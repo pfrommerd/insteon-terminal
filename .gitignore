@@ -3,6 +3,8 @@
 *.log
 *.nfs*
 
+.pytest_cache
+
 init.py
 backup.db
 insteon-terminal.log
