@@ -123,7 +123,8 @@ class Port:
         if not handler:
             return
         with self._read_listeners_lock:
-            self._read_listeners.remove(handler)
+            if handler in self._read_listeners:
+                self._read_listeners.remove(handler)
 
     def notify_on_write(self, handler):
         if not handler:
@@ -135,7 +136,8 @@ class Port:
         if not handler:
             return
         with self._write_listeners_lock:
-            self._write_listeners.remove(handler)
+            if handler in self._write_listeners:
+                self._write_listeners.remove(handler)
 
     # Utility debug functions.....
 
