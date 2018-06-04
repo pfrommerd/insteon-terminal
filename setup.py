@@ -37,7 +37,7 @@ setup(
     ],
 
     keywords='insteon',  # Optional
-    packages=find_packages(exclude=['contrib', 'docs', 'tests','config']),  # Required
+    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'deploy', 'config']),  # Required
 
     install_requires=['pyserial','logbook','setuptools'],  # Optional
     extras_require = {  # Optional
@@ -53,7 +53,7 @@ setup(
 
     entry_points={  # Command line commands
         'console_scripts': [
-            'insteon-terminal=insteonterminal:__main__',
+            'insteon-terminal=insteonterminal:run',
         ],
     },
 

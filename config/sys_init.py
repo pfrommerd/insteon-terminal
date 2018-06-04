@@ -84,6 +84,7 @@ def print(*objects, sep='', end='\n', file=sys.stdout, flush=False):
 # This will let us print out user input and any results
 # and not just program-generated messages
 def custom_interprethook(line):
+    import logbook
     logger = logbook.Logger('console')
     def inject_noprint(r):
         r.extra['noprint'] = True

@@ -148,3 +148,12 @@ class InsteonTerminal:
 
     def interact(self):
         self._shell.interact(banner="Welcome to the Insteon Terminal!", exitmsg='')
+
+def run():
+    import sys
+    from . import InsteonTerminal
+
+    term = InsteonTerminal()
+    term.load_sys_config()
+
+    term.interact()
