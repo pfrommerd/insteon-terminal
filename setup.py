@@ -13,7 +13,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='insteon-terminal',  # Required
-    version='0.1.0',  # Required
+    version='0.1.1',  # Required
     description='A utility for interacting with insteon modems',
     long_description=long_description,  # Optional
     long_description_content_type='text/markdown',  # Optional (see note above)
