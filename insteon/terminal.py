@@ -151,9 +151,11 @@ class InsteonTerminal:
 
 def run():
     import sys
-    from . import InsteonTerminal
 
     term = InsteonTerminal()
     term.load_sys_config()
 
     term.interact()
+
+if __name__ == '__main__':
+    run()

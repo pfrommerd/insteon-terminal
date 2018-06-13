@@ -8,6 +8,7 @@ logger = logbook.Logger(__name__)
 
 from warnings import warn
 
+
 class DefaultRecordFormatter:
     def __init__(self, registry=None):
         self._registry = registry
@@ -15,8 +16,8 @@ class DefaultRecordFormatter:
     def __call__(self, rec):
         off = rec['offset']
         addr = msg.format_addr(rec['address'])
-        dev = self._registry.get_by_addr(rec['address']).name \
-                if self._registry and self._registry.get_by_addr(rec['address']) else addr
+        dev = self._registry.by_addr[rec['address']].name \
+                if self._registry and rec['address'] in self._registry.by_addr else addr
         group = rec['group']
         flags = rec['flags']
 
@@ -30,27 +31,23 @@ class DefaultRecordFormatter:
         return '{:04x} {:30s} {:8s} {} {:08b} group: {:02x} data: {}'.format(
                 off,   dev,  addr, ctrl, flags,     group,       data_str)
 
-def offset_stripped(record):
-    copy = dict(record)
-    if 'offset' in copy:
-        del copy['offset']
-    return copy
-
-def offsets_stripped(records):
-    for rec in records:
-        yield offset_stripped(rec)
-
 class LinkDB:
     def __init__(self, records=None, formatter=None):
-        from .device import Device
-
         self.records = records if records else []
-        self.last_updated = None # Not yet populated
-        self.formatter = formatter if formatter else DefaultRecordFormatter(Device.s_default_registry)
+        self.timestamp = None # Not valid yet!
+        self.formatter = formatter
+
+    def __iter__(self):
+        for r in self.records:
+            yield r
 
     @property
-    def is_populated(self):
-        return self.last_updated is not None
+    def empty(self):
+        return not self.records
+
+    @property
+    def valid(self):
+        return self.timestamp is not None
 
     @property
     def end_offset(self):
@@ -59,18 +56,6 @@ class LinkDB:
             if r['offset'] > last_off:
                 last_off = r['offset'] + 0x08
         return last_off
-
-    def print(self, formatter=None):
-        formatter = formatter if formatter else self.formatter
-
-        if not self.is_populated:
-            logger.warning('LinkDB cache not populated!')
-            logger.warning('set_updated() must first be called for proper linkdb initialization (even if there are records in the DB)')
-            return
-
-        print(self.last_updated.strftime('Retrieved: %b %d %Y %H:%M:%S'))
-        for rec in self.records:
-            print(formatter(rec))
 
     def add_record(self, rec, allow_duplicates=False):
         # Make sure all the fields are nicely formatted
@@ -88,25 +73,35 @@ class LinkDB:
     def clear(self):
         self.records.clear()
 
-    def set_updated(self): # Updates the last_updated time
-        self.last_updated = datetime.datetime.now()
+    # Sets the timestamp of the device (if ts is None, sets it to the current time)
+    def set_timestamp(self, ts=None):
+        self.timestamp = ts if ts else datetime.datetime.now()
 
+    def set_invalid(self):
+        self.timestamp = None
+
+    # Adds a bunch of records and sets the timestamp (if records has a timestamp property, it uses
+    # that, otherwise it just uses the current time)
     def update(self, records):
         self.clear()
         for r in records:
             self.add_record(r)
-        self.set_updated()
+
+        if hasattr(records, 'timestamp'):
+            self.set_timestamp(records.timestamp)
+        else:
+            self.set_timestamp()
 
     def serialize(self):
         ser = {}
-        if self.last_updated:
-            ser['timestamp'] = self.last_updated.strftime('%b %d %Y %H:%M:%S')
+        if self.timestamp:
+            ser['timestamp'] = self.timestamp.strftime('%b %d %Y %H:%M:%S')
         ser['records'] = self.records
         return ser
 
     def deserialize(self, ser):
         if 'timestamp' in ser:
-            self.last_updated = datetime.datetime.strptime(ser['timestamp'],'%b %d %Y %H:%M:%S')
+            self.timestamp = datetime.datetime.strptime(ser['timestamp'],'%b %d %Y %H:%M:%S')
         if 'records' in ser:
             for r in ser['records']:
                 # Change the address type back to a tuple
@@ -123,14 +118,30 @@ class LinkDB:
             ser = json.load(i)
             self.deserialize(ser)
 
-    # Returns a filter generator that can be used
-    # to search the linkdb
+    def print(self, formatter=None):
+        formatter = formatter if formatter else self.formatter
+        if not formatter:
+            logger.warning('No formatter set in call LinkDB.print()!')
+            return
+
+        if not self.valid:
+            logger.warning('LinkDB cache not valid!')
+            logger.warning('set_timestamp() must first be called for proper linkdb initialization (even if there are records in the DB)')
+            return
+
+        print(self.timestamp.strftime('Retrieved: %b %d %Y %H:%M:%S'))
+        for rec in self.records:
+            print(formatter(rec))
+
+
+    # Returns a filtered "subset" linkDB that 
+    # contains only the records that match a certain record
+    # filter
     def filter_records(self, rec_filter, flags_mask):
         def msg_matches(x):
             return not ('flags' in rec_filter and rec_filter['flags'] & ltype_mask != x['flags'] & ltype_mask) and  \
                     all(item in x for item in rec_filter.items() if item[0] != 'flags')
-            
-        return filter(msg_matches, self.records)
+        return LinkDB(filter(msg_matches, self.records))
 
     def filter_active_records(self, rec_filter={}, flags_mask=0x82):
         rec_filter['flags'] |= (1 << 7) # record in use bit

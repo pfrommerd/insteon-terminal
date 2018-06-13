@@ -1,64 +1,82 @@
-from ..util import port_resolver
-
-from . import linkdb as linkdb
-
 import insteon.util as util
 
-class DeviceRegistry:
+from contextlib import contextmanager
+
+class NetworkConfig:
     def __init__(self):
-        self.by_name = {}
-        self.by_addr = {}
+        self.dev_by_name = {}
+        self.dev_by_addr = {}
+        self.name_by_addr = {}
 
-    def register(self, device):
-        if device.name:
-            self.by_name[device.name] = device
-        if device.addr:
-            self.by_addr[device.addr] = device
+        self.conduits = {}
 
-    def get_by_name(self, name):
-        if name in self.by_name:
-            return self.by_name[name]
-        else:
+    def register_device(self, name, device):
+        self.dev_by_name[name] = device
+        self.dev_by_addr[device.addr] = device
+        self.name_by_addr[device.addr] = name
+
+    # Registers a device as reachable through a modem "conduit"
+    def register_conduit(self, addr, modem):
+        if addr not in self.conduits:
+            self.conduits[addr] = []
+        self.conduits[addr].append(modem)
+
+    def conduit_of(self, addr):
+        if addr not in self.conduits:
             return None
-
-    def get_by_addr(self, addr):
-        if addr in self.by_addr:
-            return self.by_addr[addr]
         else:
+            return self.conduits[addr][0]
+
+    def port_of(self, addr):
+        if addr not in self.conduits:
             return None
+        else:
+            # Get the port of the conduit
+            return self.conduits[addr][0].port
+
+    # TODO: Make thread safe with locks
+    @contextmanager
+    def bind(self):
+        reg = Device.s_bound_netconf
+        Device.s_bound_netconf = self
+        yield
+        Device.s_bound_netconf = reg
 
 class Device:
-    s_default_modem = None
-    s_default_registry = DeviceRegistry() # A basic default registry
+    s_bound_conduit = None
+    s_bound_netconf = None
 
-    @staticmethod
-    def s_set_default_modem(modem):
-        Device.s_default_modem = modem
-
-    @staticmethod
-    def s_set_default_registry(registry):
-        Device.s_default_registry = registry
-
-
-    def __init__(self, name=None, addr=None, modem=None, registry=None):
-        self.name = name
+    def __init__(self, addr=None):
         self.addr = addr
+        self.features = {}
 
-        # Prevent circular import
-        self._modem = modem if modem else Device.s_default_modem
-        self._registry = registry if registry else Device.s_default_registry
-        
-        self.dbcache = linkdb.LinkDB()
+        self._network = None
 
-        # Add to registry only if name and addr is set
-        if name and addr:
-            self._registry.register(self)
+    @property
+    def primary_port(self):
+        # For modem-like devices
+        if hasattr(self, 'port'):
+            return self.port
 
-    # To be overridden by implementing devices
-    @port_resolver('port')
-    def update_dbcache(self, targetdb=None, port=None):
-        logger.warning('STUB: update_dbcache()')
+        if not self._network:
+            return None
+        return self._network.port_of(self.addr)
 
-    @port_resolver('port')
-    def flash_dbcache(self, srcdb=None, port=None):
-        logger.warning('STUB: flash_dbcache()')
+    # Can provide a custom conduit/network to register with
+    # or can use the currently bound one
+    def register(self, name, conduit=None, network=None):
+        network = network if network else Device.s_bound_netconf
+
+        if self._network or network:
+            if not self._network:
+                self._network = network
+
+            conduit = conduit if conduit else Device.s_bound_conduit
+            if conduit:
+                self._network.register_conduit(self.addr, conduit)
+
+        return self
+
+    def add_feature(self, name, feature):
+        setattr(self, name, feature)
+        self.features[name] = feature

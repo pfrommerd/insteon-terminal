@@ -106,75 +106,6 @@ class Channel:
     def __call__(self, *args):
         self.send(*args)
 
-# Now the resolver
-# utility
-def resolver(param_name, res):
-    # The actual function that gets
-    # called on decorate
-    def decorate(func):
-        # Get the original function signature
-        # to find the argument number that
-        # we need to bind to
-        sig = inspect.signature(func)
-        if not param_name in sig.parameters:
-            # Help!
-            raise ValueError('Binding param not found!')
-        param_idx = list(sig.parameters).index(param_name)
-
-        # The actual function that
-        # is executed on method invocation
-        def exec_func(*args, **kwargs):
-            # Check if the argument has been manually supplied
-            if param_name in kwargs or len(args) > param_idx:
-                return func(*args, **kwargs)
-
-            # A partially-bound function
-            # that just needs the operand
-            def call_internal(param):
-                kwargs[param_name] = param
-                return func(*args, **kwargs)
-
-            # Otherwise try to resolve the parameter 
-            param = res(args, kwargs)
-            if param is not None:
-                return call_internal(param)
-            else:
-                # Return a partially-bound function
-                return call_internal
-
-        # return the method that gets called
-        return exec_func
-    # return the actual decorator
-    return decorate
-
-def port_resolver(param_name):
-    def resolve_port(args, kwargs):
-        if hasattr(args[0], '_modem') and args[0]._modem:
-            return args[0]._modem.port
-        else:
-            return None
-
-    return resolver(param_name, resolve_port)
-
-
-def modem_resolver(param_name):
-    def resolve_modem(args, kwargs):
-        if hasattr(args[0], '_modem'):
-            return args[0]._modem
-        else:
-            return None
-
-    return resolver(param_name, resolve_modem)
-
-def registry_resolver(param_name):
-    def resolve_registry(args, kwargs):
-        if hasattr(args[0], '_registry'):
-            return args[0]._registry
-        else:
-            return None
-
-    return resolver(param_name, resolve_registry)
-
 # A custom insteon error type
 # that the terminal knows can just be printed out
 # this should be used for when messages are dropped
@@ -182,4 +113,3 @@ def registry_resolver(param_name):
 # or with the modem)
 class InsteonError(Exception):
     pass
-

@@ -37,7 +37,7 @@ setup(
     ],
 
     keywords='insteon',  # Optional
-    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'deploy', 'config']),  # Required
+    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'deploy', 'target']),  # Required
 
     install_requires=['pyserial','logbook','setuptools'],  # Optional
     extras_require = {  # Optional
@@ -49,11 +49,11 @@ setup(
         'insteon': ['io/msg_definitions.xml'],
     },
 
-    data_files=[('share/insteon-terminal', ['config/sys_init.py'])],  # To be installed under sys.prefix
+    data_files=[('share/insteon-terminal', ['target/default/sys_init.py'])],  # To be installed under sys.prefix
 
     entry_points={  # Command line commands
         'console_scripts': [
-            'insteon-terminal=insteonterminal:run',
+            'insteon-terminal=insteon.terminal:run',
         ],
     },
 
