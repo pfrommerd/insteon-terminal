@@ -162,7 +162,7 @@ def create_interpreter_reloader():
         modules = list(sys.modules.keys())
         for module in modules:
             if module.startswith('insteon.') and module != 'insteon.terminal':
-                del sys.mdoules[module]
+                del sys.modules[module]
     return (load, None)
 
 def create_print_redirect(printout):
@@ -241,46 +241,6 @@ class ConsoleTerminal:
                 shell.interpreter._buffer.clear()
                 more = False
 
-class JQConsole:
-    def __init__(self):
-        # Change the stdout and std err
-        # to print to the jqconsole
-        sys.stdout.write = self.write
-        sys.stderr.write = self.write
-        sys.stdin = None # Disable stdin
-
-    def setup(self, shell):
-        pass
-
-    def set_prompt(self, label):
-        import js
-        js.run('window.term_prompt = \"' + label + '\";')
-
-    def write(self, text):
-        import js
-        import base64
-        encoded = str(base64.standard_b64encode(bytes(text, 'utf-8')),'utf-8')
-        js.run('window.req_write("' + encoded + '");')
-
-    def on_input(self, val):
-        import base64
-        line = str(base64.standard_b64decode(val),'utf-8')
-        if self._shell:
-            more = False
-            try:
-                more = not self._shell.process_input(line, sys.stdout, sys.stderr, sys.stdin)
-            except InterpretError as e:
-                print(e)
-            if more:
-                self.set_prompt('... ')
-            else:
-                self.set_prompt('>>> ')
-
-    def run(self, shell):
-        # Return ourself so the java script
-        # can call on_input
-        self._shell = shell
-        return self
 
 def run(terminaltype='console'):
     import sys
@@ -288,6 +248,7 @@ def run(terminaltype='console'):
     if terminaltype == 'console':
         terminal = ConsoleTerminal()
     elif terminaltype == 'jqconsole':
+        from .web.jqconsole import JQConsole
         terminal = JQConsole()
     else:
         print('Unknown console type!')
