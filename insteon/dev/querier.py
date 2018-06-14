@@ -3,7 +3,7 @@ class Querier:
     def __init__(self, device):
         self._device = device
 
-    def send_stdmsg(self, cmd1, cmd2, flags=MsgType.DIRECT, port=None)
+    def send_stdmsg(self, cmd1, cmd2, flags=MsgType.DIRECT, port=None):
         port = port if port else self._device
 
         msg = port.defs['SendStandardMessage'].create()

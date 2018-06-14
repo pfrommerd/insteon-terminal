@@ -212,6 +212,12 @@ class ConsoleTerminal:
         self.stdout = sys.stdout
         self.stderr = sys.stderr
         self.stdin = sys.stdin
+
+    def setup(self, shell):
+        pass
+
+    def input(self, prompt=''):
+        return input(prompt)
     
     def run(self, shell):
         more = False
@@ -219,7 +225,7 @@ class ConsoleTerminal:
             try:
                 prompt = '... ' if more else '>>> '
                 try:
-                    line = input(prompt) # TODO: Handle if we want to use something else besides stdin
+                    line = self.input(prompt) # TODO: Handle if we want to use something else besides stdin
                 except EOFError:
                     self.stdout.write('\n')
                     break
@@ -230,14 +236,62 @@ class ConsoleTerminal:
                         print(e)
 
             except KeyboardInterrupt:
-                self.write('\nKeyboardInterrupt\n')
+                self.stdout.write('\nKeyboardInterrupt\n')
                 # Clear the input buffer
                 shell.interpreter._buffer.clear()
                 more = False
 
-def run():
+class JQConsole:
+    def __init__(self):
+        # Change the stdout and std err
+        # to print to the jqconsole
+        sys.stdout.write = self.write
+        sys.stderr.write = self.write
+        sys.stdin = None # Disable stdin
+
+    def setup(self, shell):
+        pass
+
+    def set_prompt(self, label):
+        import js
+        js.run('window.term_prompt = \"' + label + '\";')
+
+    def write(self, text):
+        import js
+        import base64
+        encoded = str(base64.standard_b64encode(bytes(text, 'utf-8')),'utf-8')
+        js.run('window.req_write("' + encoded + '");')
+
+    def on_input(self, val):
+        import base64
+        line = str(base64.standard_b64decode(val),'utf-8')
+        if self._shell:
+            more = False
+            try:
+                more = not self._shell.process_input(line, sys.stdout, sys.stderr, sys.stdin)
+            except InterpretError as e:
+                print(e)
+            if more:
+                self.set_prompt('... ')
+            else:
+                self.set_prompt('>>> ')
+
+    def run(self, shell):
+        # Return ourself so the java script
+        # can call on_input
+        self._shell = shell
+        return self
+
+def run(terminaltype='console'):
     import sys
-    terminal = ConsoleTerminal()
+
+    if terminaltype == 'console':
+        terminal = ConsoleTerminal()
+    elif terminaltype == 'jqconsole':
+        terminal = JQConsole()
+    else:
+        print('Unknown console type!')
+        return
 
     shell = Shell()
     # Will ensure that modules are reloaded and all locals are cleared
@@ -257,9 +311,11 @@ def run():
     # Add default search paths for resources
     shell.resource_paths.extend([os.curdir, os.path.join(os.curdir, 'config')])
 
+    terminal.setup(shell) # Terminal may add some custom components
+
     shell.init() # Load system config and the light
     print('Welcome to the Insteon Terminal')
-    terminal.run(shell)
+    return terminal.run(shell)
 
-if __name__ == '__main__':
+if __name__=='__main__':
     run()
