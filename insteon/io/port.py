@@ -252,7 +252,6 @@ class Port:
                 self.notify_on_read(first_reply_channel)
                 self.notify_on_read(ack_reply_channel)
 
-
                 self.notify_on_write(write_channel)
 
                 # Will be removed by hand by the person who

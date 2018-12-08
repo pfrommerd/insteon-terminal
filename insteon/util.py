@@ -108,6 +108,7 @@ class Channel:
 
 # A custom insteon error type
 # that the terminal knows can just be printed out
+# without a stack trace
 # this should be used for when messages are dropped
 # (i.e any unexpected behavior on the insteon network
 # or with the modem)
