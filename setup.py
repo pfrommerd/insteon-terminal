@@ -12,7 +12,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # Fields marked as "Optional" may be commented out.
 
 setup(
-    name='insteon-terminal',  # Required
+    name='insteonterminal',  # Required
     version='0.1.1',  # Required
     description='A utility for interacting with insteon modems',
     long_description=long_description,  # Optional
@@ -53,7 +53,7 @@ setup(
 
     entry_points={  # Command line commands
         'console_scripts': [
-            'insteon-terminal=insteon.terminal:run',
+            'insteon-terminal=insteonterminal:run',
         ],
     },
 
