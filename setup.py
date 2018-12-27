@@ -13,7 +13,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='insteonterminal',  # Required
-    version='0.0.1',  # Required
+    version='0.0.2',  # Required
     description='A utility for interacting with insteon modems',
     long_description=long_description,  # Optional
     long_description_content_type='text/markdown',  # Optional (see note above)
@@ -38,7 +38,7 @@ setup(
     keywords='insteon',  # Optional
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'deploy', 'target']),  # Required
 
-    install_requires=['insteon', 'terminal', 'logbook','appdirs', 'setuptools'],  # Optional
+    install_requires=['insteon', 'iterminal', 'logbook','appdirs', 'setuptools'],  # Optional
     extras_require = {  # Optional
         'dev': [],
         'test': []
@@ -46,7 +46,7 @@ setup(
 
     package_data = {},
 
-    data_files=[('share/insteon-terminal', ['config/sys_init.py'])],  # To be installed under sys.prefix
+    data_files=[],
 
     entry_points={  # Command line commands
         'console_scripts': [

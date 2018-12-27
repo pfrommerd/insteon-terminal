@@ -1,9 +1,10 @@
-from terminal.interpreter import InterpreterSetup
-from terminal.shell import Shell,LoadScript
-from terminal.console import ConsoleTerminal,ConsoleCommands
-from terminal.commands import Commands
-from terminal.component import Component
+from iterminal.interpreter import InterpreterSetup
+from iterminal.shell import Shell,LoadScript
+from iterminal.console import ConsoleTerminal,ConsoleCommands
+from iterminal.commands import Commands
+from iterminal.component import Component
 
+import os
 import logbook
 import builtins
 import appdirs
@@ -12,6 +13,20 @@ import appdirs
 # will not be printed by the stream logger
 console_logger = logbook.Logger('console')
 prompt_logger = logbook.Logger('prompt')
+
+log_dir = appdirs.user_log_dir('insteon-terminal')
+config_dir = appdirs.user_config_dir('insteon-terminal')
+
+class SysConfig(Component):
+    def __init__(self):
+        super().__init__('sys_config')
+
+    def init(self, shell):
+        import insteon.io.xmlmsgreader
+        shell.set_local('definitions', insteon.io.xmlmsgreader.read_default_xml())
+
+    def dipose(self, shell):
+        shell.unset_local('definitions')
 
 # The logging setup
 class LoggingSetup(Component):
@@ -30,7 +45,8 @@ class LoggingSetup(Component):
                 return record.message
         self._stream_handler.formatter = format
 
-        self._file_handler = logbook.FileHandler('insteon-terminal.log', bubble=True)
+        self._file_handler = logbook.FileHandler(os.path.join(log_dir, 'insteon-terminal.log'),
+                                                    bubble=True)
 
     def init(self, shell):
         def print(*args, **kwargs):
@@ -50,11 +66,13 @@ class LoggingSetup(Component):
         self._file_handler.pop_application()
 
 def run():
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
     shell = Shell()
     shell.add_resource_path('.')
-    shell.add_resource_path('config')
-    shell.add_resource_path(appdirs.user_config_dir('insteon-terminal'))
-    shell.add_resource_path('/usr/share/insteon-terminal')
+    shell.add_resource_path(config_dir)
 
     terminal = ConsoleTerminal()
     terminal.add_prompt_listener(lambda p,v: prompt_logger.info(v))
@@ -63,7 +81,7 @@ def run():
     shell.add_component(LoggingSetup(terminal.stdout, terminal.stderr))
     shell.add_component(Commands())
     shell.add_component(ConsoleCommands(terminal))
-    shell.add_component(LoadScript('sys_init.py'))
+    shell.add_component(SysConfig())
     shell.add_component(LoadScript('init.py'))
 
     terminal.run(shell)
