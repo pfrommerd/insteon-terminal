@@ -6,6 +6,7 @@ from terminal.component import Component
 
 import logbook
 import builtins
+import appdirs
 
 # These two loggers
 # will not be printed by the stream logger
@@ -52,6 +53,7 @@ def run():
     shell = Shell()
     shell.add_resource_path('.')
     shell.add_resource_path('config')
+    shell.add_resource_path(appdirs.user_config_dir('insteon-terminal'))
     shell.add_resource_path('/usr/share/insteon-terminal')
 
     terminal = ConsoleTerminal()
