@@ -2,11 +2,10 @@
 *.pyc
 *.log
 *.nfs*
+*.linkdb*
+*.db*
+*.bk
+*.egg-info
 
-.pytest_cache
-
+__pycache__
 init.py
-backup.db
-insteon-terminal.log
-
-*.linkdb.bk
