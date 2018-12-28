@@ -47,6 +47,9 @@ class LoggingSetup(Component):
 
         self._file_handler = logbook.FileHandler(os.path.join(log_dir, 'insteon-terminal.log'),
                                                     bubble=True)
+        self._hub_file_handler = logbook.FileHandler(os.path.join(log_dir, 'hub-requests.log'),
+                                                    filter=lambda r,h: r.channel.startswith('insteon.io.hub'),
+                                                    bubble=False)
 
     def init(self, shell):
         def print(*args, **kwargs):
@@ -56,14 +59,16 @@ class LoggingSetup(Component):
                 console_logger.info(l)
         builtins.print = print
 
-        self._file_handler.push_application()
         self._stream_handler.push_application()
+        self._file_handler.push_application()
+        self._hub_file_handler.push_application()
 
     def dispose(self, shell):
         builtins.print = self._original_print
 
-        self._stream_handler.pop_application()
+        self._hub_file_handler.pop_application()
         self._file_handler.pop_application()
+        self._stream_handler.pop_application()
 
 def run():
     if not os.path.exists(config_dir):
