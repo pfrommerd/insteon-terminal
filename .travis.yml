@@ -7,16 +7,3 @@ python:
 - pypy3.5
 install:
 - pip install .
-script:
-- pytest
-deploy:
-  provider: pypi
-  user: pfrommerd
-  password:
-    secure: 0ZoK/tdIHLDnnJCtJymHMRirQ0uXYP0bVZF5se54qX5C1nOTmx2X1EACNn5yVcS5E+BCFelAFb7Bsv2MTj/tBkR/vAWxcr0KR02NH4lHR1Or4seEwgqx1hzb5qJI+4T6xpjtqeO6MLKQyZM7y/WrhHBRyPw+N3DPUliz532XFm+938UB+nlrXPRrPme2jV9H5cxwmYxpj6Pcwa2kKNEJhJMtIj2alify7LKrdGEaXu9M4kc0X0xEf7EmEBAPMU4W4lvL7JIoUPH6CTKAi3ey9xicEDit8z6kQFhVFC4Ata6lg97M/3tmZZ1R9bDvihjQIlst/JJYbtI+UmEhokedj5+6d4NuDvzRS1DS6e+TvukF8A1PZCvfp1EfuvtaMUgOOCUe78ghxFUgKYhDkNFYN0CgE3XFvYsBrT4nEzoZ5cULJDd1y2Qpwyhg4UxE01/ptuUcSbD5TDnGuxm+VaHZng2rtpe+vTp5WeLjwP0qnUN+u4+at/M11PH6zW9d3J96vz4nQuZ19w5yUNDOIFExoHPZqZWIIhghPj0cMe3EOZo1rh6w990rs5gWrIKeYusEVM/HOxlqOQLN9aDgsVpnudT0oc4FCJuzG0p4ysPdyxbL96LSHSSci4+qfMd8m+o7uJ/BYvLr6F+1kEiz0lKghrPtcD5ucdDzhtTo2qdrADo=
-  distributions: sdist bdist_wheel
-  skip_existing: true
-  edge: true
-  server: https://test.pypi.org/legacy/
-  on:
-    branch: experimental
