@@ -35,7 +35,8 @@ class LoggingSetup(Component):
         self._stdout = stdout
         self._stderr = stderr
         self._original_print = builtins.print
-        self._stream_handler = logbook.StreamHandler(self._stdout, bubble=True,
+
+        stream_handler = logbook.StreamHandler(self._stdout, bubble=True,
                                 filter=lambda r,h: r.channel != 'console' and r.channel != 'prompt')
 
         def format(record, handler):
@@ -43,13 +44,16 @@ class LoggingSetup(Component):
                 return logbook.get_level_name(record.level) + ': ' + record.message
             else:
                 return record.message
-        self._stream_handler.formatter = format
+        stream_handler.formatter = format
 
-        self._file_handler = logbook.FileHandler(os.path.join(log_dir, 'insteon-terminal.log'),
-                                                    bubble=True)
-        self._hub_file_handler = logbook.FileHandler(os.path.join(log_dir, 'hub-requests.log'),
-                                                    filter=lambda r,h: r.channel.startswith('insteon.io.hub'),
-                                                    bubble=False)
+        self._setup = logbook.NestedSetup([
+                logbook.NullHandler(),
+                stream_handler,
+                logbook.FileHandler(os.path.join(log_dir, 'insteon-terminal.log'), bubble=True),
+                logbook.NullHandler(filter=lambda r,h: r.channel.startswith('insteon.io.hub') \
+                                                        and r.level == logbook.TRACE),
+                logbook.FileHandler(os.path.join(log_dir, 'insteon-trace.log'), bubble=True)
+            ])
 
     def init(self, shell):
         def print(*args, **kwargs):
@@ -59,16 +63,12 @@ class LoggingSetup(Component):
                 console_logger.info(l)
         builtins.print = print
 
-        self._stream_handler.push_application()
-        self._file_handler.push_application()
-        self._hub_file_handler.push_application()
+        self._setup.push_application()
 
     def dispose(self, shell):
         builtins.print = self._original_print
 
-        self._hub_file_handler.pop_application()
-        self._file_handler.pop_application()
-        self._stream_handler.pop_application()
+        self._setup.pop_application()
 
 def run():
     if not os.path.exists(config_dir):
