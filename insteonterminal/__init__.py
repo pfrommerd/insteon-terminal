@@ -1,6 +1,5 @@
 from iterminal.interpreter import InterpreterSetup
 from iterminal.shell import Shell,LoadScript
-from iterminal.console import ConsoleTerminal,ConsoleCommands
 from iterminal.commands import Commands
 from iterminal.component import Component
 
@@ -75,19 +74,24 @@ def run():
         os.makedirs(config_dir)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    shell = Shell()
-    shell.add_resource_path('.')
-    shell.add_resource_path(config_dir)
 
+    from iterminal.console import ConsoleTerminal,ConsoleCommands
     terminal = ConsoleTerminal()
     terminal.add_prompt_listener(lambda p,v: prompt_logger.info(v))
 
+    shell = Shell()
+
+    shell.add_resource_path('.')
+    shell.add_resource_path(config_dir)
+
     shell.add_component(InterpreterSetup())
     shell.add_component(LoggingSetup(terminal.stdout, terminal.stderr))
+
     shell.add_component(Commands())
     shell.add_component(ConsoleCommands(terminal))
+
+
     shell.add_component(SysConfig())
     shell.add_component(LoadScript('init.py'))
 
     terminal.run(shell)
-
