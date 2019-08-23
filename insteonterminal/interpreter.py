@@ -13,7 +13,7 @@ class InterpreterSetup(Component):
     def __init__(self):
         super().__init__('interpreter')
         self._blacklist = ['codecs', 'encodings', '__main__', 'logbook',
-                           'io', 'abc', 'site', 'builtins', 'sys']
+                           'io', 'abc', 'site', 'builtins', 'sys', 'insteonterminal']
 
     async def init(self, shell):
         shell.clear_locals()

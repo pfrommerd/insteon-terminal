@@ -1,4 +1,5 @@
 from .component import Component
+import inspect
 
 class Commands(Component):
     def __init__(self):
@@ -28,5 +29,7 @@ class Commands(Component):
         shell.unset_local('list_components')
         shell.unset_local('reload')
         for h in self._hooks:
-            await h()
+            val = h()
+            if inspect.iscoroutine(val):
+                await val
         self._hooks.clear()
