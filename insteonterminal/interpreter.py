@@ -4,6 +4,7 @@ import os
 import sys
 import traceback
 import imp
+import inspect
 
 class InterpretError(Exception):
     pass
@@ -73,7 +74,7 @@ class Interpreter:
                 raise InterpretError((''.join(traceback.format_exception_only(t, v))).strip())
 
     def try_compile_async(self, source, filename='<input>', mode='single'):
-        if not '\n' in source:
+        if (not '\n' in source) and (not '=' in source):
             source = 'async def __ex():\n' + \
                     ' ret = ' + source + '\n' + \
                     ' return (ret, locals())\n'
@@ -120,7 +121,10 @@ class Interpreter:
 
             ret, new_locals = await func()
             locals_.update(new_locals)
-            return ret
+            if inspect.iscoroutine(ret):
+                return await ret
+            else:
+                return ret
         except SystemExit:
             raise
         except InterpretError as e:

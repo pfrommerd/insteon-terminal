@@ -4,19 +4,9 @@ class Commands(Component):
     def __init__(self):
         super().__init__('shell_commands')
 
-    def reload(self, shell):
-        import threading
-        shell.deinit()
-
-        # Stop any running threads that are
-        # not the main thread
-        for thread in threading.enumerate():
-            if thread is not threading.main_thread() and thread.is_alive():
-                stop = getattr(thread, 'stop', None)
-                if stop:
-                    stop()
-
-        shell.init()
+    async def reload(self, shell):
+        await shell.deinit()
+        await shell.init()
 
     def list_components(self, shell):
         for i, c in enumerate(shell.components):
