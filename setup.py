@@ -38,7 +38,7 @@ setup(
     keywords='insteon',  # Optional
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'deploy', 'target']),  # Required
 
-    install_requires=['insteon', 'iterminal', 'logbook','appdirs', 'setuptools'],  # Optional
+    install_requires=['insteon', 'aioconsole', 'logbook','appdirs', 'setuptools'],  # Optional
     extras_require = {  # Optional
         'dev': [],
         'test': []

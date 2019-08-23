@@ -74,10 +74,13 @@ class Interpreter:
                 raise InterpretError((''.join(traceback.format_exception_only(t, v))).strip())
 
     def try_compile_async(self, source, filename='<input>', mode='single'):
-        if (not '\n' in source) and (not '=' in source):
+        # make sure first it compiles on its own
+        self.try_compile(source, filename, mode)
+        if (not '\n' in source) and (not '=' in source) \
+                and (not 'import' in source) and len(source.strip()) > 0:
             source = 'async def __ex():\n' + \
-                    ' ret = ' + source + '\n' + \
-                    ' return (ret, locals())\n'
+                        ' val_ = ' + source + '\n' + \
+                        ' return (val_, locals())\n'
         else:
             source = 'async def __ex(): ' + ''.join(f'\n {l}' for l in source.split('\n')) + \
                     '\n return (None, locals())\n'

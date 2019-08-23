@@ -1,6 +1,8 @@
 from .interpreter import InterpretError
 from .component import Component
 
+import aioconsole
+
 class ConsoleTerminal:
     def __init__(self):
         import sys
@@ -17,8 +19,8 @@ class ConsoleTerminal:
     def add_prompt_listener(self, l):
         self._input_listeners.append(l)
 
-    def prompt(self, prompt=''):
-        i = input(prompt)
+    async def prompt(self, prompt=''):
+        i = await aioconsole.ainput(prompt)
         for l in self._input_listeners:
             l(prompt, i)
         return i
@@ -39,7 +41,7 @@ class ConsoleTerminal:
             try:
                 prompt = '... ' if more else '>>> '
                 try:
-                    line = self.prompt(prompt) # TODO: Handle if we want to use something else besides stdin
+                    line = await self.prompt(prompt) # TODO: Handle if we want to use something else besides stdin
                 except EOFError:
                     self.stdout.write('\n')
                     break
