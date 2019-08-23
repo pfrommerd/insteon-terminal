@@ -14,10 +14,10 @@ class InterpreterSetup(Component):
         self._blacklist = ['codecs', 'encodings', '__main__', 'logbook',
                            'io', 'abc', 'site', 'builtins', 'sys']
 
-    def init(self, shell):
+    async def init(self, shell):
         shell.clear_locals()
 
-    def dispose(self, shell):
+    async def dispose(self, shell):
         shell.clear_locals()
         # Delete all of the modules
         for name in list(sys.modules.keys()):
@@ -72,6 +72,16 @@ class Interpreter:
                     v = SyntaxError(msg, (filename, lineno, offset, line))
                 raise InterpretError((''.join(traceback.format_exception_only(t, v))).strip())
 
+    def try_compile_async(self, source, filename='<input>', mode='single'):
+        if not '\n' in source:
+            source = 'async def __ex():\n' + \
+                    ' ret = ' + source + '\n' + \
+                    ' return (ret, locals())\n'
+        else:
+            source = 'async def __ex(): ' + ''.join(f'\n {l}' for l in source.split('\n')) + \
+                    '\n return (None, locals())\n'
+        return self.try_compile(source, filename, mode)
+
     def exec_file(self, path):
         if path and os.path.isfile(path):
             code = ''
@@ -81,14 +91,59 @@ class Interpreter:
             compiled = compile(code, filename=path, mode='exec')
             self.exec_code(compiled)
 
-    def exec_code(self, compiled_code, stdout=None, stdin=None, stderr=None):
+    async def exec_file_async(self, path):
+        if path and os.path.isfile(path):
+            code = ''
+            with open(path, 'r') as f:
+                code = f.read()
+            code = 'async def __ex(): ' + ''.join(f'\n {l}' for l in code.split('\n')) + \
+                        '\n return locals()'
+            # Interpret the code
+            compiled = compile(code, filename=path, mode='exec')
+            if '__ex' in self.locals:
+                del self.locals['__ex']
+            self.exec_code(compiled)
+            func = self.locals['__ex']
+            del self.locals['__ex']
+            self.locals.update(await func())
+
+    async def exec_code_async(self, compiled_code, stdout=None, stdin=None, stderr=None, locals_=None):
+        if locals_ is None:
+            locals_ = self.locals
+        if '__ex' in locals_:
+            del locals_['__ex']
+
         try:
-            return exec(compiled_code, self.locals)
+            self.exec_code(compiled_code, stdout, stdin, stderr, locals_)
+            func = locals_['__ex']
+            del locals_['__ex']
+
+            ret, new_locals = await func()
+            locals_.update(new_locals)
+            return ret
         except SystemExit:
             raise
+        except InterpretError as e:
+            raise e
         except:
             t, v, last_tb = sys.exc_info()
             if getattr(v, 'quiet', False):
-                print(v)
+                print(v, file=stdout)
+            else:
+                raise InterpretError((''.join(traceback.format_exception(t, v, last_tb.tb_next))).strip())
+
+    def exec_code(self, compiled_code, stdout=None, stdin=None, stderr=None, locals_=None):
+        if locals_ is None:
+            locals_ = self.locals
+        try:
+            return exec(compiled_code, locals_)
+        except SystemExit:
+            raise
+        except InterpretError as e:
+            raise e
+        except:
+            t, v, last_tb = sys.exc_info()
+            if getattr(v, 'quiet', False):
+                print(v, file=stdout)
             else:
                 raise InterpretError((''.join(traceback.format_exception(t, v, last_tb.tb_next))).strip())

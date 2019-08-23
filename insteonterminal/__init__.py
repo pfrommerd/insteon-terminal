@@ -7,6 +7,7 @@ import os
 import logbook
 import builtins
 import appdirs
+import asyncio
 
 # These two loggers
 # will not be printed by the stream logger
@@ -20,11 +21,11 @@ class SysConfig(Component):
     def __init__(self):
         super().__init__('sys_config')
 
-    def init(self, shell):
+    async def init(self, shell):
         import insteon.io.xmlmsgreader
         shell.set_local('definitions', insteon.io.xmlmsgreader.read_default_xml())
 
-    def dipose(self, shell):
+    async def dipose(self, shell):
         shell.unset_local('definitions')
 
 # The logging setup
@@ -54,7 +55,7 @@ class LoggingSetup(Component):
                 logbook.FileHandler(os.path.join(log_dir, 'insteon-trace.log'), bubble=True)
             ])
 
-    def init(self, shell):
+    async def init(self, shell):
         def print(*args, **kwargs):
             self._original_print(*args, **kwargs)
             lines = ' '.join(map(str, args)).split('\n')
@@ -64,7 +65,7 @@ class LoggingSetup(Component):
 
         self._setup.push_application()
 
-    def dispose(self, shell):
+    async def dispose(self, shell):
         builtins.print = self._original_print
 
         self._setup.pop_application()
@@ -94,4 +95,5 @@ def run():
     shell.add_component(SysConfig())
     shell.add_component(LoadScript('init.py'))
 
-    terminal.run(shell)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(terminal.run(shell))

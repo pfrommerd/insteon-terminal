@@ -3,8 +3,8 @@ class Component:
     def __init__(self, name):
         self.name = name
 
-    def init(self, shell):
+    async def init(self, shell):
         pass
 
-    def dispose(self, shell):
+    async def dispose(self, shell):
         pass

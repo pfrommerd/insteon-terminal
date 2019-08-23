@@ -27,9 +27,9 @@ class ConsoleTerminal:
         import os
         os.system('clear')
     
-    def run(self, shell):
+    async def run(self, shell):
         try:
-            shell.init()
+            await shell.init()
         except InterpretError as e:
             print(e)
             return
@@ -45,7 +45,7 @@ class ConsoleTerminal:
                     break
                 else:
                     try:
-                        more = not shell.process_input(line, self.stdout, self.stderr, self.stdin)
+                        more = not await shell.process_input(line, self.stdout, self.stderr, self.stdin)
                     except InterpretError as e:
                         print(e)
 
@@ -64,8 +64,8 @@ class ConsoleCommands(Component):
     def clear(self):
         self._console.clear()
 
-    def init(self, shell):
+    async def init(self, shell):
         shell.set_local('clear', self.clear)
 
-    def dispose(self, shell):
+    async def dispose(self, shell):
         shell.unset_local('clear')

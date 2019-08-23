@@ -22,12 +22,12 @@ class Commands(Component):
         for i, c in enumerate(shell.components):
             print('{}: {}'.format(i, c.name))
 
-    def init(self, shell):
+    async def init(self, shell):
         shell.set_local('list_components', \
                 lambda: self.list_components(shell))
         shell.set_local('reload', \
                 lambda: self.reload(shell))
 
-    def dispose(self, shell):
+    async def dispose(self, shell):
         shell.unset_local('list_components')
         shell.unset_local('reload')
