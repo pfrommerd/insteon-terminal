@@ -28,7 +28,11 @@ class ConsoleTerminal:
         os.system('clear')
     
     def run(self, shell):
-        shell.init()
+        try:
+            shell.init()
+        except InterpretError as e:
+            print(e)
+            return
 
         more = False
         while True:
