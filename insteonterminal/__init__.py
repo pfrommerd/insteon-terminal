@@ -1,7 +1,7 @@
-from iterminal.interpreter import InterpreterSetup
-from iterminal.shell import Shell,LoadScript
-from iterminal.commands import Commands
-from iterminal.component import Component
+from .interpreter import InterpreterSetup
+from .shell import Shell,LoadScript
+from .commands import Commands
+from .component import Component
 
 import os
 import logbook
@@ -75,7 +75,7 @@ def run():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    from iterminal.console import ConsoleTerminal,ConsoleCommands
+    from .console import ConsoleTerminal,ConsoleCommands
     terminal = ConsoleTerminal()
     terminal.add_prompt_listener(lambda p,v: prompt_logger.info(v))
 
