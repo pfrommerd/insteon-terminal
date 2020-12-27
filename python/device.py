@@ -281,7 +281,7 @@ class LastNRecordRemover(DBBuilderListener):
         iofun.out("found active records: ")
         i = 0
         for rec in reversed(records):
-            if self.numRecords > 0 and i > self.numRecords: break
+            if self.numRecords > 0 and i >= self.numRecords: break
             db.dumpRecord(rec, " removing record:")
             self.dev.setRecord(rec["offset"], InsteonAddress("00.00.00"), 0,
                                    0, [0, 0, 0]);
