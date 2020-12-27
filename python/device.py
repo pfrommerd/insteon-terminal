@@ -139,6 +139,46 @@ class AddressReplacer(DBBuilderListener):
         self.dev.dbbuilder.setListener(self)
         self.dev.getdb()
 
+class MoveRecord(DBBuilderListener):
+    oldOffset = None
+    newOffset = None
+    dev = None
+    def __init__(self, dev, offsetFrom, offsetTo):
+        self.dev = dev
+        self.oldOffset = offsetFrom
+        self.newOffset = offsetTo
+    def databaseComplete(self, db):
+        iofun.out("database complete, moving...")
+        mask = 0x02;
+        searchRec = {"offset" : self.oldOffset, "addr": InsteonAddress("00.00.00"), "type" : (1<<1),
+                     "group" : 0, "data" : []}
+        recs = db.findRecord(searchRec, mask, False, False, False, True);
+        for rec in recs:
+            if rec["offset"] == self.oldOffset:
+                db.dumpRecord(rec, "oldRecord: ");
+                oldRec = rec
+        searchRec = {"offset" : self.newOffset, "addr": InsteonAddress("00.00.00"), "type" : (1<<1),
+                     "group" : 0, "data" : []}
+        recs = db.findRecord(searchRec, mask, False, False, False, True);
+        for rec in recs:
+            if rec["offset"] == self.newOffset:
+                db.dumpRecord(rec, "newRecord: ");
+                newRec = rec
+        if not oldRec:
+            iofun.out("no source record found, nothing to do!")
+            return
+        if not newRec:
+            iofun.out("no target record found, nothing to do!")
+            return
+        self.dev.setRecord(newRec["offset"], oldRec["addr"], oldRec["group"],
+                           oldRec["type"], oldRec["data"])
+        time.sleep(1) # wait for one second
+        iofun.out("complete")
+    def databaseIncomplete(self, db):
+        iofun.out("database incomplete, retrying!")
+        self.dev.dbbuilder.setListener(self)
+        self.dev.getdb()
+
 class LinkRecordAdder(DBBuilderListener):
     group = None
     data  = [0x03, 0x1f, 0xef]
@@ -407,6 +447,12 @@ class Device:
         """replaceDevice(oldAddr, newAddr):
         replaces all linkdb occurrences of oldAddr with newAddr """
         self.dbbuilder.setListener(AddressReplacer(self, oldAddr, newAddr))
+        # after db download is complete, listener will perform action
+        self.getdb()
+    def moveRecord(self, sourceRecordOffset, targetRecordOffset):
+        """moveRecord(sourceRecordOffset, targetRecordOffset):
+        moves record from sourceRecordOffset to targetRecordOffset """
+        self.dbbuilder.setListener(MoveRecord(self, sourceRecordOffset, targetRecordOffset))
         # after db download is complete, listener will perform action
         self.getdb()
     def removeLastRecord(self):
