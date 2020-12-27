@@ -72,6 +72,8 @@ class LastRecordRemover(DBBuilderListener):
         else:
             self.dev.setRecord(above, InsteonAddress("00.00.00"),
                                       0x00, 0x00, [0, 0, 0])
+        time.sleep(1) # wait for one second
+        iofun.out("complete")
     def databaseIncomplete(self, db):
         iofun.out("database incomplete, reload() and retry!")
 
@@ -131,6 +133,8 @@ class AddressReplacer(DBBuilderListener):
             time.sleep(1) # wait for one second
         if not recs:
             iofun.out("no matching records found, nothing to replace!")
+        else:
+            iofun.out("complete")
         return
 
 
@@ -327,6 +331,8 @@ class LastNRecordRemover(DBBuilderListener):
                                    0, [0, 0, 0]);
             time.sleep(5.0)
             i = i + 1
+        time.sleep(1) # wait for one second
+        iofun.out("complete")
 
     def databaseIncomplete(self, db):
         iofun.out("database incomplete, reload() and retry!")
