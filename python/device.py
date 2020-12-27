@@ -413,6 +413,16 @@ class Device:
         """removeLastRecord()
         removes the last device in the link database"""
         self.modifyDB(LastRecordRemover(self))
+    def removeLastRecords(self, num ):
+        """removeLastRecord()
+        removes num last records in the link database"""
+        if not num:
+            iofun.out("num must be set to > 0, aborting!")
+            return
+        if num < 1:
+            iofun.out("num must be set to > 0, aborting!")
+            return
+        self.modifyDB(LastNRecordRemover(self, num))
     def nukeDB(self):
         """nukeDB()
         really WIPES OUT all records in the device's database!"""
