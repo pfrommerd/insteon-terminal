@@ -72,6 +72,8 @@ class LastRecordRemover(DBBuilderListener):
         else:
             self.dev.setRecord(above, InsteonAddress("00.00.00"),
                                       0x00, 0x00, [0, 0, 0])
+        time.sleep(1) # wait for one second
+        iofun.out("complete")
     def databaseIncomplete(self, db):
         iofun.out("database incomplete, reload() and retry!")
 
@@ -131,9 +133,51 @@ class AddressReplacer(DBBuilderListener):
             time.sleep(1) # wait for one second
         if not recs:
             iofun.out("no matching records found, nothing to replace!")
+        else:
+            iofun.out("complete")
         return
 
 
+    def databaseIncomplete(self, db):
+        iofun.out("database incomplete, retrying!")
+        self.dev.dbbuilder.setListener(self)
+        self.dev.getdb()
+
+class MoveRecord(DBBuilderListener):
+    oldOffset = None
+    newOffset = None
+    dev = None
+    def __init__(self, dev, offsetFrom, offsetTo):
+        self.dev = dev
+        self.oldOffset = offsetFrom
+        self.newOffset = offsetTo
+    def databaseComplete(self, db):
+        iofun.out("database complete, moving...")
+        mask = 0x02;
+        searchRec = {"offset" : self.oldOffset, "addr": InsteonAddress("00.00.00"), "type" : (1<<1),
+                     "group" : 0, "data" : []}
+        recs = db.findRecord(searchRec, mask, False, False, False, True);
+        for rec in recs:
+            if rec["offset"] == self.oldOffset:
+                db.dumpRecord(rec, "oldRecord: ");
+                oldRec = rec
+        searchRec = {"offset" : self.newOffset, "addr": InsteonAddress("00.00.00"), "type" : (1<<1),
+                     "group" : 0, "data" : []}
+        recs = db.findRecord(searchRec, mask, False, False, False, True);
+        for rec in recs:
+            if rec["offset"] == self.newOffset:
+                db.dumpRecord(rec, "newRecord: ");
+                newRec = rec
+        if not oldRec:
+            iofun.out("no source record found, nothing to do!")
+            return
+        if not newRec:
+            iofun.out("no target record found, nothing to do!")
+            return
+        self.dev.setRecord(newRec["offset"], oldRec["addr"], oldRec["group"],
+                           oldRec["type"], oldRec["data"])
+        time.sleep(1) # wait for one second
+        iofun.out("complete")
     def databaseIncomplete(self, db):
         iofun.out("database incomplete, retrying!")
         self.dev.dbbuilder.setListener(self)
@@ -281,12 +325,14 @@ class LastNRecordRemover(DBBuilderListener):
         iofun.out("found active records: ")
         i = 0
         for rec in reversed(records):
-            if self.numRecords > 0 and i > self.numRecords: break
+            if self.numRecords > 0 and i >= self.numRecords: break
             db.dumpRecord(rec, " removing record:")
             self.dev.setRecord(rec["offset"], InsteonAddress("00.00.00"), 0,
                                    0, [0, 0, 0]);
             time.sleep(5.0)
             i = i + 1
+        time.sleep(1) # wait for one second
+        iofun.out("complete")
 
     def databaseIncomplete(self, db):
         iofun.out("database incomplete, reload() and retry!")
@@ -409,10 +455,26 @@ class Device:
         self.dbbuilder.setListener(AddressReplacer(self, oldAddr, newAddr))
         # after db download is complete, listener will perform action
         self.getdb()
+    def moveRecord(self, sourceRecordOffset, targetRecordOffset):
+        """moveRecord(sourceRecordOffset, targetRecordOffset):
+        moves record from sourceRecordOffset to targetRecordOffset """
+        self.dbbuilder.setListener(MoveRecord(self, sourceRecordOffset, targetRecordOffset))
+        # after db download is complete, listener will perform action
+        self.getdb()
     def removeLastRecord(self):
         """removeLastRecord()
         removes the last device in the link database"""
         self.modifyDB(LastRecordRemover(self))
+    def removeLastRecords(self, num ):
+        """removeLastRecord()
+        removes num last records in the link database"""
+        if not num:
+            iofun.out("num must be set to > 0, aborting!")
+            return
+        if num < 1:
+            iofun.out("num must be set to > 0, aborting!")
+            return
+        self.modifyDB(LastNRecordRemover(self, num))
     def nukeDB(self):
         """nukeDB()
         really WIPES OUT all records in the device's database!"""
