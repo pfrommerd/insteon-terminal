@@ -139,6 +139,22 @@
 		<byte name = "FirmwareVersion"/>
 		<byte name = "ACK/NACK"/>
 	</msg>
+	<msg name = "GetIMConfig" length="2" direction = "TO_MODEM">
+		<header length="2">
+		 	<byte>0x02</byte>
+			<byte name = "Cmd">0x73</byte>
+		</header>
+	</msg>
+	<msg name = "GetIMConfigReply" length="6" direction = "FROM_MODEM">
+		<header length="2">
+		 	<byte>0x02</byte>
+			<byte name = "Cmd">0x73</byte>
+		</header>
+		<byte name = "IMConfigurationFlags"/>
+		<byte name = "Spare1"/>
+		<byte name = "Spare2"/>
+		<byte name = "ACK/NACK"/>
+	</msg>
 	<msg name = "SendALLLinkCommand" length="5" direction = "TO_MODEM">
 		<header length="2">
 		 	<byte>0x02</byte>
