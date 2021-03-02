@@ -35,6 +35,13 @@ class IMInfoMsgHandler(MsgHandler):
 		out(self.name + " got msg: " + msg.toString())
 		return 1
 
+class IMConfigMsgHandler(MsgHandler):
+	def __init__(self, name):
+		self.name = name
+	def processMsg(self, msg):
+		out(self.name + " got msg: " + msg.toString())
+		return 1
+
 class MsgDumper(MsgHandler):
 	def __init__(self, name):
 		self.name = name
@@ -119,6 +126,13 @@ class Modem2413U(Device):
 		self.querier = Querier(InsteonAddress("00.00.00"))
 		self.querier.setMsgHandler(IMInfoMsgHandler("getid"))
 		msg = Msg.s_makeMessage("GetIMInfo")
+		self.querier.sendMsg(msg)
+	def getIMConfig(self):
+		"""getIMConfig()
+		get modem configuration flags byte"""
+		self.querier = Querier(InsteonAddress("00.00.00"))
+		self.querier.setMsgHandler(IMConfigMsgHandler("getIMConfig"))
+		msg = Msg.s_makeMessage("GetIMConfig")
 		self.querier.sendMsg(msg)
 	def sendOn(self, group):
 		"""sendOn(group)
