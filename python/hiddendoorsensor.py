@@ -61,7 +61,7 @@ class StatusMsgHandler(MsgHandler):
 			else:
 				cleanupreport = "Don't Send Cleanup Report"
 			# Bit 1
-			if (rawflags & 0b00000100 == 2):
+			if (rawflags & 0b00000010 == 2):
 				twogroups = "Send Open on Group 1 ON and Closed on Group 2 ON"
 			else:
 				twogroups = "Send both Open and Closed on Group 1 (On=Open and Off=Closed)"
