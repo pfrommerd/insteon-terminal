@@ -2,6 +2,7 @@ from console_commands import *
 from keypad2487S import *
 from thermostat2441TH import *
 from modem2413U import *
+from modem2448A7 import *
 from switch2477S import *
 from dimmer2477D import *
 from ledBulb2672 import *
@@ -46,6 +47,7 @@ def connectToMySerial():
 # kp          = Keypad2487S("office_keypad", "30.0d.9f")
 # th          = Thermostat2441TH("kitchen_thermostat", "32.f7.2c")
 # modem       = Modem2413U("test_modem", "23.9b.65")
+# usb         = Modem2448A7("usb_adapter", "52.9c.45")
 # closetLight = Switch2477S("closetLight", "25.65.d6")
 # dimmer      = Dimmer2477D("dining_room_dinner", "20.ab.26")
 # ledBulb = LEDBulb2672("ledBulb", "21.EB.DD");
