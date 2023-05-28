@@ -10,6 +10,8 @@ from querier import Querier
 from querier import MsgHandler
 from dimmer import Dimmer
 
+from python.mixins.keybeepmixin import KeyBeepMixin
+
 from us.pfrommer.insteon.msg import Msg
 from us.pfrommer.insteon.msg import MsgListener
 from us.pfrommer.insteon.msg import InsteonAddress
@@ -60,7 +62,7 @@ class Flags2MsgHandler(MsgHandler):
                 return 1
 
 
-class Dimmer2477D(Dimmer):
+class Dimmer2477D(Dimmer, KeyBeepMixin):
 	"""==============  Insteon SwitchLinc Dimmer 2477D ==============="""
 	def __init__(self, name, addr):
 		Dimmer.__init__(self, name, addr)
@@ -164,18 +166,6 @@ class Dimmer2477D(Dimmer):
                 This sets the LED Backlight on"""
                 self.querier.setMsgHandler(DefaultMsgHandler("Set LED Backlight ON"))
                 return self.querier.queryext(0x20, 0x09, [0x00, 0x00, 0x00]);
-
-        def setKeyBeepOn(self):
-                """setKeyBeepOn()
-                This sets the dimmer to beep when key is pressed"""
-                self.querier.setMsgHandler(DefaultMsgHandler("Set Key Beep ON"))
-                return self.querier.queryext(0x20, 0x0A, [0x00, 0x00, 0x00]);
-
-        def setKeyBeepOff(self):
-                """setKeyBeepOff()
-                This sets the dimmer to not beep when key is pressed"""
-                self.querier.setMsgHandler(DefaultMsgHandler("Set Key Beep OFF"))
-                return self.querier.queryext(0x20, 0x0B, [0x00, 0x00, 0x00]);
 
         def setRFOff(self):
                 """setRFOff()

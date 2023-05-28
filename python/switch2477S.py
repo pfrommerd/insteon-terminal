@@ -10,22 +10,14 @@ from querier import MsgHandler
 from switch import Switch
 from linkdb import *
 
+from python.handlers.defaultmessagehandler import DefaultMsgHandler
+from python.mixins.keybeepmixin import KeyBeepMixin
+
 from us.pfrommer.insteon.msg import Msg
 from us.pfrommer.insteon.msg import MsgListener
 from us.pfrommer.insteon.msg import InsteonAddress
 
-def out(msg = ""):
-	iofun.out(msg)
-
-class DefaultMsgHandler(MsgHandler):
-	label = None
-	def __init__(self, l):
-		self.label = l
-	def processMsg(self, msg):
-		out(self.label + " got msg: " + msg.toString())
-		return 1
-
-class Switch2477S(Switch):
+class Switch2477S(Switch, KeyBeepMixin):
 	"""==============  Insteon SwitchLinc 2477S ==============="""
 	def __init__(self, name, addr):
 		Switch.__init__(self, name, addr)
