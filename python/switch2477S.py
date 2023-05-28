@@ -9,6 +9,7 @@ from querier import Querier
 from querier import MsgHandler
 from switch import Switch
 from linkdb import *
+from mixins.key_beep_mixin import KeyBeepMixin
 
 from us.pfrommer.insteon.msg import Msg
 from us.pfrommer.insteon.msg import MsgListener
@@ -25,7 +26,7 @@ class DefaultMsgHandler(MsgHandler):
 		out(self.label + " got msg: " + msg.toString())
 		return 1
 
-class Switch2477S(Switch):
+class Switch2477S(Switch, KeyBeepMixin):
 	"""==============  Insteon SwitchLinc 2477S ==============="""
 	def __init__(self, name, addr):
 		Switch.__init__(self, name, addr)
