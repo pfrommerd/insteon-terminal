@@ -37,13 +37,13 @@ class Switch2477S(Switch):
 		self.querier.querysd(0x1f, 0x00);
 
 	def tapSet(self):
-		"""set()
+		"""tapSet()
 		remotely taps the set button"""
 		self.querier.setMsgHandler(DefaultMsgHandler("remotely tapped set button"))
 		self.querier.querysd(0x2F, 0x00)
 		
 	def holdSet(self):
-		"""set()
+		"""holdSet()
 		remotely holds the set button for 3 seconds"""
 		self.querier.setMsgHandler(DefaultMsgHandler("remotely held set button"))
 		self.querier.querysd(0x10, 0x00)
