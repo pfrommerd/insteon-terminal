@@ -4,6 +4,8 @@ KeyBeepMixin
 This mixin provides functionality to control the key beep feature of some devices.
 """
 
+from python.handlers.defaultmessagehandler import DefaultMsgHandler
+
 class KeyBeepMixin:
     def setKeyBeepOn(self):
         """setKeyBeepOn()

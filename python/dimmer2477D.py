@@ -9,7 +9,8 @@ from linkdb import *
 from querier import Querier
 from querier import MsgHandler
 from dimmer import Dimmer
-from mixins.key_beep_mixin import KeyBeepMixin
+
+from python.mixins.keybeepmixin import KeyBeepMixin
 
 from us.pfrommer.insteon.msg import Msg
 from us.pfrommer.insteon.msg import MsgListener
